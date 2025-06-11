@@ -505,17 +505,6 @@ export class HttpClient {
   }
 
   /**
-   * Converts Headers object to plain object
-   */
-  private headersToRecord(headers: Headers): Record<string, string> {
-    const record: Record<string, string> = {};
-    headers.forEach((value, key) => {
-      record[key] = value;
-    });
-    return record;
-  }
-
-  /**
    * Utility method to create delay
    */
   private delay(ms: number): Promise<void> {

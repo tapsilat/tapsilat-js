@@ -1,5 +1,6 @@
 // API Configuration
 export interface TapsilatConfig {
+  maxRetries: number | undefined;
   apiKey: string;
   baseURL?: string;
   timeout?: number;

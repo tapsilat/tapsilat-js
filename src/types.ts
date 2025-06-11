@@ -123,4 +123,109 @@ export interface WebhookEvent {
   data: PaymentResponse | RefundResponse;
   createdAt: string;
   signature: string;
+}
+
+/**
+ * Supported locales for the Tapsilat API.
+ */
+export type Locale = 'tr' | 'en';
+
+/**
+ * Represents the buyer information.
+ * Based on BuyerDTO from the Python SDK.
+ */
+export interface Buyer {
+  name: string;
+  surname: string;
+  email: string;
+  phone?: string;
+  identityNumber?: string;
+  shippingAddress?: Address;
+  billingAddress?: Address;
+}
+
+/**
+ * Represents the data required to create a new order.
+ * Based on OrderCreateDTO from the Python SDK.
+ */
+export interface OrderCreateRequest {
+  amount: number;
+  currency: Currency;
+  locale: Locale;
+  buyer: Buyer;
+  description?: string;
+  callbackUrl?: string;
+  conversationId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Represents the response received after creating an order.
+ */
+export interface OrderCreateResponse {
+  referenceId: string;
+  conversationId: string;
+  checkoutUrl: string;
+  status: string;
+  qrCodeUrl?: string;
+}
+
+/**
+ * Represents a full order object with all details.
+ */
+export interface Order extends OrderCreateResponse {
+  amount: number;
+  currency: Currency;
+  buyer: Buyer;
+  description?: string;
+  createdAt: string; // ISO 8601 date string
+  updatedAt: string; // ISO 8601 date string
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Represents the data needed to request a refund for an order.
+ */
+export interface OrderRefundRequest {
+  referenceId: string;
+  amount: number;
+  reason?: string;
+}
+
+/**
+ * Represents the response received after a refund request.
+ */
+export interface OrderRefundResponse {
+  refundId: string;
+  referenceId: string;
+  status: string; // e.g., 'succeeded', 'pending', 'failed'
+  amount: number;
+  currency: Currency;
+  createdAt: string;
+}
+
+/**
+ * Represents the status of an order.
+ */
+export interface OrderStatusResponse {
+  referenceId: string;
+  status: string; // e.g., 'CREATED', 'PENDING_PAYMENT', 'COMPLETED', 'CANCELLED'
+  lastUpdatedAt: string;
+}
+
+/**
+ * Represents the details of a payment transaction associated with an order.
+ */
+export interface OrderPaymentDetail {
+  transactionId: string;
+  paymentMethod: string; // 'credit_card', 'bank_transfer', etc.
+  amount: number;
+  currency: Currency;
+  status: string; // 'succeeded', 'failed'
+  paidAt: string;
+  cardInfo?: {
+    binNumber: string;
+    lastFourDigits: string;
+    cardAssociation: string;
+  };
 } 

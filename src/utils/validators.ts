@@ -48,6 +48,7 @@ export function hasValidDecimalPlaces(amount: number): boolean {
  * @throws {TapsilatValidationError} When API key is invalid
  */
 export function validateApiKey(apiKey: unknown): asserts apiKey is string {
+
   if (!isNonEmptyString(apiKey)) {
     throw new TapsilatValidationError('API key must be a non-empty string');
   }
@@ -56,11 +57,15 @@ export function validateApiKey(apiKey: unknown): asserts apiKey is string {
     throw new TapsilatValidationError('API key must be at least 10 characters long');
   }
 
-  // Additional security checks could be added here
-  if (!/^[a-zA-Z0-9_-]+$/.test(apiKey)) {
-    throw new TapsilatValidationError('API key contains invalid characters');
+  // Character check for the part after the prefix
+  const keyPart = apiKey.substring(4);
+  if (!/^[a-zA-Z0-9_-]+$/.test(keyPart)) {
+    throw new TapsilatValidationError('API key contains invalid characters after the prefix');
   }
+  
 }
+
+
 
 /**
  * Validates payment request data comprehensively
@@ -254,3 +259,4 @@ export function validatePaginationParams(params: {
     }
   }
 }
+ 
