@@ -32,7 +32,6 @@ export {
 // Utilities
 export {
   validatePaymentRequest,
-  validateApiKey,
   validateEmail,
   isValidCurrency,
   isValidPaymentMethod,

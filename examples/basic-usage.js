@@ -3,7 +3,7 @@ const { TapsilatSDK } = require("../dist/index.js");
 async function main() {
   // SDK'yı başlat
   const tapsilat = new TapsilatSDK({
-    apiKey: "your-api-key-here",
+    bearerToken: "your-bearer-token-here",
     baseURL: "https://api.tapsilat.com/v1", // opsiyonel
     timeout: 30000, // opsiyonel, 30 saniye
     retryAttempts: 3, // opsiyonel, yeniden deneme sayısı
@@ -23,7 +23,6 @@ async function main() {
     description: "Example payment",
   });
 
-  const orderStatus = await tapsilat.getOrderStatus(order.referenceId);
 
   try {
     // Ödeme oluştur

@@ -42,30 +42,23 @@ export function hasValidDecimalPlaces(amount: number): boolean {
 
 // Validation Functions
 /**
- * Validates API key format and strength
+ * Validates Bearer token format and strength
  * 
- * @param apiKey - API key to validate
- * @throws {TapsilatValidationError} When API key is invalid
+ * @param bearerToken - Bearer token to validate
+ * @throws {TapsilatValidationError} When Bearer token is invalid
  */
-export function validateApiKey(apiKey: unknown): asserts apiKey is string {
-
-  if (!isNonEmptyString(apiKey)) {
-    throw new TapsilatValidationError('API key must be a non-empty string');
+export function validateBearerToken(bearerToken: unknown): asserts bearerToken is string {
+  if (!isNonEmptyString(bearerToken)) {
+    throw new TapsilatValidationError('Bearer token must be a non-empty string');
   }
-
-  if (apiKey.length < 10) {
-    throw new TapsilatValidationError('API key must be at least 10 characters long');
+  if (bearerToken.length < 10) {
+    throw new TapsilatValidationError('Bearer token must be at least 10 characters long');
   }
-
-  // Character check for the part after the prefix
-  const keyPart = apiKey.substring(4);
-  if (!/^[a-zA-Z0-9_-]+$/.test(keyPart)) {
-    throw new TapsilatValidationError('API key contains invalid characters after the prefix');
+  // Karakter kontrolü (opsiyonel, isterseniz ek kurallar koyabilirsiniz)
+  if (!/^[a-zA-Z0-9._-]+$/.test(bearerToken)) {
+    throw new TapsilatValidationError('Bearer token contains invalid characters');
   }
-  
 }
-
-
 
 /**
  * Validates payment request data comprehensively

@@ -448,7 +448,7 @@ export class HttpClient {
   ): Promise<RequestInit> {
     const headers = new Headers({
       "User-Agent": `TapsilatSDK/1.0.0`,
-      Authorization: `Bearer ${this.config.apiKey}`,
+      Authorization: `Bearer ${this.config.bearerToken}`,
       Accept: "application/json",
       ...(config?.headers as Record<string, string>),
     });

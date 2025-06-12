@@ -1,6 +1,6 @@
 import { HttpClient, RequestBody } from "./http/HttpClient";
 import {
-  validateApiKey,
+  validateBearerToken,
   validatePaymentRequest,
   sanitizeMetadata,
 } from "./utils/validators";
@@ -75,7 +75,7 @@ export interface OrderCreateResponse {
  * @example
  * ```typescript
  * const tapsilat = new TapsilatSDK({
- *   apiKey: 'your-api-key',
+ *   bearerToken: 'your-bearer-token',
  *   baseURL: 'https://api.tapsilat.com/v1'
  * });
  *
@@ -94,10 +94,10 @@ export class TapsilatSDK {
    * Creates a new TapsilatSDK instance
    *
    * @param config - SDK configuration options
-   * @throws {TapsilatValidationError} When API key is invalid
+   * @throws {TapsilatValidationError} When Bearer token is invalid
    */
   constructor(config: TapsilatConfig) {
-    validateApiKey(config.apiKey);
+    validateBearerToken(config.bearerToken);
     this.config = config;
     this.httpClient = new HttpClient(config);
   }
@@ -110,7 +110,7 @@ export class TapsilatSDK {
    * @param paymentRequest - Payment details including amount, currency, and method
    * @returns Promise resolving to payment response with ID and status
    * @throws {TapsilatValidationError} When request data is invalid
-   * @throws {TapsilatAuthenticationError} When API key is invalid
+   * @throws {TapsilatAuthenticationError} When Bearer token is invalid
    * @throws {TapsilatNetworkError} When network request fails
    *
    * @example
@@ -253,7 +253,7 @@ export class TapsilatSDK {
    * @param orderRequest - Details of the order including buyer and amount.
    * @returns Promise resolving to the created order details with a checkout URL.
    * @throws {TapsilatValidationError} When request data is invalid.
-   * @throws {TapsilatAuthenticationError} When API key is invalid.
+   * @throws {TapsilatAuthenticationError} When Bearer token is invalid.
    * @throws {TapsilatNetworkError} When network request fails.
    */
   async createOrder(
@@ -685,11 +685,11 @@ export class TapsilatSDK {
    *
    * @returns Copy of current configuration
    */
-  getConfig(): Omit<TapsilatConfig, "apiKey"> & { hasApiKey: boolean } {
-    const { apiKey, ...safeConfig } = this.config;
+  getConfig(): Omit<TapsilatConfig, "bearerToken"> & { hasBearerToken: boolean } {
+    const { bearerToken, ...safeConfig } = this.config;
     return {
       ...safeConfig,
-      hasApiKey: Boolean(apiKey),
+      hasBearerToken: Boolean(bearerToken),
     };
   }
 
@@ -697,13 +697,12 @@ export class TapsilatSDK {
    * Updates SDK configuration
    *
    * @param newConfig - Partial configuration to update
-   * @throws {TapsilatValidationError} When API key is invalid
+   * @throws {TapsilatValidationError} When Bearer token is invalid
    */
   updateConfig(newConfig: Partial<TapsilatConfig>): void {
-    if (newConfig.apiKey) {
-      validateApiKey(newConfig.apiKey);
+    if (newConfig.bearerToken) {
+      validateBearerToken(newConfig.bearerToken);
     }
-
     Object.assign(this.config, newConfig);
   }
 }

@@ -1,5 +1,5 @@
 export interface TapsilatConfig {
-  apiKey: string;
+  bearerToken: string;
   baseURL?: string;
   timeout?: number;
   maxRetries?: number;
