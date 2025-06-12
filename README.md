@@ -19,14 +19,6 @@
 
 **Tapsilat** is Turkey's leading fintech platform providing comprehensive payment processing solutions for businesses of all sizes. Our cutting-edge technology enables secure, fast, and reliable payment transactions with support for multiple payment methods, currencies, and advanced fraud protection.
 
-### Key Advantages
-- 🛡️ **Enterprise Security**: PCI DSS Level 1 compliant with advanced fraud detection
-- 🌍 **Multi-Currency Support**: Process payments in TRY, USD, EUR, and GBP
-- ⚡ **Real-time Processing**: Sub-second transaction processing with 99.9% uptime
-- 🔄 **Flexible Integration**: REST API, webhooks, and comprehensive SDKs
-- 📊 **Advanced Analytics**: Real-time reporting and business intelligence
-- 🎯 **Smart Routing**: Intelligent payment routing for optimal success rates
-
 ---
 
 ## 📋 Table of Contents
@@ -51,45 +43,6 @@
 - [🌐 Environment Support](#-environment-support)
 - [🤝 Contributing](#-contributing)
 - [📜 License](#-license)
-
----
-
-## ✨ Features
-
-### 🎯 **Type Safety & Developer Experience**
-- **100% TypeScript**: Full type safety with comprehensive IntelliSense support
-- **Modern ES6+**: Built with latest JavaScript standards
-- **Zero Dependencies**: Lightweight with minimal external dependencies
-- **Auto-completion**: Rich IDE support with detailed method signatures
-- **Comprehensive Documentation**: Inline JSDoc comments for every method
-
-### 🔧 **Advanced HTTP Client**
-- **Intelligent Retry Logic**: Exponential backoff with jitter for failed requests
-- **Request/Response Interceptors**: Customize request/response handling
-- **Timeout Management**: Configurable timeouts with request cancellation
-- **Error Handling**: Rich error types with detailed context
-- **Debug Mode**: Comprehensive logging for development and troubleshooting
-
-### 🛡️ **Enterprise Security**
-- **Bearer Token Authentication**: Secure API access with JWT tokens
-- **HMAC Webhook Verification**: Cryptographic verification of webhook payloads
-- **Data Sanitization**: Automatic filtering of sensitive information
-- **TLS 1.3 Support**: Secure transport layer encryption
-- **Rate Limiting**: Built-in rate limit handling and retry mechanisms
-
-### 💼 **Business Logic**
-- **Order Lifecycle Management**: Complete order creation, tracking, and management
-- **Multi-Currency Support**: TRY, USD, EUR, GBP with automatic conversion
-- **Flexible Payment Methods**: Credit cards, debit cards, bank transfers, digital wallets
-- **Refund Processing**: Full and partial refunds with detailed tracking
-- **Transaction History**: Comprehensive transaction and audit logging
-
-### 🔄 **Integration Features**
-- **Webhook Support**: Real-time event notifications with signature verification
-- **Pagination**: Efficient handling of large datasets
-- **Bulk Operations**: Process multiple transactions efficiently
-- **Metadata Support**: Custom data attachment to transactions
-- **Localization**: Multi-language support (Turkish, English)
 
 ---
 
@@ -1230,80 +1183,6 @@ describe('Tapsilat SDK Integration', () => {
 
 ---
 
-## 📊 Performance
-
-### Benchmarks
-
-Performance metrics for common operations:
-
-| Operation | Average Response Time | 95th Percentile | Throughput |
-|-----------|----------------------|-----------------|------------|
-| Create Order | 150ms | 300ms | 1000 req/min |
-| Get Order | 50ms | 100ms | 5000 req/min |
-| Order Status | 25ms | 50ms | 10000 req/min |
-| List Orders | 100ms | 200ms | 2000 req/min |
-| Process Refund | 200ms | 400ms | 500 req/min |
-
-### Optimization Tips
-
-#### 1. **Connection Pooling**
-
-```typescript
-// The SDK automatically manages HTTP connections
-const tapsilat = new TapsilatSDK({
-  bearerToken: process.env.TAPSILAT_BEARER_TOKEN!,
-  timeout: 30000,
-  maxRetries: 3
-});
-
-// Reuse the same SDK instance across requests
-export default tapsilat;
-```
-
-#### 2. **Batch Operations**
-
-```typescript
-// Process multiple orders efficiently
-async function processOrdersBatch(orders: OrderCreateRequest[]) {
-  const results = await Promise.allSettled(
-    orders.map(order => tapsilat.createOrder(order))
-  );
-
-  const successful = results
-    .filter(result => result.status === 'fulfilled')
-    .map(result => (result as PromiseFulfilledResult<any>).value);
-
-  const failed = results
-    .filter(result => result.status === 'rejected')
-    .map(result => (result as PromiseRejectedResult).reason);
-
-  return { successful, failed };
-}
-```
-
-#### 3. **Caching Strategies**
-
-```typescript
-// Cache order status for frequently accessed orders
-const statusCache = new Map<string, { status: any; timestamp: number }>();
-const CACHE_TTL = 30000; // 30 seconds
-
-async function getCachedOrderStatus(referenceId: string) {
-  const cached = statusCache.get(referenceId);
-  
-  if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-    return cached.status;
-  }
-
-  const status = await tapsilat.getOrderStatus(referenceId);
-  statusCache.set(referenceId, { status, timestamp: Date.now() });
-  
-  return status;
-}
-```
-
----
-
 ## 🌐 Environment Support
 
 ### Node.js Environments
@@ -1440,26 +1319,6 @@ npm run format:check
 # Fix linting issues
 npm run lint:fix
 ```
-
-### Commit Guidelines
-
-We follow [Conventional Commits](https://conventionalcommits.org/):
-
-```bash
-feat: add new order cancellation feature
-fix: resolve timeout issues in payment processing
-docs: update API documentation
-test: add integration tests for refund operations
-```
-
-### Release Process
-
-1. **Version Bump**: Update version in `package.json`
-2. **Changelog**: Update `CHANGELOG.md` with new features and fixes
-3. **Build**: Generate production build
-4. **Test**: Run comprehensive test suite
-5. **Publish**: Release to npm registry
-
 ---
 
 ## 📜 License
