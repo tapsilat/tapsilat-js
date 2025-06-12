@@ -6,12 +6,6 @@
 
 **Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform**
 
-[![npm version](https://img.shields.io/npm/v/tapsilat-js.svg?style=flat-square)](https://www.npmjs.com/package/tapsilat-js)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/tapsilat/tapsilat-js/ci.yml?style=flat-square)](https://github.com/tapsilat/tapsilat-js/actions)
-[![Test Coverage](https://img.shields.io/codecov/c/github/tapsilat/tapsilat-js?style=flat-square)](https://codecov.io/gh/tapsilat/tapsilat-js)
-[![MIT License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
-[![Downloads](https://img.shields.io/npm/dm/tapsilat-js.svg?style=flat-square)](https://www.npmjs.com/package/tapsilat-js)
 
 </div>
 
@@ -36,7 +30,6 @@
   - [Health Monitoring](#health-monitoring)
 - [🔐 Authentication](#-authentication)
 - [🛡️ Security](#️-security)
-- [⚠️ Error Handling](#️-error-handling)
 - [🧪 Testing](#-testing)
 - [🌐 Environment Support](#-environment-support)
 - [🤝 Contributing](#-contributing)
@@ -758,31 +751,7 @@ try {
 
 ---
 
-
-## ⚠️ Error Handling
-
-### Error Types
-
-The SDK provides comprehensive error handling with specific error types for different scenarios.
-
-#### TapsilatAuthenticationError
-
-Thrown when authentication fails or tokens are invalid.
-
-```typescript
-import { TapsilatAuthenticationError } from 'tapsilat-js';
-
-try {
-  await tapsilat.createOrder(orderData);
-} catch (error) {
-  if (error instanceof TapsilatAuthenticationError) {
-    console.error('Authentication failed:', error.message);
-    // Handle token refresh or user re-authentication
-    await refreshAuthToken();
-  }
-}
 ```
-
 
 ## 🧪 Testing
 
