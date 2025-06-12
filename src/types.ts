@@ -106,15 +106,11 @@ export interface PaginationParams {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-    hasNextPage: boolean;
-    hasPreviousPage: boolean;
-  };
+  page: number;
+  per_page: number;
+  rows: T[];
+  total: number;
+  total_pages: number;
 }
 
 export interface WebhookEvent {
@@ -168,13 +164,21 @@ export interface OrderCreateResponse {
  * Represents a full order object with all details.
  */
 export interface Order extends OrderCreateResponse {
-  amount: number;
+  amount: number | string; // API returns string, but we might want to parse it
   currency: Currency;
-  buyer: Buyer;
+  buyer?: Buyer;
   description?: string;
-  createdAt: string; // ISO 8601 date string
-  updatedAt: string; // ISO 8601 date string
+  createdAt?: string; // ISO 8601 date string
+  updatedAt?: string; // ISO 8601 date string
   metadata?: Record<string, unknown>;
+  // Additional fields from API response
+  id?: string;
+  name?: string;
+  email?: string;
+  total?: string;
+  checkout_url?: string;
+  organization?: string;
+  unpaid_amount?: number;
 }
 
 /**

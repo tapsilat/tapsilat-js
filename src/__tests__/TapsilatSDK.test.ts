@@ -3,8 +3,8 @@ import { TapsilatSDK, OrderCreateRequest } from "../TapsilatSDK";
 describe("TapsilatSDK", () => {
   const validConfig = {
     bearerToken:
-      "YOUR_BEARER_TOKEN",
-    baseURL: "https://api.test.tapsilat.com/v1",
+      "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6InRhcmlrQGFwaS50YXBzaWxhdGRldiIsIklEIjoiNjI5NjJhMDMtM2RhYy00YzlhLWIzN2UtZWYxYWMwMGMyM2I5IiwiT3JnYW5pemF0aW9uSUQiOiIxZjk0NWZmNy1kMGQ5LTQzZTctYjk2Mi1kYjhiYzMzNWJhYWIiLCJPcmdhbml6YXRpb24iOiJUYXBzaWxhdERFViIsIklzT3JnYW5pemF0aW9uVXNlciI6dHJ1ZSwiSXBBZGRyZXNzIjoiIiwiQWdlbnQiOiIiLCJPcmdUaW1lemVvbmUiOiJUdXJrZXkiLCJJc0FwaVVzZXIiOnRydWUsImlzcyI6InRhcHNpbGF0IiwiZXhwIjoyNjExMDM0NzAyfQ.71tFaa_ABkAxv8xN_0GgJZwe2gM3DhUHz16FAKQ9U2B6nY6tCBJuyAzOpxmQg1DLtv_v6nCV5qRJOlcCSm6Jhg",
+    baseURL: "https://acquiring.tapsilat.dev/api/v1",
     timeout: 10000,
   };
 
@@ -33,7 +33,6 @@ describe("TapsilatSDK", () => {
         },
       };
       const order = await sdk.createOrder(orderRequest);
-      console.log("ORDER RESPONSE:", order);
       expect(order).toHaveProperty("order_id");
       expect(order).toHaveProperty("reference_id");
       createdOrderReferenceId = (order as any)["reference_id"];
@@ -43,7 +42,6 @@ describe("TapsilatSDK", () => {
       if (!createdOrderReferenceId) throw new Error("No order created");
       const status = await sdk.getOrderStatus(createdOrderReferenceId);
       expect(status.status).toBeTruthy();
-      console.log("✅ Order status:", status.status);
     }, 20000);
 
     it("should get the created order", async () => {
@@ -53,23 +51,27 @@ describe("TapsilatSDK", () => {
       expect((order as any)["reference_id"]).toBe(createdOrderReferenceId);
       expect(order).toHaveProperty("amount");
       expect(order).toHaveProperty("currency");
-      expect(order.amount).toBe(150.75);
+      // API might return amount as string or number
+      const amount = (order as any).amount;
+      const expectedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+      expect(expectedAmount).toBe(150.75);
       expect(order.currency).toBe("TRY");
-      console.log("✅ Retrieved order:", (order as any)["reference_id"]);
     }, 20000);
 
     it("should list orders", async () => {
       const orders = await sdk.getOrders({ page: 1, per_page: 10 });
-      console.log("ORDERS RESPONSE:", orders);
-      if (!orders || !Array.isArray(orders.data)) {
+      
+      // API returns 'rows' field, not 'data'
+      const orderRows = (orders as any).rows;
+      if (!orders || !Array.isArray(orderRows)) {
         throw new Error(
-          "orders.data is not an array or response is invalid: " +
+          "orders.rows is not an array or response is invalid: " +
             JSON.stringify(orders)
         );
       }
-      expect(Array.isArray(orders.data)).toBe(true);
-      expect(orders).toHaveProperty("pagination");
-      console.log("✅ Listed orders:", orders.data.length);
+      expect(Array.isArray(orderRows)).toBe(true);
+      expect(orders).toHaveProperty("page");
+      expect(orders).toHaveProperty("total");
     }, 20000);
 
     it("should cancel the order", async () => {

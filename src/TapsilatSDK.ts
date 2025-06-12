@@ -125,9 +125,8 @@ export class TapsilatSDK {
     if (!referenceId) {
       throw new Error("Order referenceId is required");
     }
-    const response = await this.httpClient.post<Order>(
-      "/order/get",
-      { reference_id: referenceId }
+    const response = await this.httpClient.get<Order>(
+      `/order/${referenceId}`
     );
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || "Order retrieval failed");
@@ -139,9 +138,9 @@ export class TapsilatSDK {
    * Lists orders (page, per_page).
    */
   async getOrders(params: { page?: number; per_page?: number } = {}): Promise<PaginatedResponse<Order>> {
-    const response = await this.httpClient.post<PaginatedResponse<Order>>(
+    const response = await this.httpClient.get<PaginatedResponse<Order>>(
       "/order/list",
-      params
+      { params: params }
     );
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || "Order list failed");
@@ -173,9 +172,8 @@ export class TapsilatSDK {
     if (!referenceId) {
       throw new Error("Order referenceId is required for status");
     }
-    const response = await this.httpClient.post<OrderStatusResponse>(
-      "/order/status",
-      { reference_id: referenceId }
+    const response = await this.httpClient.get<OrderStatusResponse>(
+      `/order/${referenceId}/status`
     );
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || "Order status retrieval failed");
@@ -194,7 +192,7 @@ export class TapsilatSDK {
     refundData: OrderRefundRequest
   ): Promise<OrderRefundResponse> {
     const response = await this.httpClient.post<OrderRefundResponse>(
-      "/orders/refund",
+      "/order/refund",
       refundData
     );
 
@@ -214,7 +212,8 @@ export class TapsilatSDK {
    */
   async refundAllOrder(referenceId: string): Promise<OrderRefundResponse> {
     const response = await this.httpClient.post<OrderRefundResponse>(
-      `/orders/${referenceId}/refund-all`
+      "/order/refund-all",
+      { reference_id: referenceId }
     );
 
     if (!response.success || !response.data) {
@@ -236,24 +235,95 @@ export class TapsilatSDK {
     referenceId: string,
     conversationId?: string
   ): Promise<OrderPaymentDetail[]> {
-    const queryParams = new URLSearchParams();
     if (conversationId) {
-      queryParams.append("conversationId", conversationId);
-    }
-    const queryString = queryParams.toString();
-    const url = `/orders/${referenceId}/payment-details${
-      queryString ? `?${queryString}` : ""
-    }`;
-
-    const response = await this.httpClient.get<OrderPaymentDetail[]>(url);
-
-    if (!response.success || !response.data) {
-      throw new Error(
-        response.error?.message || "Failed to get payment details"
+      // If conversation_id is provided, use POST to /order/payment-details
+      const response = await this.httpClient.post<OrderPaymentDetail[]>(
+        "/order/payment-details",
+        { conversation_id: conversationId, reference_id: referenceId }
       );
-    }
+      
+      if (!response.success || !response.data) {
+        throw new Error(
+          response.error?.message || "Failed to get payment details"
+        );
+      }
+      
+      return response.data;
+    } else {
+      // If no conversation_id, use GET to /order/{reference_id}/payment-details
+      const response = await this.httpClient.get<OrderPaymentDetail[]>(
+        `/order/${referenceId}/payment-details`
+      );
 
+      if (!response.success || !response.data) {
+        throw new Error(
+          response.error?.message || "Failed to get payment details"
+        );
+      }
+
+      return response.data;
+    }
+  }
+
+  /**
+   * Gets an order by conversation_id.
+   * Based on `get_order_by_conversation_id` from the Python SDK.
+   */
+  async getOrderByConversationId(conversationId: string): Promise<Order> {
+    if (!conversationId) {
+      throw new Error("Order conversationId is required");
+    }
+    const response = await this.httpClient.get<Order>(
+      `/order/conversation/${conversationId}`
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.error?.message || "Order retrieval by conversation ID failed");
+    }
     return response.data;
+  }
+
+  /**
+   * Gets order transactions by reference_id.
+   * Based on `get_order_transactions` from the Python SDK.
+   */
+  async getOrderTransactions(referenceId: string): Promise<any[]> {
+    if (!referenceId) {
+      throw new Error("Order referenceId is required");
+    }
+    const response = await this.httpClient.get<any[]>(
+      `/order/${referenceId}/transactions`
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.error?.message || "Order transactions retrieval failed");
+    }
+    return response.data;
+  }
+
+  /**
+   * Gets order submerchants with pagination.
+   * Based on `get_order_submerchants` from the Python SDK.
+   */
+  async getOrderSubmerchants(params: { page?: number; per_page?: number } = {}): Promise<any> {
+    const response = await this.httpClient.get<any>(
+      "/order/submerchants",
+      { params: params }
+    );
+    if (!response.success || !response.data) {
+      throw new Error(response.error?.message || "Order submerchants retrieval failed");
+    }
+    return response.data;
+  }
+
+  /**
+   * Gets checkout URL for an order.
+   * Based on `get_checkout_url` from the Python SDK.
+   */
+  async getCheckoutUrl(referenceId: string): Promise<string> {
+    const order = await this.getOrder(referenceId);
+    if (order && (order as any).checkout_url) {
+      return (order as any).checkout_url;
+    }
+    throw new Error("Checkout URL not found in order response");
   }
 
   // Utility Methods

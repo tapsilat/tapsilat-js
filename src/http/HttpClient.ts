@@ -16,6 +16,7 @@ export interface RequestConfig extends Omit<RequestInit, "method" | "body"> {
   retries?: number;
   baseURL?: string;
   maxRetries?: number;
+  params?: Record<string, any>;
 }
 
 /**
@@ -164,7 +165,7 @@ export class HttpClient {
     body?: RequestBody,
     config?: RequestConfig
   ): Promise<APIResponse<T>> {
-    const fullUrl = this.buildUrl(url, config?.baseURL);
+    const fullUrl = this.buildUrl(url, config?.baseURL, config?.params);
     const requestOptions = await this.buildRequestOptions(method, body, config);
     const maxRetries = config?.retries ?? this.config.maxRetries ?? 3;
 
@@ -424,7 +425,7 @@ export class HttpClient {
   /**
    * Builds the complete URL for the request
    */
-  private buildUrl(url: string, customBaseURL?: string): string {
+  private buildUrl(url: string, customBaseURL?: string, params?: Record<string, any>): string {
     const baseURL =
       customBaseURL || this.config.baseURL || "https://api.tapsilat.com/v1";
 
@@ -434,8 +435,24 @@ export class HttpClient {
 
     const base = baseURL.replace(/\/+$/, "");
     const path = url.replace(/^\/+/, "");
+    
+    let fullUrl = `${base}/${path}`;
+    
+    // Add query parameters if provided
+    if (params && Object.keys(params).length > 0) {
+      const searchParams = new URLSearchParams();
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null && value !== "") {
+          searchParams.append(key, String(value));
+        }
+      }
+      const queryString = searchParams.toString();
+      if (queryString) {
+        fullUrl += `?${queryString}`;
+      }
+    }
 
-    return `${base}/${path}`;
+    return fullUrl;
   }
 
   /**
