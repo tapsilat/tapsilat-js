@@ -62,7 +62,7 @@ const { TapsilatSDK } = require("tapsilat-js");
 
 const tapsilat = new TapsilatSDK({
   bearerToken: "your-bearer-token-here",
-  baseURL: "https://api.tapsilat.com/v1", // optional
+  baseURL: "https://acquiring.tapsilat.dev/api/v1", // optional
   timeout: 30000, // optional, in ms
   maxRetries: 3,  // optional
 });

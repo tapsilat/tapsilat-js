@@ -1,6 +1,6 @@
 import {
   validatePaymentRequest,
-  validateApiKey,
+  validateBearerToken,
   validateEmail,
   isValidCurrency,
   isValidPaymentMethod,
@@ -64,21 +64,25 @@ describe("Validators", () => {
     });
   });
 
-  describe("validateApiKey", () => {
-    it("should accept valid API key", () => {
-      expect(() => validateApiKey("valid-api-key-12345")).not.toThrow();
+  describe("validateBearerToken", () => {
+    it("should accept valid bearer token", () => {
+      expect(() =>
+        validateBearerToken("valid-bearer-token-12345")
+      ).not.toThrow();
     });
 
-    it("should reject empty API key", () => {
-      expect(() => validateApiKey("")).toThrow(TapsilatValidationError);
+    it("should reject empty bearer token", () => {
+      expect(() => validateBearerToken("")).toThrow(TapsilatValidationError);
     });
 
-    it("should reject short API key", () => {
-      expect(() => validateApiKey("short")).toThrow(TapsilatValidationError);
+    it("should reject short bearer token", () => {
+      expect(() => validateBearerToken("short")).toThrow(
+        TapsilatValidationError
+      );
     });
 
-    it("should reject non-string API key", () => {
-      expect(() => validateApiKey(null as any)).toThrow(
+    it("should reject non-string bearer token", () => {
+      expect(() => validateBearerToken(null as any)).toThrow(
         TapsilatValidationError
       );
     });
@@ -117,7 +121,7 @@ describe("Validators", () => {
       const input = {
         userId: "123",
         password: "secret",
-        apiKey: "hidden",
+        bearerToken: "hidden",
         token: "bearer-token",
         secret: "my-secret",
         normalKey: "normal-value",
@@ -151,4 +155,4 @@ describe("Validators", () => {
       });
     });
   });
-}); 
+});

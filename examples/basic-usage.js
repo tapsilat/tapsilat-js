@@ -1,15 +1,19 @@
-const { TapsilatSDK } = require("../dist/index.js");
+import { TapsilatSDK } from "../dist/index.esm.js";
+
+// Order creation is not available in this SDK version or for this API endpoint.
+// Please refer to the API documentation or SDK updates for supported features.
 
 async function main() {
-  // SDK'yı başlat
   const tapsilat = new TapsilatSDK({
-    bearerToken: "your-bearer-token-here",
-    baseURL: "https://api.tapsilat.com/v1", // opsiyonel
-    timeout: 30000, // opsiyonel, 30 saniye
-    retryAttempts: 3, // opsiyonel, yeniden deneme sayısı
+    bearerToken:
+      "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6InRhcmlrQGFwaS50YXBzaWxhdGRldiIsIklEIjoiNjI5NjJhMDMtM2RhYy00YzlhLWIzN2UtZWYxYWMwMGMyM2I5IiwiT3JnYW5pemF0aW9uSUQiOiIxZjk0NWZmNy1kMGQ5LTQzZTctYjk2Mi1kYjhiYzMzNWJhYWIiLCJPcmdhbml6YXRpb24iOiJUYXBzaWxhdERFViIsIklzT3JnYW5pemF0aW9uVXNlciI6dHJ1ZSwiSXBBZGRyZXNzIjoiIiwiQWdlbnQiOiIiLCJPcmdUaW1lemVvbmUiOiJUdXJrZXkiLCJJc0FwaVVzZXIiOnRydWUsImlzcyI6InRhcHNpbGF0IiwiZXhwIjoyNjExMDM0NzAyfQ.71tFaa_ABkAxv8xN_0GgJZwe2gM3DhUHz16FAKQ9U2B6nY6tCBJuyAzOpxmQg1DLtv_v6nCV5qRJOlcCSm6Jhg",
+    baseURL: "https://acquiring.tapsilat.dev/api/v1",
+    timeout: 30000,
+    retryAttempts: 3,
   });
 
-  const order = await tapsilat.createOrder({
+  // 1. Create an order (using the new model)
+  const orderRequest = {
     amount: 150.75,
     currency: "TRY",
     locale: "tr",
@@ -17,95 +21,22 @@ async function main() {
       name: "Ahmet",
       surname: "Yilmaz",
       email: "ahmet@example.com",
-      phone: "+905551234567",
-      identityNumber: "12345678901",
     },
-    description: "Example payment",
-  });
+    // Add other fields as needed
+  };
 
+  const order = await tapsilat.createOrder(orderRequest);
+  console.log("Order created! Checkout URL:", order.checkout_url);
 
-  try {
-    // Ödeme oluştur
-    console.log("🔄 Creating payment...");
-    const payment = await tapsilat.createPayment({
-      amount: 150.75,
-      currency: "TRY",
-      paymentMethod: "credit_card",
-      description: "Example payment",
-      metadata: {
-        orderId: "ORDER-123",
-        userId: "456",
-      },
-      returnUrl: "https://your-site.com/payment/success",
-      webhookUrl: "https://your-site.com/webhooks/payment",
-    });
-
-    console.log("✅ Payment created:", {
-      id: payment.id,
-      status: payment.status,
-      amount: payment.amount,
-      currency: payment.currency,
-      paymentUrl: payment.paymentUrl,
-    });
-
-    const paymentStatus = await tapsilat.getPayment(payment.id);
-
-    const payments = await tapsilat.getPayments({
-      page: 1,
-      limit: 10,
-      sortBy: "createdAt",
-      sortOrder: "desc",
-    });
-
-    const customer = await tapsilat.createCustomer({
-      email: "customer@example.com",
-      name: "Ahmet Yılmaz",
-      phone: "+905551234567",
-      address: {
-        street: "Atatürk Caddesi No: 123",
-        city: "Istanbul",
-        state: "Istanbul",
-        postalCode: "34000",
-        country: "TR",
-      },
-    });
-
-    console.log("✅ Customer created:", {
-      id: customer.id,
-      name: customer.name,
-      email: customer.email,
-    });
-
-    if (payment.status === "completed") {
-      const refund = await tapsilat.createRefund({
-        paymentId: payment.id,
-        amount: 50.0, // Partial refund
-        reason: "Customer request",
-      });
-
-      console.log("✅ Refund created:", {
-        id: refund.id,
-        amount: refund.amount,
-        status: refund.status,
-      });
-    }
-  } catch (error) {
-    console.error("❌ Error:", error.message);
-
-    if (error.code) {
-      console.error("Error code:", error.code);
-    }
-
-    if (error.details) {
-      console.error("Error details:", error.details);
-    }
-  }
+  // 2. (Optional) Get order status
+  const orderStatus = await tapsilat.getOrderStatus(order.reference_id);
+  console.log("Order status:", orderStatus.status);
 }
 
 // Webhook doğrulama örneği
 function verifyWebhookExample() {
   const tapsilat = new TapsilatSDK({
-    apiKey: "your-api-key-here",
+    bearerToken: "your-bearer-token-here",
   });
 
   // Webhook payload'ı ve signature'ı
@@ -116,6 +47,6 @@ function verifyWebhookExample() {
   const isValid = tapsilat.verifyWebhook(payload, signature, webhookSecret);
 }
 
-if (require.main === module) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }
