@@ -21,7 +21,7 @@
 ## 🚀 Installation
 
 ```bash
-npm install tapsilat-js
+npm install @tapsilat/js
 ```
 
 ---
@@ -31,7 +31,7 @@ npm install tapsilat-js
 ### Initialize the SDK
 
 ```typescript
-import { TapsilatSDK } from "tapsilat-js";
+import { TapsilatSDK } from "@tapsilat/js";
 
 const tapsilat = new TapsilatSDK({
   bearerToken: process.env.TAPSILAT_BEARER_TOKEN!,
