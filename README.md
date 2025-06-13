@@ -16,14 +16,6 @@
 
 **Tapsilat** is Turkey's leading fintech platform providing comprehensive payment processing solutions for businesses of all sizes. Our cutting-edge technology enables secure, fast, and reliable payment transactions with support for multiple payment methods, currencies, and advanced fraud protection.
 
-### ✨ Key Features
-- 🛡️ **Enterprise Security**: PCI DSS Level 1 compliant with advanced fraud detection
-- 🌍 **Multi-Currency Support**: Process payments in TRY, USD, EUR, and GBP
-- ⚡ **Real-time Processing**: Sub-second transaction processing with 99.9% uptime
-- 🔄 **Flexible Integration**: REST API, webhooks, and comprehensive SDKs
-- 📊 **Advanced Analytics**: Real-time reporting and business intelligence
-- 🎯 **TypeScript First**: Full type safety with comprehensive IntelliSense support
-
 ---
 
 ## 🚀 Installation
