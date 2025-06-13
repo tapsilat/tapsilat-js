@@ -1,4 +1,4 @@
-export default {
+module.exports = {
   parser: '@typescript-eslint/parser',
   extends: [
     'eslint:recommended',
@@ -20,4 +20,4 @@ export default {
     es2022: true,
     jest: true,
   },
-}; 
+};

@@ -26,11 +26,20 @@ export interface APIError {
   details?: Record<string, any>;
 }
 
-export type Currency = 'TRY' | 'USD' | 'EUR' | 'GBP';
+export type Currency = "TRY" | "USD" | "EUR" | "GBP";
 
-export type PaymentMethod = 'credit_card' | 'debit_card' | 'bank_transfer' | 'digital_wallet';
+export type PaymentMethod =
+  | "credit_card"
+  | "debit_card"
+  | "bank_transfer"
+  | "digital_wallet";
 
-export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'cancelled' | 'refunded';
+export type PaymentStatus =
+  | "pending"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "refunded";
 
 export interface PaymentRequest {
   amount: number;
@@ -73,7 +82,7 @@ export interface RefundResponse {
   paymentId: string;
   amount: number;
   currency: Currency;
-  status: 'pending' | 'completed' | 'failed';
+  status: "pending" | "completed" | "failed";
   reason?: string;
   metadata?: Record<string, any>;
   createdAt: string;
@@ -102,7 +111,7 @@ export interface PaginationParams {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginatedResponse<T> {
@@ -115,7 +124,12 @@ export interface PaginatedResponse<T> {
 
 export interface WebhookEvent {
   id: string;
-  type: 'payment.completed' | 'payment.failed' | 'payment.cancelled' | 'refund.completed' | 'refund.failed';
+  type:
+    | "payment.completed"
+    | "payment.failed"
+    | "payment.cancelled"
+    | "refund.completed"
+    | "refund.failed";
   data: PaymentResponse | RefundResponse;
   createdAt: string;
   signature: string;
@@ -124,7 +138,7 @@ export interface WebhookEvent {
 /**
  * Supported locales for the Tapsilat API.
  */
-export type Locale = 'tr' | 'en';
+export type Locale = "tr" | "en";
 
 /**
  * Represents the buyer information.
@@ -134,7 +148,7 @@ export interface Buyer {
   name: string;
   surname: string;
   email: string;
-  // Python SDK'da sadece bu üç alan zorunlu, diğer alanlar opsiyonel olarak eklenebilir ama birebir uyum için kaldırıldı.
+
 }
 
 /**
@@ -442,5 +456,4 @@ export interface OrderResponse {
   reference_id: string;
   checkout_url: string;
   order_id?: string;
-  // Diğer dönen alanlar...
-} 
+}

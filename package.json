@@ -1,14 +1,24 @@
 {
   "name": "tapsilat-js",
   "version": "1.0.0",
-  "description": "Modern TypeScript SDK for Tapsilat payment APIs",
+  "description": "Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "module": "dist/index.esm.js",
   "type": "module",
   "files": [
-    "dist"
+    "dist/**/*",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
   ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.esm.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
     "build": "rollup -c",
     "dev": "rollup -c -w",
@@ -21,19 +31,32 @@
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
     "type-check": "tsc --noEmit",
-    "prepublishOnly": "npm run build",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean && npm run type-check",
+    "prepublishOnly": "npm run test && npm run build",
     "example": "node examples/basic-usage.js",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "release": "npm run test && npm run build && npm publish",
+    "release:beta": "npm run test && npm run build && npm publish --tag beta"
   },
   "keywords": [
-    "payment",
-    "api",
-    "sdk",
     "tapsilat",
+    "payment",
+    "payment-gateway",
+    "fintech",
     "typescript",
-    "nodejs"
+    "sdk",
+    "api",
+    "nodejs",
+    "e-commerce",
+    "turkey",
+    "financial-services"
   ],
-  "author": "Tapsilat",
+  "author": {
+    "name": "Tapsilat",
+    "email": "support@tapsilat.dev",
+    "url": "https://tapsilat.dev"
+  },
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^29.5.8",

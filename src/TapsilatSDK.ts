@@ -1,20 +1,14 @@
-import { HttpClient, RequestBody } from "./http/HttpClient";
+import { HttpClient } from "./http/HttpClient";
 import {
   validateBearerToken,
-  validatePaymentRequest,
-  sanitizeMetadata,
+  isNonEmptyString,
+  isPositiveNumber,
+  hasValidDecimalPlaces,
 } from "./utils/validators";
 import {
-  TapsilatConfig,
-  PaymentRequest,
-  PaymentResponse,
-  RefundRequest,
-  RefundResponse,
-  Customer,
-  PaginationParams,
-  PaginatedResponse,
   APIResponse,
-  APIError,
+  TapsilatConfig,
+  PaginatedResponse,
   Order,
   OrderRefundRequest,
   OrderRefundResponse,
@@ -23,6 +17,11 @@ import {
   Address,
   Currency,
 } from "./types";
+import {
+  TapsilatError,
+  TapsilatValidationError,
+  TapsilatNetworkError,
+} from "./errors/TapsilatError";
 
 /**
  * Supported locales for the Tapsilat API.
@@ -106,46 +105,271 @@ export class TapsilatSDK {
 
   /**
    * Creates a new order and returns a checkout URL.
+   *
+   * @param orderRequest - The order details including amount, currency, and buyer information
+   * @returns Promise resolving to the created order response including reference ID and checkout URL
+   * @throws {TapsilatValidationError} When order request data is invalid
+   * @throws {TapsilatNetworkError} When API request fails due to network issues
+   * @throws {TapsilatError} When API returns an error response
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   const orderResponse = await tapsilat.createOrder({
+   *     amount: 100.50,
+   *     currency: 'TRY',
+   *     locale: 'en',
+   *     buyer: {
+   *       name: 'John',
+   *       surname: 'Doe',
+   *       email: 'john.doe@example.com'
+   *     }
+   *   });
+   *   console.log(`Checkout URL: ${orderResponse.checkoutUrl}`);
+   * } catch (error) {
+   *   console.error(`Order creation failed: ${error.message}`);
+   * }
+   * ```
    */
-  async createOrder(orderRequest: OrderCreateRequest): Promise<OrderCreateResponse> {
-    const response = await this.httpClient.post<OrderCreateResponse>(
-      "/order/create",
-      orderRequest
-    );
-    if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order creation failed");
+  async createOrder(
+    orderRequest: OrderCreateRequest
+  ): Promise<OrderCreateResponse> {
+    // Validate the order request
+    this.validateOrderRequest(orderRequest);
+
+    try {
+      // Make the API request
+      const response = await this.httpClient.post<OrderCreateResponse>(
+        "/order/create",
+        orderRequest
+      );
+
+      // Use our generic response handler
+      return this.handleResponse(response, "Order creation");
+    } catch (error) {
+      // Use our generic error handler
+      this.handleError(error, "order creation");
     }
+  }
+
+  /**
+   * Validates an order request object
+   * @private
+   */
+  private validateOrderRequest(orderRequest: OrderCreateRequest): void {
+    // Check if request is null/undefined
+    if (!orderRequest) {
+      throw new TapsilatValidationError(
+        "Order request cannot be null or undefined"
+      );
+    }
+
+    // Validate amount
+    if (
+      !isPositiveNumber(orderRequest.amount) ||
+      !hasValidDecimalPlaces(orderRequest.amount)
+    ) {
+      throw new TapsilatValidationError(
+        "Amount must be a positive number with maximum 2 decimal places",
+        { provided: orderRequest.amount }
+      );
+    }
+
+    // Validate currency
+    if (!isNonEmptyString(orderRequest.currency)) {
+      throw new TapsilatValidationError(
+        "Currency is required and must be a non-empty string",
+        { provided: orderRequest.currency }
+      );
+    }
+
+    // Validate buyer information
+    if (!orderRequest.buyer) {
+      throw new TapsilatValidationError("Buyer information is required");
+    }
+
+    const { buyer } = orderRequest;
+
+    if (!isNonEmptyString(buyer.name)) {
+      throw new TapsilatValidationError(
+        "Buyer name is required and must be a non-empty string",
+        { provided: buyer.name }
+      );
+    }
+
+    if (!isNonEmptyString(buyer.surname)) {
+      throw new TapsilatValidationError(
+        "Buyer surname is required and must be a non-empty string",
+        { provided: buyer.surname }
+      );
+    }
+
+    if (!isNonEmptyString(buyer.email) || !this.isValidEmail(buyer.email)) {
+      throw new TapsilatValidationError(
+        "Buyer email is required and must be a valid email address",
+        { provided: buyer.email }
+      );
+    }
+  }
+
+  /**
+   * Basic email validation
+   * @private
+   */
+  private isValidEmail(email: string): boolean {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  }
+
+  /**
+   * Generic response handler - consistent way to handle API responses across SDK methods
+   * @private
+   *
+   * @param response - The API response to process
+   * @param errorContext - Descriptive context for error messages
+   * @returns The data from a successful response
+   * @throws {TapsilatError} On any response error
+   */
+  private handleResponse<T>(response: APIResponse<T>, errorContext: string): T {
+    if (!response.success || !response.data) {
+      // Convert API errors to domain-specific errors
+      if (response.error) {
+        throw TapsilatError.fromAPIError(response.error);
+      }
+
+      throw new TapsilatError(
+        `${errorContext} failed with no error details`,
+        "UNKNOWN_ERROR"
+      );
+    }
+
     return response.data;
   }
 
   /**
-   * Gets an order by reference_id.
+   * Generic error handler - consistent way to handle errors across SDK methods
+   * @private
+   *
+   * @param error - The caught error to process
+   * @param errorContext - Descriptive context for error messages
+   * @throws {TapsilatError} Always throws an appropriate error type
+   */
+  private handleError(error: unknown, errorContext: string): never {
+    // Rethrow TapsilatErrors as-is
+    if (error instanceof TapsilatError) {
+      throw error;
+    }
+
+    // Convert generic errors to TapsilatNetworkError
+    throw new TapsilatNetworkError(
+      error instanceof Error
+        ? error.message
+        : `Unknown error during ${errorContext}`,
+      "NETWORK_ERROR"
+    );
+  }
+
+  /**
+   * Gets an order by reference ID.
+   *
+   * @param referenceId - The unique reference ID of the order
+   * @returns Promise resolving to the complete order details
+   * @throws {TapsilatValidationError} When referenceId is invalid
+   * @throws {TapsilatNetworkError} When API request fails due to network issues
+   * @throws {TapsilatError} When API returns an error response
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   const order = await tapsilat.getOrder("ord_123456789");
+   *   console.log(`Order amount: ${order.amount} ${order.currency}`);
+   * } catch (error) {
+   *   console.error(`Failed to get order: ${error.message}`);
+   * }
+   * ```
    */
   async getOrder(referenceId: string): Promise<Order> {
-    if (!referenceId) {
-      throw new Error("Order referenceId is required");
+    // Validate input
+    if (!isNonEmptyString(referenceId)) {
+      throw new TapsilatValidationError(
+        "Order referenceId is required and must be a non-empty string",
+        { provided: referenceId }
+      );
     }
-    const response = await this.httpClient.get<Order>(
-      `/order/${referenceId}`
-    );
-    if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order retrieval failed");
+
+    try {
+      // Make the API request
+      const response = await this.httpClient.get<Order>(
+        `/order/${referenceId}`
+      );
+
+      // Use our generic response handler
+      return this.handleResponse(response, "Order retrieval");
+    } catch (error) {
+      // Use our generic error handler
+      this.handleError(error, "order retrieval");
     }
-    return response.data;
   }
 
   /**
-   * Lists orders (page, per_page).
+   * Lists orders with pagination support.
+   *
+   * @param params - Optional pagination parameters (page number and items per page)
+   * @returns Promise resolving to paginated list of orders
+   * @throws {TapsilatNetworkError} When API request fails due to network issues
+   * @throws {TapsilatError} When API returns an error response
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   // Get the second page with 20 items per page
+   *   const orderList = await tapsilat.getOrders({ page: 2, per_page: 20 });
+   *   console.log(`Total orders: ${orderList.total}`);
+   *   orderList.rows.forEach(order => {
+   *     console.log(`Order ${order.referenceId}: ${order.amount} ${order.currency}`);
+   *   });
+   * } catch (error) {
+   *   console.error(`Failed to list orders: ${error.message}`);
+   * }
+   * ```
    */
-  async getOrders(params: { page?: number; per_page?: number } = {}): Promise<PaginatedResponse<Order>> {
-    const response = await this.httpClient.get<PaginatedResponse<Order>>(
-      "/order/list",
-      { params: params }
-    );
-    if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order list failed");
+  async getOrders(
+    params: { page?: number; per_page?: number } = {}
+  ): Promise<PaginatedResponse<Order>> {
+    try {
+      // Validate pagination parameters if provided
+      if (
+        params.page !== undefined &&
+        (!Number.isInteger(params.page) || params.page < 1)
+      ) {
+        throw new TapsilatValidationError(
+          "Page number must be a positive integer",
+          { provided: params.page }
+        );
+      }
+
+      if (
+        params.per_page !== undefined &&
+        (!Number.isInteger(params.per_page) || params.per_page < 1)
+      ) {
+        throw new TapsilatValidationError(
+          "Items per page must be a positive integer",
+          { provided: params.per_page }
+        );
+      }
+
+      // Make the API request
+      const response = await this.httpClient.get<PaginatedResponse<Order>>(
+        "/order/list",
+        { params: params }
+      );
+
+      // Use our generic response handler
+      return this.handleResponse(response, "Order listing");
+    } catch (error) {
+      // Use our generic error handler
+      this.handleError(error, "order listing");
     }
-    return response.data;
   }
 
   /**
@@ -155,10 +379,9 @@ export class TapsilatSDK {
     if (!referenceId) {
       throw new Error("Order referenceId is required for cancellation");
     }
-    const response = await this.httpClient.post<Order>(
-      "/order/cancel",
-      { reference_id: referenceId }
-    );
+    const response = await this.httpClient.post<Order>("/order/cancel", {
+      reference_id: referenceId,
+    });
     if (!response.success || !response.data) {
       throw new Error(response.error?.message || "Order cancellation failed");
     }
@@ -166,19 +389,49 @@ export class TapsilatSDK {
   }
 
   /**
-   * Gets the status of an order by reference_id.
+   * Gets the status of an order by reference ID.
+   *
+   * @param referenceId - The unique reference ID of the order
+   * @returns Promise resolving to the current order status, including status code and last update time
+   * @throws {TapsilatValidationError} When referenceId is invalid
+   * @throws {TapsilatNetworkError} When API request fails due to network issues
+   * @throws {TapsilatError} When API returns an error response
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   const orderStatus = await tapsilat.getOrderStatus("ord_123456789");
+   *   console.log(`Order status: ${orderStatus.status}`);
+   * } catch (error) {
+   *   if (error instanceof TapsilatValidationError) {
+   *     console.error("Invalid reference ID format");
+   *   } else if (error instanceof TapsilatError) {
+   *     console.error(`API error: ${error.message}`);
+   *   }
+   * }
+   * ```
    */
   async getOrderStatus(referenceId: string): Promise<OrderStatusResponse> {
-    if (!referenceId) {
-      throw new Error("Order referenceId is required for status");
+    // Validate input using proper validation
+    if (!isNonEmptyString(referenceId)) {
+      throw new TapsilatValidationError(
+        "Order referenceId is required and must be a non-empty string",
+        { provided: referenceId }
+      );
     }
-    const response = await this.httpClient.get<OrderStatusResponse>(
-      `/order/${referenceId}/status`
-    );
-    if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order status retrieval failed");
+
+    try {
+      // Make the API request
+      const response = await this.httpClient.get<OrderStatusResponse>(
+        `/order/${referenceId}/status`
+      );
+
+      // Use our generic response handler
+      return this.handleResponse(response, "Order status retrieval");
+    } catch (error) {
+      // Use our generic error handler
+      this.handleError(error, "order status retrieval");
     }
-    return response.data;
   }
 
   /**
@@ -241,13 +494,13 @@ export class TapsilatSDK {
         "/order/payment-details",
         { conversation_id: conversationId, reference_id: referenceId }
       );
-      
+
       if (!response.success || !response.data) {
         throw new Error(
           response.error?.message || "Failed to get payment details"
         );
       }
-      
+
       return response.data;
     } else {
       // If no conversation_id, use GET to /order/{reference_id}/payment-details
@@ -277,7 +530,9 @@ export class TapsilatSDK {
       `/order/conversation/${conversationId}`
     );
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order retrieval by conversation ID failed");
+      throw new Error(
+        response.error?.message || "Order retrieval by conversation ID failed"
+      );
     }
     return response.data;
   }
@@ -294,7 +549,9 @@ export class TapsilatSDK {
       `/order/${referenceId}/transactions`
     );
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order transactions retrieval failed");
+      throw new Error(
+        response.error?.message || "Order transactions retrieval failed"
+      );
     }
     return response.data;
   }
@@ -303,13 +560,16 @@ export class TapsilatSDK {
    * Gets order submerchants with pagination.
    * Based on `get_order_submerchants` from the Python SDK.
    */
-  async getOrderSubmerchants(params: { page?: number; per_page?: number } = {}): Promise<any> {
-    const response = await this.httpClient.get<any>(
-      "/order/submerchants",
-      { params: params }
-    );
+  async getOrderSubmerchants(
+    params: { page?: number; per_page?: number } = {}
+  ): Promise<any> {
+    const response = await this.httpClient.get<any>("/order/submerchants", {
+      params: params,
+    });
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order submerchants retrieval failed");
+      throw new Error(
+        response.error?.message || "Order submerchants retrieval failed"
+      );
     }
     return response.data;
   }
@@ -386,7 +646,9 @@ export class TapsilatSDK {
    *
    * @returns Copy of current configuration
    */
-  getConfig(): Omit<TapsilatConfig, "bearerToken"> & { hasBearerToken: boolean } {
+  getConfig(): Omit<TapsilatConfig, "bearerToken"> & {
+    hasBearerToken: boolean;
+  } {
     const { bearerToken, ...safeConfig } = this.config;
     return {
       ...safeConfig,
