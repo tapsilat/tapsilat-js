@@ -1,5 +1,5 @@
 import { TapsilatSDK } from "../TapsilatSDK";
-import { OrderCreateRequest } from "../types";
+import { OrderCreateRequest } from "../types/index";
 
 describe("TapsilatSDK", () => {
   const validConfig = {

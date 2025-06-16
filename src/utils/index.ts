@@ -1,4 +1,4 @@
-import { APIResponse } from "../types";
+import { APIResponse } from "../types/index";
 import { TapsilatError, TapsilatNetworkError } from "../errors/TapsilatError";
 import crypto from "crypto";
 

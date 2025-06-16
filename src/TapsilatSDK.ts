@@ -23,7 +23,7 @@ import {
   OrderPaymentDetail,
   OrderCreateRequest,
   OrderCreateResponse,
-} from "./types";
+} from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 
 /**

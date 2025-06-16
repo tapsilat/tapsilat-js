@@ -2,7 +2,7 @@
  * @category Errors
  * @module TapsilatError
  */
-import { APIError } from '../types';
+import { APIError } from '../types/index';
 
 /**
  * @category Errors

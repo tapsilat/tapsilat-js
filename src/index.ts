@@ -21,7 +21,36 @@ export type {
   APIResponse,
   PaginationParams,
   PaginatedResponse,
-} from "./types";
+  
+  // Additional types from the moved types.ts
+  Locale,
+  Buyer,
+  OrderCreateRequest,
+  OrderCreateResponse,
+  Order,
+  OrderRefundRequest,
+  OrderRefundResponse,
+  OrderStatusResponse,
+  OrderPaymentDetail,
+  BuyerDTO,
+  BasketItemPayerDTO,
+  BasketItemDTO,
+  BillingAddressDTO,
+  CheckoutDesignDTO,
+  MetadataDTO,
+  OrderCardDTO,
+  PaymentTermDTO,
+  OrderPFSubMerchantDTO,
+  ShippingAddressDTO,
+  SubOrganizationDTO,
+  SubmerchantDTO,
+  OrderCreateDTO,
+  RefundOrderDTO,
+  OrderPaymentTermCreateDTO,
+  OrderPaymentTermUpdateDTO,
+  OrderTermRefundRequest,
+  OrderResponse
+} from "./types/index";
 
 // Errors
 export {

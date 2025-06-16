@@ -2,7 +2,7 @@
  * @category HTTP
  * @module Interceptors
  */
-import { APIResponse } from "../types";
+import { APIResponse } from "../types/index";
 
 /**
  * @category Interceptors

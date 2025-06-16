@@ -2,7 +2,7 @@
  * @category Configuration
  * @module ConfigManager
  */
-import { TapsilatConfig } from "../types";
+import { TapsilatConfig } from "../types/index";
 import { validateBearerToken } from "../utils/validators";
 
 /**

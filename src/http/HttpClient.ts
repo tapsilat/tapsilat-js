@@ -2,7 +2,7 @@
  * @category HTTP
  * @module HttpClient
  */
-import { TapsilatConfig, APIResponse } from "../types";
+import { TapsilatConfig, APIResponse } from "../types/index";
 import {
   TapsilatError,
   TapsilatNetworkError,

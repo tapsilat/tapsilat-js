@@ -1,4 +1,4 @@
-import { PaymentRequest, Currency, PaymentMethod } from "../types";
+import { PaymentRequest, Currency, PaymentMethod } from "../types/index";
 import { TapsilatValidationError } from "../errors/TapsilatError";
 
 // TYPE GUARDS
@@ -248,10 +248,10 @@ export function validateEmail(email: string): boolean {
 // Description: Maintained for backwards compatibility, redirects to the new type guard
 /**
  * @deprecated Use isCurrency type guard instead
- * 
+ *
  * @summary Legacy currency validation function
  * @description Maintained for backwards compatibility, redirects to the new type guard
- * 
+ *
  * @param currency - Currency code to validate
  * @returns True if currency is supported
  */

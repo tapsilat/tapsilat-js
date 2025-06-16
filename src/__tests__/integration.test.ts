@@ -1,5 +1,5 @@
 import { TapsilatSDK } from "../TapsilatSDK";
-import { OrderCreateRequest } from "../types";
+import { OrderCreateRequest } from "../types/index";
 
 // Integration tests - requires real API key
 // Set TAPSILAT_TEST_BEARER_TOKEN environment variable to run these tests
@@ -73,12 +73,18 @@ describe("TapsilatSDK Integration Tests", () => {
     it("should list orders", async () => {
       const orders = await sdk.getOrders({ page: 1, per_page: 10 });
       
-      // API returns 'rows' field, not 'data'
-      const orderRows = (orders as any).rows;
-      expect(Array.isArray(orderRows)).toBe(true);
-      expect(orders.page).toBeTruthy();
-      expect(orders.total).toBeTruthy();
-      console.log("✅ Listed orders:", orderRows.length);
+      // Handle either pagination format
+      const orderData = 'data' in orders ? orders.data : (orders as any).rows;
+      expect(Array.isArray(orderData)).toBe(true);
+      
+      // Handle either pagination format for metadata
+      const paginationInfo = 'pagination' in orders ? orders.pagination : orders;
+      const page = 'page' in paginationInfo ? paginationInfo.page : (paginationInfo as any).page;
+      const total = 'total' in paginationInfo ? paginationInfo.total : (paginationInfo as any).total;
+      
+      expect(page).toBeTruthy();
+      expect(total).toBeTruthy();
+      console.log("✅ Listed orders:", orderData.length);
     });
 
     it("should cancel the order", async () => {

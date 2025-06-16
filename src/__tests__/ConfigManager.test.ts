@@ -1,5 +1,5 @@
 import { ConfigManager } from "../config/ConfigManager";
-import { TapsilatConfig } from "../types";
+import { TapsilatConfig } from "../types/index";
 import { TapsilatValidationError } from "../errors/TapsilatError";
 
 describe("ConfigManager", () => {
