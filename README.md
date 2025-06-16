@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Tapsilat Logo](https://tapsilat.dev/assets/logo.png)](https://tapsilat.dev)
+[![Tapsilat Logo](https://tapsilat.com/og-tapsilat.png)](https://tapsilat.dev)
 
 **Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform**
 
