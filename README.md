@@ -240,8 +240,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🔗 Resources
 
 - 🌐 **Website**: [https://tapsilat.dev](https://tapsilat.dev)
-- 📚 **API Documentation**: [https://docs.tapsilat.dev](https://docs.tapsilat.dev)
-- 📞 **Support**: [support@tapsilat.dev](mailto:support@tapsilat.dev)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/tapsilat/tapsilat-js/issues)
 
 ---
