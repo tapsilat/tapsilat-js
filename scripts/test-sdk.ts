@@ -192,18 +192,19 @@ async function main() {
     console.log('');
 
     // Test 11: Configuration Management
-    console.log('⚙️  Test 11: Configuration');
-    const config = sdk.getConfig();
+    console.log('⚙️  Test 11: Configuration Management');
+    const configManager = sdk.getConfigManager();
+    const config = configManager.getConfig();
     console.log('✅ Current config:', {
-      hasApiKey: config.hasApiKey,
+      hasBearerToken: config.hasBearerToken,
       baseURL: config.baseURL,
       timeout: config.timeout,
       maxRetries: config.maxRetries
     });
 
     // Update timeout and test
-    sdk.updateConfig({ timeout: 45000 });
-    const updatedConfig = sdk.getConfig();
+    configManager.updateConfig({ timeout: 45000 });
+    const updatedConfig = configManager.getConfig();
     console.log('✅ Updated timeout:', updatedConfig.timeout);
     console.log('');
 

@@ -1,4 +1,5 @@
 import { HttpClient } from "./http/HttpClient";
+import { ConfigManager } from "./config/ConfigManager";
 import {
   validateBearerToken,
   isNonEmptyString,
@@ -6,7 +7,12 @@ import {
   hasValidDecimalPlaces,
   isInteger,
 } from "./utils/validators";
-import { isValidEmail, handleResponse, handleError } from "./utils";
+import {
+  isValidEmail,
+  handleResponse,
+  handleError,
+  verifyHmacSignature,
+} from "./utils";
 import {
   TapsilatConfig,
   PaginatedResponse,
@@ -39,7 +45,7 @@ import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
  */
 export class TapsilatSDK {
   private readonly httpClient: HttpClient;
-  private readonly config: TapsilatConfig;
+  private readonly configManager: ConfigManager;
 
   /**
    * Creates a new TapsilatSDK instance
@@ -67,8 +73,8 @@ export class TapsilatSDK {
    */
   constructor(config: TapsilatConfig) {
     validateBearerToken(config.bearerToken);
-    this.config = config;
-    this.httpClient = new HttpClient(config);
+    this.configManager = new ConfigManager(config);
+    this.httpClient = new HttpClient(this.configManager.getInternalConfig());
   }
 
   // ORDER CREATION
@@ -333,22 +339,39 @@ export class TapsilatSDK {
    * @description Cancels unpaid order and prevents further payment processing.
    */
   async cancelOrder(referenceId: string): Promise<Order> {
-    if (!referenceId) {
+    // Validate referenceId
+    if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
-        "Order referenceId is required for cancellation",
+        "Order referenceId is required and must be a non-empty string",
         { provided: referenceId }
       );
     }
-    const response = await this.httpClient.post<Order>("/order/cancel", {
-      reference_id: referenceId,
-    });
-    if (!response.success || !response.data) {
+
+    const cancelOrderResponse = await this.httpClient.post<Order>(
+      "/order/cancel",
+      {
+        reference_id: referenceId,
+      }
+    );
+
+    // Check if API call was successful
+    if (!cancelOrderResponse.success) {
       throw new TapsilatError(
-        response.error?.message || "Order cancellation failed",
-        response.error?.code || "CANCELLATION_FAILED"
+        cancelOrderResponse.error?.message ||
+          "Order cancellation API call failed",
+        cancelOrderResponse.error?.code || "CANCELLATION_API_FAILED"
       );
     }
-    return response.data;
+
+    // Check if response data exists
+    if (!cancelOrderResponse.data) {
+      throw new TapsilatError(
+        "Order cancellation response data is missing",
+        "CANCELLATION_DATA_MISSING"
+      );
+    }
+
+    return cancelOrderResponse.data;
   }
 
   /**
@@ -455,19 +478,19 @@ export class TapsilatSDK {
    * @returns Promise resolving to the refund transaction details.
    */
   async refundAllOrder(referenceId: string): Promise<OrderRefundResponse> {
-    const response = await this.httpClient.post<OrderRefundResponse>(
-      "/order/refund-all",
-      { reference_id: referenceId }
-    );
+    const refundAllOrderResponse =
+      await this.httpClient.post<OrderRefundResponse>("/order/refund-all", {
+        reference_id: referenceId,
+      });
 
-    if (!response.success || !response.data) {
+    if (!refundAllOrderResponse.success || !refundAllOrderResponse.data) {
       throw new TapsilatError(
-        response.error?.message || "Full order refund failed",
-        response.error?.code || "FULL_REFUND_FAILED"
+        refundAllOrderResponse.error?.message || "Full order refund failed",
+        refundAllOrderResponse.error?.code || "FULL_REFUND_FAILED"
       );
     }
 
-    return response.data;
+    return refundAllOrderResponse.data;
   }
 
   // ORDER PAYMENT DETAILS
@@ -488,40 +511,37 @@ export class TapsilatSDK {
     referenceId: string,
     conversationId?: string
   ): Promise<OrderPaymentDetail[]> {
-    if (conversationId) {
-      // If conversation_id is provided, use POST to /order/payment-details
-      const response = await this.httpClient.post<OrderPaymentDetail[]>(
-        "/order/payment-details",
-        { conversation_id: conversationId, reference_id: referenceId }
+    if (!isNonEmptyString(referenceId))
+      throw new TapsilatValidationError(
+        "Reference ID is required and must be a non-empty string"
       );
 
-      if (!response.success || !response.data) {
-        throw new TapsilatError(
-          response.error?.message || "Failed to get payment details",
-          response.error?.code || "PAYMENT_DETAILS_FAILED"
+    const getOrderPaymentDetailsResponse = conversationId
+      ? await this.httpClient.post<OrderPaymentDetail[]>(
+          "/order/payment-details",
+          {
+            conversation_id: conversationId,
+          }
+        )
+      : await this.httpClient.get<OrderPaymentDetail[]>(
+          `/order/${referenceId}/payment-details`
         );
-      }
 
-      return response.data;
-    } else {
-      // If no conversation_id, use GET to /order/{reference_id}/payment-details
-      const getOrderPaymentDetailsResponse = await this.httpClient.get<
-        OrderPaymentDetail[]
-      >(`/order/${referenceId}/payment-details`);
+    if (!getOrderPaymentDetailsResponse.success)
+      throw new TapsilatError(
+        getOrderPaymentDetailsResponse.error?.message ||
+          "Payment details API call failed",
+        getOrderPaymentDetailsResponse.error?.code ||
+          "PAYMENT_DETAILS_API_FAILED"
+      );
 
-      if (
-        !getOrderPaymentDetailsResponse.success ||
-        !getOrderPaymentDetailsResponse.data
-      ) {
-        throw new TapsilatError(
-          getOrderPaymentDetailsResponse.error?.message ||
-            "Failed to get payment details",
-          getOrderPaymentDetailsResponse.error?.code || "PAYMENT_DETAILS_FAILED"
-        );
-      }
+    if (!getOrderPaymentDetailsResponse.data)
+      throw new TapsilatError(
+        "Payment details response data is missing",
+        "PAYMENT_DETAILS_DATA_MISSING"
+      );
 
-      return getOrderPaymentDetailsResponse.data;
-    }
+    return getOrderPaymentDetailsResponse.data;
   }
 
   // ORDER LOOKUP BY CONVERSATION ID
@@ -535,25 +555,31 @@ export class TapsilatSDK {
    * @description Alternative lookup method for orders using custom conversation identifier.
    */
   async getOrderByConversationId(conversationId: string): Promise<Order> {
-    if (!conversationId) {
-      throw new TapsilatValidationError("Order conversationId is required", {
-        provided: conversationId,
-      });
+    // Validate conversationId
+    if (!isNonEmptyString(conversationId)) {
+      throw new TapsilatValidationError(
+        "Order conversationId is required and must be a non-empty string",
+        { provided: conversationId }
+      );
     }
+
     const getOrderByConversationIdResponse = await this.httpClient.get<Order>(
       `/order/conversation/${conversationId}`
     );
 
-    if (
-      !getOrderByConversationIdResponse.success ||
-      !getOrderByConversationIdResponse.data
-    ) {
+    if (!getOrderByConversationIdResponse.success)
       throw new TapsilatError(
         getOrderByConversationIdResponse.error?.message ||
           "Order retrieval by conversation ID failed",
         getOrderByConversationIdResponse.error?.code || "ORDER_RETRIEVAL_FAILED"
       );
-    }
+
+    if (!getOrderByConversationIdResponse.data)
+      throw new TapsilatError(
+        "Order response data is missing",
+        "ORDER_DATA_MISSING"
+      );
+
     return getOrderByConversationIdResponse.data;
   }
 
@@ -565,25 +591,30 @@ export class TapsilatSDK {
    * @description Gets detailed transaction records and payment attempts for a specific order.
    */
   async getOrderTransactions(referenceId: string): Promise<any[]> {
-    if (!referenceId) {
-      throw new TapsilatValidationError("Order referenceId is required", {
-        provided: referenceId,
-      });
+    // Validate referenceId
+    if (!isNonEmptyString(referenceId)) {
+      throw new TapsilatValidationError(
+        "Order referenceId is required and must be a non-empty string",
+        { provided: referenceId }
+      );
     }
     const getOrderTransactionsResponse = await this.httpClient.get<any[]>(
       `/order/${referenceId}/transactions`
     );
-    if (
-      !getOrderTransactionsResponse.success ||
-      !getOrderTransactionsResponse.data
-    ) {
+
+    if (!getOrderTransactionsResponse.success)
       throw new TapsilatError(
         getOrderTransactionsResponse.error?.message ||
           "Order transactions retrieval failed",
         getOrderTransactionsResponse.error?.code ||
           "TRANSACTIONS_RETRIEVAL_FAILED"
       );
-    }
+    if (!getOrderTransactionsResponse.data)
+      throw new TapsilatError(
+        "Order transactions response data is missing",
+        "TRANSACTIONS_DATA_MISSING"
+      );
+
     return getOrderTransactionsResponse.data;
   }
 
@@ -603,17 +634,19 @@ export class TapsilatSDK {
         params: params,
       }
     );
-    if (
-      !getOrderSubmerchantsResponse.success ||
-      !getOrderSubmerchantsResponse.data
-    ) {
+    if (!getOrderSubmerchantsResponse.success)
       throw new TapsilatError(
         getOrderSubmerchantsResponse.error?.message ||
           "Order submerchants retrieval failed",
         getOrderSubmerchantsResponse.error?.code ||
           "SUBMERCHANTS_RETRIEVAL_FAILED"
       );
-    }
+    if (!getOrderSubmerchantsResponse.data)
+      throw new TapsilatError(
+        "Order submerchants response data is missing",
+        "SUBMERCHANTS_DATA_MISSING"
+      );
+
     return getOrderSubmerchantsResponse.data;
   }
 
@@ -635,8 +668,6 @@ export class TapsilatSDK {
     );
   }
 
-  // Utility Methods
-
   /**
    * Verifies webhook signature for security
    *
@@ -653,15 +684,20 @@ export class TapsilatSDK {
     signature: string,
     secret: string
   ): Promise<boolean> {
-    // Implementation would depend on your webhook signature verification method
-    // This is a placeholder implementation
-    const crypto = await import("crypto");
-    const expectedSignature = crypto
-      .createHmac("sha256", secret)
-      .update(payload)
-      .digest("hex");
+    if (!isNonEmptyString(payload))
+      throw new TapsilatValidationError(
+        "Webhook payload is required and must be a non-empty string"
+      );
+    if (!isNonEmptyString(signature))
+      throw new TapsilatValidationError(
+        "Webhook signature is required and must be a non-empty string"
+      );
+    if (!isNonEmptyString(secret))
+      throw new TapsilatValidationError(
+        "Webhook secret is required and must be a non-empty string"
+      );
 
-    return `sha256=${expectedSignature}` === signature;
+    return verifyHmacSignature(payload, signature, secret);
   }
 
   /**
@@ -678,49 +714,46 @@ export class TapsilatSDK {
       timestamp: string;
     }>("/health");
 
-    if (!healthCheckResponse.success || !healthCheckResponse.data) {
+    if (!healthCheckResponse.success)
       throw new TapsilatError(
         healthCheckResponse.error?.message || "Health check failed",
         healthCheckResponse.error?.code || "HEALTH_CHECK_FAILED"
       );
-    }
+
+    if (!healthCheckResponse.data)
+      throw new TapsilatError(
+        "Health check response data is missing",
+        "HEALTH_CHECK_DATA_MISSING"
+      );
 
     return healthCheckResponse.data;
   }
 
-  // Configuration methods
+  // Configuration management
 
   /**
-   * Gets current SDK configuration (without sensitive data)
+   * Gets the configuration manager instance
    *
-   * @summary Get current SDK configuration without sensitive information
-   * @description Returns a copy of the current configuration with sensitive data (like bearer token) excluded.
+   * @summary Access to the configuration manager for advanced configuration management
+   * @description 
+   * Provides direct access to the ConfigManager instance for configuration operations.
+   * Use this to get, update, or manage SDK configuration settings.
+   * 
+   * @example
+   * ```typescript
+   * const sdk = new TapsilatSDK(config);
+   * const configManager = sdk.getConfigManager();
+   * 
+   * // Get config (without sensitive data)
+   * console.log(configManager.getConfig());
+   * 
+   * // Update config
+   * configManager.updateConfig({ timeout: 60000 });
+   * ```
    *
-   * @returns Copy of current configuration
+   * @returns ConfigManager instance for configuration operations
    */
-  getConfig(): Omit<TapsilatConfig, "bearerToken"> & {
-    hasBearerToken: boolean;
-  } {
-    const { bearerToken, ...safeConfig } = this.config;
-    return {
-      ...safeConfig,
-      hasBearerToken: Boolean(bearerToken),
-    };
-  }
-
-  /**
-   * Updates SDK configuration
-   *
-   * @summary Update SDK configuration with new values
-   * @description Updates the SDK configuration with provided values, validating bearer token if changed.
-   *
-   * @param newConfig - Partial configuration to update
-   * @throws {TapsilatValidationError} When Bearer token is invalid
-   */
-  updateConfig(newConfig: Partial<TapsilatConfig>): void {
-    if (newConfig.bearerToken) {
-      validateBearerToken(newConfig.bearerToken);
-    }
-    Object.assign(this.config, newConfig);
+  getConfigManager(): ConfigManager {
+    return this.configManager;
   }
 }

@@ -6,6 +6,7 @@ import {
   sanitizeMetadata,
   isInteger,
 } from "../utils/validators";
+import { verifyHmacSignature } from "../utils";
 import { TapsilatValidationError } from "../errors/TapsilatError";
 
 describe("Validators", () => {
@@ -193,6 +194,76 @@ describe("Validators", () => {
       expect(isInteger(NaN)).toBe(false);
       expect(isInteger(Infinity)).toBe(false);
       expect(isInteger(-Infinity)).toBe(false);
+    });
+  });
+});
+
+describe("Crypto Utils", () => {
+  describe("verifyHmacSignature", () => {
+    const testPayload = '{"test": "data"}';
+    const testSecret = "test-secret-key";
+
+    it("should verify valid HMAC signature", () => {
+      // Generate a valid signature
+      const crypto = require("crypto");
+      const expectedSignature = crypto
+        .createHmac("sha256", testSecret)
+        .update(testPayload)
+        .digest("hex");
+
+      const fullSignature = `sha256=${expectedSignature}`;
+      expect(verifyHmacSignature(testPayload, fullSignature, testSecret)).toBe(
+        true
+      );
+    });
+
+    it("should reject invalid HMAC signature", () => {
+      const invalidSignature = "sha256=invalid-signature-hash";
+      expect(verifyHmacSignature(testPayload, invalidSignature, testSecret)).toBe(
+        false
+      );
+    });
+
+    it("should reject signature without sha256 prefix", () => {
+      const crypto = require("crypto");
+      const expectedSignature = crypto
+        .createHmac("sha256", testSecret)
+        .update(testPayload)
+        .digest("hex");
+
+      // Missing sha256= prefix
+      expect(verifyHmacSignature(testPayload, expectedSignature, testSecret)).toBe(
+        false
+      );
+    });
+
+    it("should reject signature with wrong secret", () => {
+      const crypto = require("crypto");
+      const wrongSecret = "wrong-secret";
+      const expectedSignature = crypto
+        .createHmac("sha256", wrongSecret)
+        .update(testPayload)
+        .digest("hex");
+
+      const fullSignature = `sha256=${expectedSignature}`;
+      // Using different secret should fail
+      expect(verifyHmacSignature(testPayload, fullSignature, testSecret)).toBe(
+        false
+      );
+    });
+
+    it("should handle different payload content", () => {
+      const differentPayload = '{"order_id": "12345", "status": "completed"}';
+      const crypto = require("crypto");
+      const expectedSignature = crypto
+        .createHmac("sha256", testSecret)
+        .update(differentPayload)
+        .digest("hex");
+
+      const fullSignature = `sha256=${expectedSignature}`;
+      expect(verifyHmacSignature(differentPayload, fullSignature, testSecret)).toBe(
+        true
+      );
     });
   });
 });

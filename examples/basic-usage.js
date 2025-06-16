@@ -47,6 +47,31 @@ function verifyWebhookExample() {
   const isValid = tapsilat.verifyWebhook(payload, signature, webhookSecret);
 }
 
+// Configuration management örneği
+function configurationExample() {
+  const tapsilat = new TapsilatSDK({
+    bearerToken: "your-bearer-token-here",
+    baseURL: "https://api.tapsilat.com/v1",
+    timeout: 30000,
+  });
+
+  // ConfigManager'a erişim
+  const configManager = tapsilat.getConfigManager();
+
+  // Mevcut konfigürasyonu görüntüle (bearer token gizli)
+  console.log("Current config:", configManager.getConfig());
+
+  // Konfigürasyonu güncelle
+  configManager.updateConfig({
+    timeout: 60000,
+    debug: true,
+  });
+
+  // Internal config erişimi (advanced)
+  const baseUrl = configManager.getBaseUrl();
+  console.log("Base URL:", baseUrl);
+}
+
 if (import.meta.url === `file://${process.argv[1]}`) {
   main().catch(console.error);
 }

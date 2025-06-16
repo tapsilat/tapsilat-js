@@ -1,6 +1,9 @@
 // Main SDK class
 export { TapsilatSDK } from "./TapsilatSDK";
 
+// Configuration management
+export { ConfigManager } from "./config/ConfigManager";
+
 // Types
 export type {
   TapsilatConfig,

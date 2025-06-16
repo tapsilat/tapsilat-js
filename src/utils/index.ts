@@ -1,5 +1,6 @@
 import { APIResponse } from "../types";
 import { TapsilatError, TapsilatNetworkError } from "../errors/TapsilatError";
+import crypto from 'crypto';
 
 export const isValidEmail = (email: string): boolean => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -50,4 +51,25 @@ export const handleError = (error: unknown, errorContext: string): never => {
       : `Unknown error during ${errorContext}`,
     "NETWORK_ERROR"
   );
+};
+
+/**
+ * Verifies HMAC-SHA256 signature for webhook security
+ * 
+ * @param payload - Raw webhook payload string
+ * @param signature - Webhook signature from headers (should include "sha256=" prefix)
+ * @param secret - Your webhook secret key
+ * @returns true if signature is valid, false otherwise
+ */
+export const verifyHmacSignature = (
+  payload: string,
+  signature: string,
+  secret: string
+): boolean => {
+  const expectedSignature = crypto
+    .createHmac('sha256', secret)
+    .update(payload)
+    .digest('hex');
+  
+  return `sha256=${expectedSignature}` === signature;
 };
