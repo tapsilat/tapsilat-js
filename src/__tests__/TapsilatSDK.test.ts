@@ -4,7 +4,7 @@ import { OrderCreateRequest } from "../types/index";
 describe("TapsilatSDK", () => {
   const validConfig = {
     bearerToken:
-      "eyJhbGciOiJIUzUxMiIsInR5cCI6IkpXVCJ9.eyJFbWFpbCI6InRhcmlrQGFwaS50YXBzaWxhdGRldiIsIklEIjoiNjI5NjJhMDMtM2RhYy00YzlhLWIzN2UtZWYxYWMwMGMyM2I5IiwiT3JnYW5pemF0aW9uSUQiOiIxZjk0NWZmNy1kMGQ5LTQzZTctYjk2Mi1kYjhiYzMzNWJhYWIiLCJPcmdhbml6YXRpb24iOiJUYXBzaWxhdERFViIsIklzT3JnYW5pemF0aW9uVXNlciI6dHJ1ZSwiSXBBZGRyZXNzIjoiIiwiQWdlbnQiOiIiLCJPcmdUaW1lemVvbmUiOiJUdXJrZXkiLCJJc0FwaVVzZXIiOnRydWUsImlzcyI6InRhcHNpbGF0IiwiZXhwIjoyNjExMDM0NzAyfQ.71tFaa_ABkAxv8xN_0GgJZwe2gM3DhUHz16FAKQ9U2B6nY6tCBJuyAzOpxmQg1DLtv_v6nCV5qRJOlcCSm6Jhg",
+      "test-token-12345", // Example token, replace with a valid oneß
     baseURL: "https://acquiring.tapsilat.dev/api/v1",
     timeout: 10000,
   };
