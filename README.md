@@ -6,7 +6,7 @@
 
 **Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform**
 
-[![npm version](https://img.shields.io/npm/v/tapsilat-js.svg?style=flat-square)](https://www.npmjs.com/package/tapsilat-js)
+[![npm version](https://img.shields.io/npm/v/tapsilat-js.svg?style=flat-square)](https://www.npmjs.com/package/@tapsilat/tapsilat-js)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue.svg?style=flat-square)](https://www.typescriptlang.org/)
 [![MIT License](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](LICENSE)
 
