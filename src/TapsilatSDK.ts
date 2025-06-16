@@ -4,10 +4,10 @@ import {
   isNonEmptyString,
   isPositiveNumber,
   hasValidDecimalPlaces,
+  isInteger,
 } from "./utils/validators";
 import { isValidEmail, handleResponse, handleError } from "./utils";
 import {
-  APIResponse,
   TapsilatConfig,
   PaginatedResponse,
   Order,
@@ -15,59 +15,10 @@ import {
   OrderRefundResponse,
   OrderStatusResponse,
   OrderPaymentDetail,
-  Address,
-  Currency,
+  OrderCreateRequest,
+  OrderCreateResponse,
 } from "./types";
-import {
-  TapsilatError,
-  TapsilatValidationError,
-  TapsilatNetworkError,
-} from "./errors/TapsilatError";
-
-/**
- * Supported locales for the Tapsilat API.
- */
-export type Locale = "tr" | "en";
-
-/**
- * Represents the buyer information.
- * Based on BuyerDTO from the Python SDK.
- */
-export interface Buyer {
-  name: string;
-  surname: string;
-  email: string;
-  phone?: string;
-  identityNumber?: string;
-  shippingAddress?: Address;
-  billingAddress?: Address;
-}
-
-/**
- * Represents the data required to create a new order.
- * Based on OrderCreateDTO from the Python SDK.
- */
-export interface OrderCreateRequest {
-  amount: number;
-  currency: Currency;
-  locale: Locale;
-  buyer: Buyer;
-  description?: string;
-  callbackUrl?: string;
-  conversationId?: string;
-  metadata?: Record<string, unknown>;
-}
-
-/**
- * Represents the response received after creating an order.
- */
-export interface OrderCreateResponse {
-  referenceId: string;
-  conversationId: string;
-  checkoutUrl: string;
-  status: string;
-  qrCodeUrl?: string;
-}
+import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 
 /**
  * Main SDK class for Tapsilat payment operations
@@ -291,12 +242,12 @@ export class TapsilatSDK {
 
     try {
       // Make the API request
-      const response = await this.httpClient.get<Order>(
+      const getOrderResponse = await this.httpClient.get<Order>(
         `/order/${referenceId}`
       );
 
       // Use our generic response handler
-      return handleResponse(response, "Order retrieval");
+      return handleResponse(getOrderResponse, "Order retrieval");
     } catch (error) {
       // Use our generic error handler
       return handleError(error, "order retrieval");
@@ -322,34 +273,50 @@ export class TapsilatSDK {
   ): Promise<PaginatedResponse<Order>> {
     try {
       // Validate pagination parameters if provided
-      if (
-        params.page !== undefined &&
-        (!Number.isInteger(params.page) || params.page < 1)
-      ) {
-        throw new TapsilatValidationError(
-          "Page number must be a positive integer",
-          { provided: params.page }
-        );
+      // Check if page is defined
+      if (params.page !== undefined) {
+        // Check if page is integer
+        if (!isInteger(params.page)) {
+          throw new TapsilatValidationError("Page number must be an integer", {
+            provided: params.page,
+          });
+        }
+
+        // Check if page is positive
+        if (params.page < 1) {
+          throw new TapsilatValidationError(
+            "Page number must be greater than 0",
+            { provided: params.page }
+          );
+        }
       }
 
-      if (
-        params.per_page !== undefined &&
-        (!Number.isInteger(params.per_page) || params.per_page < 1)
-      ) {
-        throw new TapsilatValidationError(
-          "Items per page must be a positive integer",
-          { provided: params.per_page }
-        );
+      // Check if per_page is defined
+      if (params.per_page !== undefined) {
+        // Check if per_page is integer
+        if (!isInteger(params.per_page)) {
+          throw new TapsilatValidationError(
+            "Items per page must be an integer",
+            { provided: params.per_page }
+          );
+        }
+
+        // Check if per_page is positive
+        if (params.per_page < 1) {
+          throw new TapsilatValidationError(
+            "Items per page must be greater than 0",
+            { provided: params.per_page }
+          );
+        }
       }
 
       // Make the API request
-      const response = await this.httpClient.get<PaginatedResponse<Order>>(
-        "/order/list",
-        { params: params }
-      );
+      const getOrdersResponse = await this.httpClient.get<
+        PaginatedResponse<Order>
+      >("/order/list", { params: params });
 
       // Use our generic response handler
-      return handleResponse(response, "Order listing");
+      return handleResponse(getOrdersResponse, "Order listing");
     } catch (error) {
       // Use our generic error handler
       return handleError(error, "order listing");
@@ -367,13 +334,19 @@ export class TapsilatSDK {
    */
   async cancelOrder(referenceId: string): Promise<Order> {
     if (!referenceId) {
-      throw new Error("Order referenceId is required for cancellation");
+      throw new TapsilatValidationError(
+        "Order referenceId is required for cancellation",
+        { provided: referenceId }
+      );
     }
     const response = await this.httpClient.post<Order>("/order/cancel", {
       reference_id: referenceId,
     });
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order cancellation failed");
+      throw new TapsilatError(
+        response.error?.message || "Order cancellation failed",
+        response.error?.code || "CANCELLATION_FAILED"
+      );
     }
     return response.data;
   }
@@ -425,12 +398,13 @@ export class TapsilatSDK {
 
     try {
       // Make the API request
-      const response = await this.httpClient.get<OrderStatusResponse>(
-        `/order/${referenceId}/status`
-      );
+      const getOrderStatusResponse =
+        await this.httpClient.get<OrderStatusResponse>(
+          `/order/${referenceId}/status`
+        );
 
       // Use our generic response handler
-      return handleResponse(response, "Order status retrieval");
+      return handleResponse(getOrderStatusResponse, "Order status retrieval");
     } catch (error) {
       // Use our generic error handler
       return handleError(error, "order status retrieval");
@@ -459,7 +433,10 @@ export class TapsilatSDK {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Order refund failed");
+      throw new TapsilatError(
+        response.error?.message || "Order refund failed",
+        response.error?.code || "REFUND_FAILED"
+      );
     }
 
     return response.data;
@@ -484,7 +461,10 @@ export class TapsilatSDK {
     );
 
     if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Full order refund failed");
+      throw new TapsilatError(
+        response.error?.message || "Full order refund failed",
+        response.error?.code || "FULL_REFUND_FAILED"
+      );
     }
 
     return response.data;
@@ -516,25 +496,31 @@ export class TapsilatSDK {
       );
 
       if (!response.success || !response.data) {
-        throw new Error(
-          response.error?.message || "Failed to get payment details"
+        throw new TapsilatError(
+          response.error?.message || "Failed to get payment details",
+          response.error?.code || "PAYMENT_DETAILS_FAILED"
         );
       }
 
       return response.data;
     } else {
       // If no conversation_id, use GET to /order/{reference_id}/payment-details
-      const response = await this.httpClient.get<OrderPaymentDetail[]>(
-        `/order/${referenceId}/payment-details`
-      );
+      const getOrderPaymentDetailsResponse = await this.httpClient.get<
+        OrderPaymentDetail[]
+      >(`/order/${referenceId}/payment-details`);
 
-      if (!response.success || !response.data) {
-        throw new Error(
-          response.error?.message || "Failed to get payment details"
+      if (
+        !getOrderPaymentDetailsResponse.success ||
+        !getOrderPaymentDetailsResponse.data
+      ) {
+        throw new TapsilatError(
+          getOrderPaymentDetailsResponse.error?.message ||
+            "Failed to get payment details",
+          getOrderPaymentDetailsResponse.error?.code || "PAYMENT_DETAILS_FAILED"
         );
       }
 
-      return response.data;
+      return getOrderPaymentDetailsResponse.data;
     }
   }
 
@@ -550,17 +536,25 @@ export class TapsilatSDK {
    */
   async getOrderByConversationId(conversationId: string): Promise<Order> {
     if (!conversationId) {
-      throw new Error("Order conversationId is required");
+      throw new TapsilatValidationError("Order conversationId is required", {
+        provided: conversationId,
+      });
     }
-    const response = await this.httpClient.get<Order>(
+    const getOrderByConversationIdResponse = await this.httpClient.get<Order>(
       `/order/conversation/${conversationId}`
     );
-    if (!response.success || !response.data) {
-      throw new Error(
-        response.error?.message || "Order retrieval by conversation ID failed"
+
+    if (
+      !getOrderByConversationIdResponse.success ||
+      !getOrderByConversationIdResponse.data
+    ) {
+      throw new TapsilatError(
+        getOrderByConversationIdResponse.error?.message ||
+          "Order retrieval by conversation ID failed",
+        getOrderByConversationIdResponse.error?.code || "ORDER_RETRIEVAL_FAILED"
       );
     }
-    return response.data;
+    return getOrderByConversationIdResponse.data;
   }
 
   /**
@@ -572,17 +566,25 @@ export class TapsilatSDK {
    */
   async getOrderTransactions(referenceId: string): Promise<any[]> {
     if (!referenceId) {
-      throw new Error("Order referenceId is required");
+      throw new TapsilatValidationError("Order referenceId is required", {
+        provided: referenceId,
+      });
     }
-    const response = await this.httpClient.get<any[]>(
+    const getOrderTransactionsResponse = await this.httpClient.get<any[]>(
       `/order/${referenceId}/transactions`
     );
-    if (!response.success || !response.data) {
-      throw new Error(
-        response.error?.message || "Order transactions retrieval failed"
+    if (
+      !getOrderTransactionsResponse.success ||
+      !getOrderTransactionsResponse.data
+    ) {
+      throw new TapsilatError(
+        getOrderTransactionsResponse.error?.message ||
+          "Order transactions retrieval failed",
+        getOrderTransactionsResponse.error?.code ||
+          "TRANSACTIONS_RETRIEVAL_FAILED"
       );
     }
-    return response.data;
+    return getOrderTransactionsResponse.data;
   }
 
   /**
@@ -595,15 +597,24 @@ export class TapsilatSDK {
   async getOrderSubmerchants(
     params: { page?: number; per_page?: number } = {}
   ): Promise<any> {
-    const response = await this.httpClient.get<any>("/order/submerchants", {
-      params: params,
-    });
-    if (!response.success || !response.data) {
-      throw new Error(
-        response.error?.message || "Order submerchants retrieval failed"
+    const getOrderSubmerchantsResponse = await this.httpClient.get<any>(
+      "/order/submerchants",
+      {
+        params: params,
+      }
+    );
+    if (
+      !getOrderSubmerchantsResponse.success ||
+      !getOrderSubmerchantsResponse.data
+    ) {
+      throw new TapsilatError(
+        getOrderSubmerchantsResponse.error?.message ||
+          "Order submerchants retrieval failed",
+        getOrderSubmerchantsResponse.error?.code ||
+          "SUBMERCHANTS_RETRIEVAL_FAILED"
       );
     }
-    return response.data;
+    return getOrderSubmerchantsResponse.data;
   }
 
   /**
@@ -618,7 +629,10 @@ export class TapsilatSDK {
     if (order && (order as any).checkout_url) {
       return (order as any).checkout_url;
     }
-    throw new Error("Checkout URL not found in order response");
+    throw new TapsilatError(
+      "Checkout URL not found in order response",
+      "CHECKOUT_URL_NOT_FOUND"
+    );
   }
 
   // Utility Methods
@@ -659,16 +673,19 @@ export class TapsilatSDK {
    * @returns Promise resolving to service status
    */
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    const response = await this.httpClient.get<{
+    const healthCheckResponse = await this.httpClient.get<{
       status: string;
       timestamp: string;
     }>("/health");
 
-    if (!response.success || !response.data) {
-      throw new Error(response.error?.message || "Health check failed");
+    if (!healthCheckResponse.success || !healthCheckResponse.data) {
+      throw new TapsilatError(
+        healthCheckResponse.error?.message || "Health check failed",
+        healthCheckResponse.error?.code || "HEALTH_CHECK_FAILED"
+      );
     }
 
-    return response.data;
+    return healthCheckResponse.data;
   }
 
   // Configuration methods

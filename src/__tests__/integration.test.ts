@@ -1,4 +1,5 @@
-import { TapsilatSDK, OrderCreateRequest } from "../TapsilatSDK";
+import { TapsilatSDK } from "../TapsilatSDK";
+import { OrderCreateRequest } from "../types";
 
 // Integration tests - requires real API key
 // Set TAPSILAT_TEST_BEARER_TOKEN environment variable to run these tests

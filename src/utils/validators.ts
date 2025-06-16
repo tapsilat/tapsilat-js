@@ -40,6 +40,13 @@ export function isPositiveNumber(value: unknown): value is number {
 }
 
 /**
+ * Type guard to check if a value is an integer
+ */
+export function isInteger(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value);
+}
+
+/**
  * Type guard to check if amount has max 2 decimal places
  */
 export function hasValidDecimalPlaces(amount: number): boolean {
@@ -67,7 +74,6 @@ export function validateBearerToken(
       "Bearer token must be at least 10 characters long"
     );
   }
-  // Karakter kontrolü (opsiyonel, isterseniz ek kurallar koyabilirsiniz)
   if (!/^[a-zA-Z0-9._-]+$/.test(bearerToken)) {
     throw new TapsilatValidationError(
       "Bearer token contains invalid characters"

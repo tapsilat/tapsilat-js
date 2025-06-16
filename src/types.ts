@@ -135,6 +135,8 @@ export interface WebhookEvent {
   signature: string;
 }
 
+// SDK-specific types and interfaces
+
 /**
  * Supported locales for the Tapsilat API.
  */
@@ -148,7 +150,10 @@ export interface Buyer {
   name: string;
   surname: string;
   email: string;
-
+  phone?: string;
+  identityNumber?: string;
+  shippingAddress?: Address;
+  billingAddress?: Address;
 }
 
 /**
@@ -157,10 +162,13 @@ export interface Buyer {
  */
 export interface OrderCreateRequest {
   amount: number;
-  currency: string;
-  locale: string;
+  currency: Currency;
+  locale: Locale;
   buyer: Buyer;
-  // Python SDK'da description, callbackUrl, conversationId, metadata yok. Gerekirse opsiyonel olarak eklenebilir ama birebir uyum için kaldırıldı.
+  description?: string;
+  callbackUrl?: string;
+  conversationId?: string;
+  metadata?: Record<string, unknown>;
 }
 
 /**

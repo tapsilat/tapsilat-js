@@ -3,9 +3,8 @@ import {
   validateBearerToken,
   validateEmail,
   isValidCurrency,
-  isValidPaymentMethod,
-  isValidUrl,
   sanitizeMetadata,
+  isInteger,
 } from "../utils/validators";
 import { TapsilatValidationError } from "../errors/TapsilatError";
 
@@ -153,6 +152,47 @@ describe("Validators", () => {
         booleanValue: true,
         objectValue: "[object Object]",
       });
+    });
+  });
+
+  describe("isInteger", () => {
+    it("should return true for positive integers", () => {
+      expect(isInteger(1)).toBe(true);
+      expect(isInteger(42)).toBe(true);
+      expect(isInteger(1000)).toBe(true);
+    });
+
+    it("should return true for negative integers", () => {
+      expect(isInteger(-1)).toBe(true);
+      expect(isInteger(-42)).toBe(true);
+      expect(isInteger(-1000)).toBe(true);
+    });
+
+    it("should return true for zero", () => {
+      expect(isInteger(0)).toBe(true);
+    });
+
+    it("should return false for decimal numbers", () => {
+      expect(isInteger(1.5)).toBe(false);
+      expect(isInteger(42.99)).toBe(false);
+      expect(isInteger(-1.1)).toBe(false);
+    });
+
+    it("should return false for non-numeric values", () => {
+      expect(isInteger("42")).toBe(false);
+      expect(isInteger("1.5")).toBe(false);
+      expect(isInteger(true)).toBe(false);
+      expect(isInteger(false)).toBe(false);
+      expect(isInteger(null)).toBe(false);
+      expect(isInteger(undefined)).toBe(false);
+      expect(isInteger({})).toBe(false);
+      expect(isInteger([])).toBe(false);
+    });
+
+    it("should return false for special numeric values", () => {
+      expect(isInteger(NaN)).toBe(false);
+      expect(isInteger(Infinity)).toBe(false);
+      expect(isInteger(-Infinity)).toBe(false);
     });
   });
 });

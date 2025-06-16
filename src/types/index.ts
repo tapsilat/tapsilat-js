@@ -129,3 +129,50 @@ export interface PaginatedResponse<T> {
     pages: number;
   };
 }
+
+// SDK-specific types for orders and buyer information
+
+/**
+ * Supported locales for the Tapsilat API.
+ */
+export type Locale = "tr" | "en";
+
+/**
+ * Represents the buyer information.
+ * Based on BuyerDTO from the Python SDK.
+ */
+export interface Buyer {
+  name: string;
+  surname: string;
+  email: string;
+  phone?: string;
+  identityNumber?: string;
+  shippingAddress?: Address;
+  billingAddress?: Address;
+}
+
+/**
+ * Represents the data required to create a new order.
+ * Based on OrderCreateDTO from the Python SDK.
+ */
+export interface OrderCreateRequest {
+  amount: number;
+  currency: Currency;
+  locale: Locale;
+  buyer: Buyer;
+  description?: string;
+  callbackUrl?: string;
+  conversationId?: string;
+  metadata?: Record<string, unknown>;
+}
+
+/**
+ * Represents the response received after creating an order.
+ */
+export interface OrderCreateResponse {
+  referenceId: string;
+  conversationId: string;
+  checkoutUrl: string;
+  status: string;
+  qrCodeUrl?: string;
+}
