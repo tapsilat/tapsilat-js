@@ -47,6 +47,9 @@ export class TapsilatSDK {
   private readonly httpClient: HttpClient;
   private readonly configManager: ConfigManager;
 
+  // SDK INITIALIZATION
+  // Summary: Initializes the Tapsilat SDK with configuration options
+  // Description: Creates and configures a new instance of the TapsilatSDK with the provided configuration
   /**
    * Creates a new TapsilatSDK instance
    *
@@ -80,7 +83,6 @@ export class TapsilatSDK {
   // ORDER CREATION
   // Summary: Create new payment order and get checkout URL
   // Description: Initiates payment process with buyer info and returns secure checkout URL
-
   /**
    * Creates a new order and returns a checkout URL
    *
@@ -209,13 +211,14 @@ export class TapsilatSDK {
 
     try {
       // Make the API request
-      const response = await this.httpClient.post<OrderCreateResponse>(
-        "/order/create",
-        orderRequest
-      );
+      const createOrderResponse =
+        await this.httpClient.post<OrderCreateResponse>(
+          "/order/create",
+          orderRequest
+        );
 
       // Use our generic response handler
-      return handleResponse(response, "Order creation");
+      return handleResponse(createOrderResponse, "Order creation");
     } catch (error) {
       // Use our generic error handler
       return handleError(error, "order creation");
@@ -337,6 +340,11 @@ export class TapsilatSDK {
    *
    * @summary Cancel a pending order before payment completion
    * @description Cancels unpaid order and prevents further payment processing.
+   *
+   * @param referenceId - The unique reference ID of the order to cancel
+   * @returns Promise resolving to the canceled order details
+   * @throws {TapsilatValidationError} When referenceId is invalid
+   * @throws {TapsilatError} When API returns an error response or order cannot be canceled
    */
   async cancelOrder(referenceId: string): Promise<Order> {
     // Validate referenceId
@@ -374,6 +382,9 @@ export class TapsilatSDK {
     return cancelOrderResponse.data;
   }
 
+  // ORDER STATUS RETRIEVAL
+  // Summary: Retrieves real-time payment status and tracking information for a specific order
+  // Description: Queries the payment platform to retrieve current status of an order using its reference ID
   /**
    * Gets the current status of an order by reference ID
    *
@@ -446,25 +457,34 @@ export class TapsilatSDK {
    *
    * @param refundData - The refund details, including referenceId and amount.
    * @returns Promise resolving to the refund transaction details.
+   * @throws {TapsilatError} When API returns an error response or refund fails
    */
   async refundOrder(
     refundData: OrderRefundRequest
   ): Promise<OrderRefundResponse> {
-    const response = await this.httpClient.post<OrderRefundResponse>(
+    const refundOrderResponse = await this.httpClient.post<OrderRefundResponse>(
       "/order/refund",
       refundData
     );
 
-    if (!response.success || !response.data) {
+    if (!refundOrderResponse.success) {
       throw new TapsilatError(
-        response.error?.message || "Order refund failed",
-        response.error?.code || "REFUND_FAILED"
+        refundOrderResponse.error?.message || "Order refund failed",
+        refundOrderResponse.error?.code || "REFUND_FAILED"
       );
     }
 
-    return response.data;
+    if (!refundOrderResponse.data) {
+      throw new TapsilatError(
+        "Order refund response data is missing",
+        "REFUND_DATA_MISSING"
+      );
+    }
+
+    return refundOrderResponse.data;
   }
 
+  // ORDER FULL REFUND OPERATIONS
   // Summary: Process full refund for a completed order
   // Description: Refunds entire order amount and returns transaction details
   /**
@@ -476,6 +496,7 @@ export class TapsilatSDK {
    *
    * @param referenceId - The unique identifier of the order to fully refund.
    * @returns Promise resolving to the refund transaction details.
+   * @throws {TapsilatError} When API returns an error response or full refund fails
    */
   async refundAllOrder(referenceId: string): Promise<OrderRefundResponse> {
     const refundAllOrderResponse =
@@ -483,10 +504,17 @@ export class TapsilatSDK {
         reference_id: referenceId,
       });
 
-    if (!refundAllOrderResponse.success || !refundAllOrderResponse.data) {
+    if (!refundAllOrderResponse.success) {
       throw new TapsilatError(
         refundAllOrderResponse.error?.message || "Full order refund failed",
         refundAllOrderResponse.error?.code || "FULL_REFUND_FAILED"
+      );
+    }
+
+    if (!refundAllOrderResponse.data) {
+      throw new TapsilatError(
+        "Full order refund response data is missing",
+        "FULL_REFUND_DATA_MISSING"
       );
     }
 
@@ -506,6 +534,8 @@ export class TapsilatSDK {
    * @param referenceId - The unique identifier of the order.
    * @param conversationId - Optional conversation ID for more specific querying.
    * @returns Promise resolving to a list of payment details.
+   * @throws {TapsilatValidationError} When referenceId is invalid
+   * @throws {TapsilatError} When API returns an error response or payment details are missing
    */
   async getOrderPaymentDetails(
     referenceId: string,
@@ -553,6 +583,11 @@ export class TapsilatSDK {
    *
    * @summary Find order using conversation ID instead of reference ID
    * @description Alternative lookup method for orders using custom conversation identifier.
+   *
+   * @param conversationId - The custom conversation identifier used when creating the order
+   * @returns Promise resolving to the complete order details
+   * @throws {TapsilatValidationError} When conversationId is invalid
+   * @throws {TapsilatError} When API returns an error response
    */
   async getOrderByConversationId(conversationId: string): Promise<Order> {
     // Validate conversationId
@@ -583,12 +618,20 @@ export class TapsilatSDK {
     return getOrderByConversationIdResponse.data;
   }
 
+  // ORDER TRANSACTION HISTORY
+  // Summary: Retrieve transaction history for an order
+  // Description: Gets detailed transaction records and payment attempts for a specific order
   /**
    * Gets order transactions by reference_id.
    * Based on `get_order_transactions` from the Python SDK.
    *
    * @summary Retrieve transaction history for an order
    * @description Gets detailed transaction records and payment attempts for a specific order.
+   *
+   * @param referenceId - The unique reference ID of the order
+   * @returns Promise resolving to array of transaction records
+   * @throws {TapsilatValidationError} When referenceId is invalid
+   * @throws {TapsilatError} When API returns an error response
    */
   async getOrderTransactions(referenceId: string): Promise<any[]> {
     // Validate referenceId
@@ -618,12 +661,19 @@ export class TapsilatSDK {
     return getOrderTransactionsResponse.data;
   }
 
+  // ORDER SUBMERCHANT LISTING
+  // Summary: Retrieve paginated list of submerchants for orders
+  // Description: Gets submerchant information with pagination support for order management
   /**
    * Gets order submerchants with pagination.
    * Based on `get_order_submerchants` from the Python SDK.
    *
    * @summary Retrieve paginated list of submerchants for orders
    * @description Gets submerchant information with pagination support for order management.
+   *
+   * @param params - Optional pagination parameters (page number and items per page)
+   * @returns Promise resolving to paginated list of submerchants
+   * @throws {TapsilatError} When API returns an error response
    */
   async getOrderSubmerchants(
     params: { page?: number; per_page?: number } = {}
@@ -634,6 +684,7 @@ export class TapsilatSDK {
         params: params,
       }
     );
+
     if (!getOrderSubmerchantsResponse.success)
       throw new TapsilatError(
         getOrderSubmerchantsResponse.error?.message ||
@@ -650,12 +701,19 @@ export class TapsilatSDK {
     return getOrderSubmerchantsResponse.data;
   }
 
+  // ORDER CHECKOUT URL RETRIEVAL
+  // Summary: Retrieve checkout URL for existing order
+  // Description: Gets the payment checkout URL for an existing order using reference ID
   /**
    * Gets checkout URL for an order.
    * Based on `get_checkout_url` from the Python SDK.
    *
    * @summary Retrieve checkout URL for existing order
    * @description Gets the payment checkout URL for an existing order using reference ID.
+   *
+   * @param referenceId - The unique reference ID of the order
+   * @returns Promise resolving to the checkout URL string
+   * @throws {TapsilatError} When checkout URL is not found in order response
    */
   async getCheckoutUrl(referenceId: string): Promise<string> {
     const order = await this.getOrder(referenceId);
@@ -668,6 +726,9 @@ export class TapsilatSDK {
     );
   }
 
+  // WEBHOOK SIGNATURE VERIFICATION
+  // Summary: Validate webhook signature for security verification
+  // Description: Verifies the authenticity of webhook payloads using HMAC signature validation
   /**
    * Verifies webhook signature for security
    *
@@ -678,6 +739,7 @@ export class TapsilatSDK {
    * @param signature - Webhook signature from headers
    * @param secret - Your webhook secret key
    * @returns Promise resolving to true if signature is valid
+   * @throws {TapsilatValidationError} When input validation fails for payload, signature or secret
    */
   async verifyWebhook(
     payload: string,
@@ -700,13 +762,17 @@ export class TapsilatSDK {
     return verifyHmacSignature(payload, signature, secret);
   }
 
+  // API HEALTH STATUS CHECK
+  // Summary: Check API service health and availability
+  // Description: Verifies that the Tapsilat API service is operational and accessible
   /**
    * Checks API service health and availability
    *
    * @summary Check API service health and availability
    * @description Verifies that the Tapsilat API service is operational and accessible.
    *
-   * @returns Promise resolving to service status
+   * @returns Promise resolving to service status with status string and timestamp
+   * @throws {TapsilatError} When API health check fails or returns invalid data
    */
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
     const healthCheckResponse = await this.httpClient.get<{
@@ -729,24 +795,25 @@ export class TapsilatSDK {
     return healthCheckResponse.data;
   }
 
-  // Configuration management
-
+  // CONFIGURATION MANAGEMENT
+  // Summary: Access to the configuration manager for advanced configuration management
+  // Description: Provides direct access to the ConfigManager instance for configuration operations
   /**
    * Gets the configuration manager instance
    *
    * @summary Access to the configuration manager for advanced configuration management
-   * @description 
+   * @description
    * Provides direct access to the ConfigManager instance for configuration operations.
    * Use this to get, update, or manage SDK configuration settings.
-   * 
+   *
    * @example
    * ```typescript
    * const sdk = new TapsilatSDK(config);
    * const configManager = sdk.getConfigManager();
-   * 
+   *
    * // Get config (without sensitive data)
    * console.log(configManager.getConfig());
-   * 
+   *
    * // Update config
    * configManager.updateConfig({ timeout: 60000 });
    * ```

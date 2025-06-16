@@ -1,3 +1,7 @@
+/**
+ * @category HTTP
+ * @module HttpClient
+ */
 import { TapsilatConfig, APIResponse } from "../types";
 import {
   TapsilatError,
@@ -9,7 +13,10 @@ import {
 import { InterceptorManager } from "./interceptors";
 
 /**
- * Configuration options for individual HTTP requests
+ * @category HTTP
+ * @summary Configuration options for individual HTTP requests
+ * @description Extends RequestInit with additional Tapsilat-specific options for HTTP requests
+ * @interface RequestConfig
  */
 export interface RequestConfig extends Omit<RequestInit, "method" | "body"> {
   timeout?: number;
@@ -20,12 +27,18 @@ export interface RequestConfig extends Omit<RequestInit, "method" | "body"> {
 }
 
 /**
- * HTTP methods supported by the client
+ * @category HTTP
+ * @summary HTTP methods supported by the client
+ * @description The standard HTTP methods available for API requests
+ * @typedef {string} HttpMethod
  */
 export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
 /**
- * Generic constraint for request body types
+ * @category HTTP
+ * @summary Generic constraint for request body types
+ * @description Types that can be sent as HTTP request bodies
+ * @typedef {object|array|string|FormData} RequestBody
  */
 export type RequestBody =
   | Record<string, unknown>
@@ -36,9 +49,11 @@ export type RequestBody =
   | FormData;
 
 /**
- * HTTP Client for making API requests with comprehensive error handling,
- * retry logic, and request/response interceptors
- *
+ * @category HTTP
+ * @summary HTTP Client for making API requests to Tapsilat services
+ * @description Provides a robust client with comprehensive error handling,
+ * retry logic, and request/response interceptors for interacting with the Tapsilat API
+ * 
  * @example
  * ```typescript
  * const client = new HttpClient({
@@ -48,17 +63,25 @@ export type RequestBody =
  *
  * const data = await client.get<UserResponse>('/users/123');
  * ```
+ * @class HttpClient
  */
 export class HttpClient {
   private readonly config: TapsilatConfig;
   private readonly interceptors = new InterceptorManager();
 
+  /**
+   * @summary Creates a new HTTP client instance
+   * @description Initializes the HTTP client with the provided configuration
+   * 
+   * @param config - The configuration for the Tapsilat API client
+   */
   constructor(config: TapsilatConfig) {
     this.config = config;
   }
 
   /**
-   * GET request method overloads
+   * @summary Performs GET requests to the API
+   * @description Makes HTTP GET requests to retrieve data from the API
    */
   async get<T = unknown>(url: string): Promise<APIResponse<T>>;
   async get<T = unknown>(
@@ -73,7 +96,8 @@ export class HttpClient {
   }
 
   /**
-   * POST request method overloads
+   * @summary Performs POST requests to the API
+   * @description Makes HTTP POST requests to send data to the API
    */
   async post<T = unknown>(url: string): Promise<APIResponse<T>>;
   async post<T = unknown>(
@@ -94,7 +118,8 @@ export class HttpClient {
   }
 
   /**
-   * PUT request method overloads
+   * @summary Performs PUT requests to the API
+   * @description Makes HTTP PUT requests to update entire resources in the API
    */
   async put<T = unknown>(url: string): Promise<APIResponse<T>>;
   async put<T = unknown>(
@@ -115,7 +140,8 @@ export class HttpClient {
   }
 
   /**
-   * PATCH request method overloads
+   * @summary Performs PATCH requests to the API
+   * @description Makes HTTP PATCH requests to update parts of resources in the API
    */
   async patch<T = unknown>(url: string): Promise<APIResponse<T>>;
   async patch<T = unknown>(
@@ -136,7 +162,8 @@ export class HttpClient {
   }
 
   /**
-   * DELETE request method overloads
+   * @summary Performs DELETE requests to the API
+   * @description Makes HTTP DELETE requests to remove resources from the API
    */
   async delete<T = unknown>(url: string): Promise<APIResponse<T>>;
   async delete<T = unknown>(
@@ -151,7 +178,9 @@ export class HttpClient {
   }
 
   /**
-   * Core request method with comprehensive error handling and retry logic
+   * @category HTTP Client
+   * @summary Core request method with comprehensive error handling and retry logic
+   * @description Handles all HTTP requests with error handling, retries, and interceptors
    *
    * @param method - HTTP method to use
    * @param url - Request URL (relative to baseURL)
@@ -224,7 +253,14 @@ export class HttpClient {
   }
 
   /**
-   * Makes the actual HTTP request with timeout handling
+   * @category HTTP Client Internals
+   * @summary Makes the actual HTTP request with timeout handling
+   * @description Performs the fetch request with timeout handling and abort controller
+   * 
+   * @param url - Full URL to request
+   * @param options - Fetch request options
+   * @param timeout - Optional timeout in milliseconds
+   * @returns Promise resolving to API response
    */
   private async makeRequest<T>(
     url: string,
@@ -269,7 +305,12 @@ export class HttpClient {
   }
 
   /**
-   * Processes the fetch response and converts to APIResponse format
+   * @category HTTP Client Internals
+   * @summary Processes the fetch response and converts to APIResponse format
+   * @description Parses the response and formats it according to the APIResponse interface
+   * 
+   * @param response - The raw fetch Response object
+   * @returns Processed API response
    */
   private async processResponse<T>(
     response: Response
@@ -311,7 +352,13 @@ export class HttpClient {
   }
 
   /**
-   * Creates appropriate error based on response status and data
+   * @category HTTP Client Internals
+   * @summary Creates appropriate error based on response status and data
+   * @description Maps HTTP status codes to specific Tapsilat error types
+   * 
+   * @param response - The raw fetch Response object
+   * @param data - The parsed response data
+   * @returns Appropriate TapsilatError subclass instance
    */
   private createErrorFromResponse(
     response: Response,
@@ -375,7 +422,12 @@ export class HttpClient {
   }
 
   /**
-   * Extracts error message from response data
+   * @category HTTP Client Internals
+   * @summary Extracts error message from response data
+   * @description Attempts to find an error message in various locations within the response
+   * 
+   * @param data - The parsed response data
+   * @returns Error message if found
    */
   private extractErrorMessage(data: unknown): string | undefined {
     if (typeof data === "string") {
@@ -391,7 +443,12 @@ export class HttpClient {
   }
 
   /**
-   * Extracts validation details from error response
+   * @category HTTP Client Internals
+   * @summary Extracts validation details from error response
+   * @description Parses field-specific validation errors from the API response
+   * 
+   * @param data - The parsed response data
+   * @returns Object mapping field names to error messages
    */
   private extractValidationDetails(
     data: unknown
@@ -404,7 +461,12 @@ export class HttpClient {
   }
 
   /**
-   * Extracts rate limit information from response headers
+   * @category HTTP Client Internals
+   * @summary Extracts rate limit information from response headers
+   * @description Reads and parses rate limiting headers from the API response
+   * 
+   * @param response - The raw fetch Response object
+   * @returns Rate limit information including limits and reset time
    */
   private extractRateLimitInfo(response: Response): {
     limit?: number;
@@ -423,7 +485,14 @@ export class HttpClient {
   }
 
   /**
-   * Builds the complete URL for the request
+   * @category HTTP Client Internals
+   * @summary Builds the complete URL for the request
+   * @description Constructs the full URL with base URL and query parameters
+   * 
+   * @param url - The endpoint path or full URL
+   * @param customBaseURL - Optional override for the base URL
+   * @param params - Optional query parameters
+   * @returns Complete request URL
    */
   private buildUrl(
     url: string,
@@ -462,7 +531,14 @@ export class HttpClient {
   }
 
   /**
-   * Builds RequestInit options for the fetch request
+   * @category HTTP Client Internals
+   * @summary Builds RequestInit options for the fetch request
+   * @description Prepares headers and request configuration for fetch API
+   * 
+   * @param method - The HTTP method to use
+   * @param body - Optional request body
+   * @param config - Additional request configuration
+   * @returns Configured RequestInit object for fetch
    */
   private async buildRequestOptions(
     method: HttpMethod,
@@ -504,7 +580,12 @@ export class HttpClient {
   }
 
   /**
-   * Determines if an error should prevent retrying
+   * @category HTTP Client Internals
+   * @summary Determines if an error should prevent retrying
+   * @description Checks error types to decide if retry attempts should be aborted
+   * 
+   * @param error - The error that occurred
+   * @returns Whether retry should be prevented for this error
    */
   private shouldNotRetry(error: Error): boolean {
     // Don't retry authentication, validation, or client errors
@@ -516,7 +597,12 @@ export class HttpClient {
   }
 
   /**
-   * Calculates retry delay with exponential backoff
+   * @category HTTP Client Internals
+   * @summary Calculates retry delay with exponential backoff
+   * @description Implements exponential backoff with jitter for retry attempts
+   * 
+   * @param attempt - The current retry attempt number (0-indexed)
+   * @returns Delay in milliseconds before next retry
    */
   private calculateRetryDelay(attempt: number): number {
     const baseDelay = 1000; // 1 second
@@ -528,7 +614,12 @@ export class HttpClient {
   }
 
   /**
-   * Utility method to create delay
+   * @category HTTP Client Internals
+   * @summary Utility method to create delay
+   * @description Creates a promise that resolves after the specified time
+   * 
+   * @param ms - Delay time in milliseconds
+   * @returns Promise that resolves after the delay
    */
   private delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
@@ -537,7 +628,9 @@ export class HttpClient {
   // Interceptor management methods
 
   /**
-   * Gets the interceptor manager for advanced request/response handling
+   * @category Interceptors
+   * @summary Gets the interceptor manager for advanced request/response handling
+   * @description Provides access to the internal interceptor manager for custom handling
    *
    * @returns InterceptorManager instance
    */
@@ -546,7 +639,9 @@ export class HttpClient {
   }
 
   /**
-   * Adds a request interceptor
+   * @category Interceptors
+   * @summary Adds a request interceptor
+   * @description Registers a function to intercept and modify requests before they are sent
    *
    * @param interceptor - Request interceptor function
    * @returns Interceptor ID for removal
@@ -558,7 +653,9 @@ export class HttpClient {
   }
 
   /**
-   * Adds a response interceptor
+   * @category Interceptors
+   * @summary Adds a response interceptor
+   * @description Registers a function to intercept and modify responses before they are returned
    *
    * @param interceptor - Response interceptor function
    * @returns Interceptor ID for removal
@@ -570,7 +667,9 @@ export class HttpClient {
   }
 
   /**
-   * Adds an error interceptor
+   * @category Interceptors
+   * @summary Adds an error interceptor
+   * @description Registers a function to intercept and potentially recover from errors
    *
    * @param interceptor - Error interceptor function
    * @returns Interceptor ID for removal

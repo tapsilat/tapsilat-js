@@ -1,24 +1,33 @@
+/**
+ * @category Configuration
+ * @module ConfigManager
+ */
 import { TapsilatConfig } from "../types";
 import { validateBearerToken } from "../utils/validators";
 
 /**
- * Manages SDK configuration with validation and security
- * 
+ * @category Configuration
  * @summary Configuration management for Tapsilat SDK
  * @description Handles SDK configuration updates, validation, and secure access to configuration data
+ * @class ConfigManager
  */
 export class ConfigManager {
   private config: TapsilatConfig;
 
+  /**
+   * @summary Creates a new configuration manager
+   * @description Initializes the configuration manager with the provided configuration options
+   * 
+   * @param config - Initial SDK configuration
+   */
   constructor(config: TapsilatConfig) {
     this.config = { ...config }; // Create a copy to avoid external mutations
   }
 
   /**
-   * Gets current SDK configuration (without sensitive data)
-   *
+   * @category Configuration Access
    * @summary Get current SDK configuration without sensitive information
-   * @description Returns a copy of the current configuration with sensitive data (like bearer token) excluded.
+   * @description Returns a copy of the current configuration with sensitive data (like bearer token) excluded
    *
    * @returns Copy of current configuration without bearer token
    */
@@ -33,10 +42,9 @@ export class ConfigManager {
   }
 
   /**
-   * Updates SDK configuration
-   *
+   * @category Configuration Management
    * @summary Update SDK configuration with new values
-   * @description Updates the SDK configuration with provided values, validating bearer token if changed.
+   * @description Updates the SDK configuration with provided values, validating bearer token if changed
    *
    * @param newConfig - Partial configuration to update
    * @throws {TapsilatValidationError} When Bearer token is invalid
@@ -49,7 +57,9 @@ export class ConfigManager {
   }
 
   /**
-   * Gets the internal configuration for SDK use
+   * @category Internal
+   * @summary Gets the internal configuration for SDK use
+   * @description Returns a full copy of the configuration for internal SDK operations
    * 
    * @internal
    * @returns Full configuration including sensitive data
@@ -59,7 +69,9 @@ export class ConfigManager {
   }
 
   /**
-   * Gets the bearer token for authentication
+   * @category Authentication
+   * @summary Gets the bearer token for authentication
+   * @description Retrieves the configured bearer token for API authentication
    * 
    * @internal
    * @returns Bearer token
@@ -69,7 +81,9 @@ export class ConfigManager {
   }
 
   /**
-   * Gets the base URL for API requests
+   * @category Endpoints
+   * @summary Gets the base URL for API requests
+   * @description Retrieves the configured base URL for API endpoints
    * 
    * @internal
    * @returns API base URL
@@ -79,7 +93,9 @@ export class ConfigManager {
   }
 
   /**
-   * Gets the request timeout value
+   * @category Networking
+   * @summary Gets the request timeout value
+   * @description Retrieves the configured timeout value for API requests
    * 
    * @internal
    * @returns Request timeout in milliseconds
