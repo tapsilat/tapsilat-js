@@ -36,9 +36,9 @@ describe("TapsilatSDK Integration Tests", () => {
         currency: "TRY",
         locale: "tr",
         buyer: {
-          name: "Ahmet",
-          surname: "Yilmaz",
-          email: "ahmet@example.com",
+          name: "John",
+          surname: "Doe",
+          email: "john-doe@example.com",
         },
       };
       const order = await sdk.createOrder(orderRequest);

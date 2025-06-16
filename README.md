@@ -72,9 +72,9 @@ const order = await tapsilat.createOrder({
   currency: 'TRY',
   locale: 'tr',
   buyer: {
-    name: 'Ahmet',
-    surname: 'Yılmaz',
-    email: 'ahmet@example.com',
+    name: 'John',
+    surname: 'Doe',
+    email: 'john-doe@example.com',
     phone: '+9099999999'
   },
   description: 'Product purchase',

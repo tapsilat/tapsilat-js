@@ -18,9 +18,9 @@ async function main() {
     currency: "TRY",
     locale: "tr",
     buyer: {
-      name: "Ahmet",
-      surname: "Yilmaz",
-      email: "ahmet@example.com",
+      name: "John",
+      surname: "Doe",
+      email: "john-doe@example.com",
     },
     // Add other fields as needed
   };
