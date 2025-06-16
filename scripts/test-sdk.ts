@@ -102,7 +102,7 @@ async function main() {
     const customer = {
       email: `test-${Date.now()}@example.com`,
       name: 'Manual Test Customer',
-      phone: '+905551234567',
+      phone: '+9099999999',
       address: {
         street: 'Test Street 123',
         city: 'Istanbul',
@@ -127,7 +127,7 @@ async function main() {
     console.log('✏️  Test 6: Update Customer');
     const updatedCustomer = await sdk.updateCustomer(createdCustomer.id!, {
       name: 'Updated Manual Test Customer',
-      phone: '+905559876543'
+      phone: '+9099999999'
     });
     console.log('✅ Customer updated:', {
       id: updatedCustomer.id,

@@ -46,7 +46,7 @@ const order = await tapsilat.createOrder({
     name: "John",
     surname: "Doe",
     email: "john.doe@example.com",
-    phone: "+905551234567",
+    phone: "+9099999999",
   },
   description: "Premium subscription - Monthly plan",
 });
@@ -75,7 +75,7 @@ const order = await tapsilat.createOrder({
     name: 'Ahmet',
     surname: 'Yılmaz',
     email: 'ahmet@example.com',
-    phone: '+905551234567'
+    phone: '+9099999999'
   },
   description: 'Product purchase',
   callbackUrl: 'https://mystore.com/success',
