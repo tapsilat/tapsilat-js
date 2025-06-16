@@ -6,6 +6,9 @@
 
 **Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform**
 
+[![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)](https://www.npmjs.com/package/@tapsilat/tapsilat-js)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 </div>
 
 ## 🏢 About Tapsilat
@@ -49,7 +52,14 @@ const order = await tapsilat.createOrder({
     phone: "+9099999999",
   },
   description: "Premium subscription - Monthly plan",
+  // Metadata must be an array of key-value pairs
+  metadata: [
+    { key: "productId", value: "PREMIUM-MONTHLY" },
+    { key: "customerType", value: "new" }
+  ]
 });
+
+console.log("Checkout URL:", order.checkout_url);
 ```
 
 ### Check Order Status
@@ -79,10 +89,10 @@ const order = await tapsilat.createOrder({
   },
   description: 'Product purchase',
   callbackUrl: 'https://mystore.com/success',
-  metadata: {
-    productId: 'PROD_123',
-    campaignCode: 'DISCOUNT20'
-  }
+  metadata: [
+    { key: 'productId', value: 'PROD_123' },
+    { key: 'campaignCode', value: 'DISCOUNT20' }
+  ]
 });
 ```
 
@@ -152,10 +162,10 @@ const refund = await tapsilat.refundOrder({
   reference_id: 'order-reference-id',
   amount: 50.00,
   reason: 'Customer request',
-  metadata: {
-    refundType: 'partial',
-    ticketId: 'TICKET_789'
-  }
+  metadata: [
+    { key: 'refundType', value: 'partial' },
+    { key: 'ticketId', value: 'TICKET_789' }
+  ]
 });
 console.log('Refund ID:', refund.id);
 ```
@@ -217,7 +227,21 @@ console.log('Timestamp:', health.timestamp);
 
 ---
 
-## 🔐 Authentication
+## �️ Advanced Configuration
+
+The SDK can be customized with various configuration options:
+
+```typescript
+const tapsilat = new TapsilatSDK({
+  bearerToken: process.env.TAPSILAT_BEARER_TOKEN!,
+  baseURL: "https://acquiring.tapsilat.dev/api/v1",
+  timeout: 30000, // 30 seconds
+  retryAttempts: 3, // Auto-retry on network errors
+  debug: true, // Enable detailed logging
+});
+```
+
+## �🔐 Authentication
 
 Use Bearer Token authentication:
 
@@ -241,6 +265,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - 🌐 **Website**: [https://tapsilat.dev](https://tapsilat.dev)
 - 🐛 **Issues**: [GitHub Issues](https://github.com/tapsilat/tapsilat-js/issues)
+- 📚 **Examples**: See [examples/basic-usage.js](examples/basic-usage.js) for a complete implementation
+
+## 📝 Type System
+
+All TypeScript types are organized in `src/types/index.ts` with proper JSDoc documentation including:
+- `@category` - Logical grouping of related types
+- `@summary` - Brief description of what the type represents
+- `@description` - Detailed explanation with usage context
+- `@typedef` / `@interface` - Appropriate type annotations
 
 ---
 
