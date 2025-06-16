@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] - 2025-06-16
+
+### Changed
+- Standardized and improved code documentation across the SDK
+- Migrated all type/interface/type alias definitions from src/types.ts to src/types/index.ts
+- Improved error handling in refund methods for clarity
+- Organized type definitions with proper JSDoc annotations (@category, @summary, @description)
+- Deduplicated and consolidated type definitions
+
+### Removed
+- src/types.ts file (contents migrated to src/types/index.ts)
+
+## [1.0.3]
+
 ### Added
 - Initial SDK implementation
 - Payment operations (create, get, list, cancel)
