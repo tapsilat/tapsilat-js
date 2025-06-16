@@ -8,24 +8,24 @@ export interface TapsilatConfig {
 }
 
 // Payment Methods
-export type PaymentMethod = 
-  | 'credit_card'
-  | 'debit_card'
-  | 'bank_transfer'
-  | 'digital_wallet'
-  | 'crypto';
+export type PaymentMethod =
+  | "credit_card"
+  | "debit_card"
+  | "bank_transfer"
+  | "digital_wallet"
+  | "crypto";
 
 // Payment Status
-export type PaymentStatus = 
-  | 'pending'
-  | 'processing'
-  | 'completed'
-  | 'failed'
-  | 'cancelled'
-  | 'refunded';
+export type PaymentStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "cancelled"
+  | "refunded";
 
 // Currency types
-export type Currency = 'TRY' | 'USD' | 'EUR' | 'GBP';
+export type Currency = "TRY" | "USD" | "EUR" | "GBP";
 
 // Payment Request
 export interface PaymentRequest {
@@ -85,7 +85,7 @@ export interface RefundResponse {
   id: string;
   paymentId: string;
   amount: number;
-  status: 'pending' | 'completed' | 'failed';
+  status: "pending" | "completed" | "failed";
   reason?: string;
   createdAt: string;
 }
@@ -93,7 +93,7 @@ export interface RefundResponse {
 // Webhook Event
 export interface WebhookEvent {
   id: string;
-  type: 'payment.completed' | 'payment.failed' | 'refund.completed';
+  type: "payment.completed" | "payment.failed" | "refund.completed";
   data: PaymentResponse | RefundResponse;
   createdAt: string;
 }
@@ -117,7 +117,7 @@ export interface PaginationParams {
   page?: number;
   limit?: number;
   sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  sortOrder?: "asc" | "desc";
 }
 
 export interface PaginatedResponse<T> {
@@ -128,4 +128,4 @@ export interface PaginatedResponse<T> {
     total: number;
     pages: number;
   };
-} 
+}

@@ -425,9 +425,15 @@ export class HttpClient {
   /**
    * Builds the complete URL for the request
    */
-  private buildUrl(url: string, customBaseURL?: string, params?: Record<string, any>): string {
+  private buildUrl(
+    url: string,
+    customBaseURL?: string,
+    params?: Record<string, any>
+  ): string {
     const baseURL =
-      customBaseURL || this.config.baseURL || "https://api.tapsilat.com/v1";
+      customBaseURL ||
+      this.config.baseURL ||
+      "https://acquiring.tapsilat.dev/api/v1";
 
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return url;
@@ -435,9 +441,9 @@ export class HttpClient {
 
     const base = baseURL.replace(/\/+$/, "");
     const path = url.replace(/^\/+/, "");
-    
+
     let fullUrl = `${base}/${path}`;
-    
+
     // Add query parameters if provided
     if (params && Object.keys(params).length > 0) {
       const searchParams = new URLSearchParams();

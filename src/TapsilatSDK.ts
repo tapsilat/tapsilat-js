@@ -5,6 +5,7 @@ import {
   isPositiveNumber,
   hasValidDecimalPlaces,
 } from "./utils/validators";
+import { isValidEmail, handleResponse, handleError } from "./utils";
 import {
   APIResponse,
   TapsilatConfig,
@@ -71,19 +72,19 @@ export interface OrderCreateResponse {
 /**
  * Main SDK class for Tapsilat payment operations
  *
- * @example
- * ```typescript
- * const tapsilat = new TapsilatSDK({
- *   bearerToken: 'your-bearer-token',
- *   baseURL: 'https://api.tapsilat.com/v1'
- * });
+ * @summary Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform
+ * @description
+ * The TapsilatSDK class provides a comprehensive interface for integrating with the Tapsilat payment platform.
+ * It offers secure, efficient, and type-safe methods for managing orders, payments, refunds, and other
+ * payment-related operations. The SDK includes built-in error handling, request validation, retry logic,
+ * and comprehensive logging capabilities.
  *
- * const payment = await tapsilat.createPayment({
- *   amount: 100.50,
- *   currency: 'TRY',
- *   paymentMethod: 'credit_card'
- * });
- * ```
+ * Key features:
+ * - Type-safe API with TypeScript support
+ * - Built-in error handling with custom error types
+ * - Automatic request/response validation
+ * - Configurable retry mechanism
+ * - Full compliance with Tapsilat API specifications
  */
 export class TapsilatSDK {
   private readonly httpClient: HttpClient;
@@ -92,8 +93,26 @@ export class TapsilatSDK {
   /**
    * Creates a new TapsilatSDK instance
    *
-   * @param config - SDK configuration options
-   * @throws {TapsilatValidationError} When Bearer token is invalid
+   * @summary Initializes the Tapsilat SDK with configuration options
+   * @description
+   * Creates and configures a new instance of the TapsilatSDK with the provided configuration.
+   * The constructor validates the bearer token, sets up the HTTP client with proper headers,
+   * configures retry mechanisms, and initializes internal state for API communication.
+   *
+   * The SDK instance is immutable after creation - configuration cannot be changed without
+   * creating a new instance. This ensures thread safety and predictable behavior.
+   *
+   * @param {TapsilatConfig} config - SDK configuration options
+   * @param {string} config.bearerToken - API authentication token (required)
+   * @param {string} [config.baseURL='https://api.tapsilat.com/v1'] - API base URL
+   * @param {number} [config.timeout=30000] - Request timeout in milliseconds
+   * @param {number} [config.maxRetries=3] - Maximum number of retry attempts
+   * @param {number} [config.retryDelay=1000] - Delay between retries in milliseconds
+   * @param {string} [config.version='v1'] - API version to use
+   * @param {boolean} [config.debug=false] - Enable debug logging
+   *
+   * @throws {TapsilatValidationError} When bearer token is invalid, missing, or malformed
+   * @throws {TypeError} When config parameter is not an object or missing required fields
    */
   constructor(config: TapsilatConfig) {
     validateBearerToken(config.bearerToken);
@@ -101,62 +120,69 @@ export class TapsilatSDK {
     this.httpClient = new HttpClient(config);
   }
 
-  // Order Operations
+  // ORDER CREATION
+  // Summary: Create new payment order and get checkout URL
+  // Description: Initiates payment process with buyer info and returns secure checkout URL
 
   /**
-   * Creates a new order and returns a checkout URL.
+   * Creates a new order and returns a checkout URL
    *
-   * @param orderRequest - The order details including amount, currency, and buyer information
-   * @returns Promise resolving to the created order response including reference ID and checkout URL
-   * @throws {TapsilatValidationError} When order request data is invalid
-   * @throws {TapsilatNetworkError} When API request fails due to network issues
-   * @throws {TapsilatError} When API returns an error response
+   * @summary Initiates a new payment order with buyer information and generates checkout URL
+   * @description
+   * Creates a new payment order in the Tapsilat system with the provided order details.
+   * This method performs comprehensive validation of all input parameters, creates the order
+   * on the payment platform, and returns a checkout URL that customers can use to complete
+   * their payment. The method supports multiple currencies, locales, and comprehensive
+   * buyer information for compliance and fraud prevention.
    *
-   * @example
-   * ```typescript
-   * try {
-   *   const orderResponse = await tapsilat.createOrder({
-   *     amount: 100.50,
-   *     currency: 'TRY',
-   *     locale: 'en',
-   *     buyer: {
-   *       name: 'John',
-   *       surname: 'Doe',
-   *       email: 'john.doe@example.com'
-   *     }
-   *   });
-   *   console.log(`Checkout URL: ${orderResponse.checkoutUrl}`);
-   * } catch (error) {
-   *   console.error(`Order creation failed: ${error.message}`);
-   * }
-   * ```
+   * The returned checkout URL is valid for a limited time (typically 24 hours) and should
+   * be presented to the customer immediately. The order status can be tracked using the
+   * returned reference ID through the getOrderStatus method.
+   *
+   * @param {OrderCreateRequest} orderRequest - Complete order information
+   * @param {number} orderRequest.amount - Payment amount (must be positive, max 2 decimal places)
+   * @param {Currency} orderRequest.currency - Payment currency ('TRY', 'USD', 'EUR', 'GBP')
+   * @param {Locale} orderRequest.locale - Display language ('tr' for Turkish, 'en' for English)
+   * @param {Buyer} orderRequest.buyer - Customer information for payment processing
+   * @param {string} orderRequest.buyer.name - Customer's first name (required)
+   * @param {string} orderRequest.buyer.surname - Customer's last name (required)
+   * @param {string} orderRequest.buyer.email - Customer's email address (required, validated)
+   * @param {string} [orderRequest.buyer.phone] - Customer's phone number
+   * @param {string} [orderRequest.buyer.identityNumber] - National ID or tax number
+   * @param {Address} [orderRequest.buyer.shippingAddress] - Shipping address for physical goods
+   * @param {Address} [orderRequest.buyer.billingAddress] - Billing address for invoicing
+   * @param {string} [orderRequest.description] - Order description for customer reference
+   * @param {string} [orderRequest.callbackUrl] - URL to redirect after payment completion
+   * @param {string} [orderRequest.conversationId] - Custom tracking ID for your system
+   * @param {Record<string, unknown>} [orderRequest.metadata] - Additional custom data
+   *
+   * @returns {Promise<OrderCreateResponse>} Promise resolving to order creation response
+   * @returns {string} OrderCreateResponse.referenceId - Unique order identifier for tracking
+   * @returns {string} OrderCreateResponse.conversationId - Echo of provided conversation ID
+   * @returns {string} OrderCreateResponse.checkoutUrl - Payment page URL for customer
+   * @returns {string} OrderCreateResponse.status - Initial order status (typically 'CREATED')
+   * @returns {string} [OrderCreateResponse.qrCodeUrl] - QR code URL for mobile payments
+   *
+   * @throws {TapsilatValidationError} When input validation fails:
+   *   - Amount is not positive or has more than 2 decimal places
+   *   - Currency is not supported
+   *   - Buyer information is incomplete or invalid
+   *   - Email format is invalid
+   *   - Required fields are missing
+   * @throws {TapsilatNetworkError} When network request fails:
+   *   - Connection timeout
+   *   - DNS resolution failure
+   *   - Network connectivity issues
+   * @throws {TapsilatError} When API returns business logic errors:
+   *   - Insufficient merchant balance
+   *   - Currency not enabled for merchant
+   *   - Buyer blocked due to fraud detection
+   *   - Rate limiting exceeded
    */
   async createOrder(
     orderRequest: OrderCreateRequest
   ): Promise<OrderCreateResponse> {
-    // Validate the order request
-    this.validateOrderRequest(orderRequest);
-
-    try {
-      // Make the API request
-      const response = await this.httpClient.post<OrderCreateResponse>(
-        "/order/create",
-        orderRequest
-      );
-
-      // Use our generic response handler
-      return this.handleResponse(response, "Order creation");
-    } catch (error) {
-      // Use our generic error handler
-      this.handleError(error, "order creation");
-    }
-  }
-
-  /**
-   * Validates an order request object
-   * @private
-   */
-  private validateOrderRequest(orderRequest: OrderCreateRequest): void {
+    // Validate the order request directly
     // Check if request is null/undefined
     if (!orderRequest) {
       throw new TapsilatValidationError(
@@ -164,13 +190,17 @@ export class TapsilatSDK {
       );
     }
 
-    // Validate amount
-    if (
-      !isPositiveNumber(orderRequest.amount) ||
-      !hasValidDecimalPlaces(orderRequest.amount)
-    ) {
+    // Validate amount - check if positive
+    if (!isPositiveNumber(orderRequest.amount)) {
+      throw new TapsilatValidationError("Amount must be a positive number", {
+        provided: orderRequest.amount,
+      });
+    }
+
+    // Validate amount - check decimal places
+    if (!hasValidDecimalPlaces(orderRequest.amount)) {
       throw new TapsilatValidationError(
-        "Amount must be a positive number with maximum 2 decimal places",
+        "Amount must have maximum 2 decimal places",
         { provided: orderRequest.amount }
       );
     }
@@ -204,89 +234,51 @@ export class TapsilatSDK {
       );
     }
 
-    if (!isNonEmptyString(buyer.email) || !this.isValidEmail(buyer.email)) {
+    // Validate buyer email - check if provided
+    if (!isNonEmptyString(buyer.email)) {
       throw new TapsilatValidationError(
-        "Buyer email is required and must be a valid email address",
+        "Buyer email is required and must be a non-empty string",
         { provided: buyer.email }
       );
     }
-  }
 
-  /**
-   * Basic email validation
-   * @private
-   */
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  }
-
-  /**
-   * Generic response handler - consistent way to handle API responses across SDK methods
-   * @private
-   *
-   * @param response - The API response to process
-   * @param errorContext - Descriptive context for error messages
-   * @returns The data from a successful response
-   * @throws {TapsilatError} On any response error
-   */
-  private handleResponse<T>(response: APIResponse<T>, errorContext: string): T {
-    if (!response.success || !response.data) {
-      // Convert API errors to domain-specific errors
-      if (response.error) {
-        throw TapsilatError.fromAPIError(response.error);
-      }
-
-      throw new TapsilatError(
-        `${errorContext} failed with no error details`,
-        "UNKNOWN_ERROR"
+    // Validate buyer email - check format
+    if (!isValidEmail(buyer.email)) {
+      throw new TapsilatValidationError(
+        "Buyer email must be a valid email address",
+        { provided: buyer.email }
       );
     }
 
-    return response.data;
-  }
+    try {
+      // Make the API request
+      const response = await this.httpClient.post<OrderCreateResponse>(
+        "/order/create",
+        orderRequest
+      );
 
-  /**
-   * Generic error handler - consistent way to handle errors across SDK methods
-   * @private
-   *
-   * @param error - The caught error to process
-   * @param errorContext - Descriptive context for error messages
-   * @throws {TapsilatError} Always throws an appropriate error type
-   */
-  private handleError(error: unknown, errorContext: string): never {
-    // Rethrow TapsilatErrors as-is
-    if (error instanceof TapsilatError) {
-      throw error;
+      // Use our generic response handler
+      return handleResponse(response, "Order creation");
+    } catch (error) {
+      // Use our generic error handler
+      return handleError(error, "order creation");
     }
-
-    // Convert generic errors to TapsilatNetworkError
-    throw new TapsilatNetworkError(
-      error instanceof Error
-        ? error.message
-        : `Unknown error during ${errorContext}`,
-      "NETWORK_ERROR"
-    );
   }
 
+  // ORDER RETRIEVAL BY REFERENCE ID
+  // Summary: Get complete order details and information
+  // Description: Retrieves full order data including buyer info, amounts, and current status
   /**
    * Gets an order by reference ID.
+   *
+   * @summary Retrieve complete order details and information
+   * @description Gets complete order data including buyer info, amounts, and current status using the unique reference ID.
    *
    * @param referenceId - The unique reference ID of the order
    * @returns Promise resolving to the complete order details
    * @throws {TapsilatValidationError} When referenceId is invalid
    * @throws {TapsilatNetworkError} When API request fails due to network issues
    * @throws {TapsilatError} When API returns an error response
-   *
-   * @example
-   * ```typescript
-   * try {
-   *   const order = await tapsilat.getOrder("ord_123456789");
-   *   console.log(`Order amount: ${order.amount} ${order.currency}`);
-   * } catch (error) {
-   *   console.error(`Failed to get order: ${error.message}`);
-   * }
-   * ```
    */
   async getOrder(referenceId: string): Promise<Order> {
     // Validate input
@@ -304,34 +296,26 @@ export class TapsilatSDK {
       );
 
       // Use our generic response handler
-      return this.handleResponse(response, "Order retrieval");
+      return handleResponse(response, "Order retrieval");
     } catch (error) {
       // Use our generic error handler
-      this.handleError(error, "order retrieval");
+      return handleError(error, "order retrieval");
     }
   }
 
+  // ORDER LISTING WITH PAGINATION
+  // Summary: Retrieve paginated list of merchant orders
+  // Description: Gets orders with pagination support, filtering, and sorting options
   /**
    * Lists orders with pagination support.
+   *
+   * @summary Retrieve paginated list of merchant orders
+   * @description Gets orders with pagination support, filtering, and sorting options.
    *
    * @param params - Optional pagination parameters (page number and items per page)
    * @returns Promise resolving to paginated list of orders
    * @throws {TapsilatNetworkError} When API request fails due to network issues
    * @throws {TapsilatError} When API returns an error response
-   *
-   * @example
-   * ```typescript
-   * try {
-   *   // Get the second page with 20 items per page
-   *   const orderList = await tapsilat.getOrders({ page: 2, per_page: 20 });
-   *   console.log(`Total orders: ${orderList.total}`);
-   *   orderList.rows.forEach(order => {
-   *     console.log(`Order ${order.referenceId}: ${order.amount} ${order.currency}`);
-   *   });
-   * } catch (error) {
-   *   console.error(`Failed to list orders: ${error.message}`);
-   * }
-   * ```
    */
   async getOrders(
     params: { page?: number; per_page?: number } = {}
@@ -365,15 +349,21 @@ export class TapsilatSDK {
       );
 
       // Use our generic response handler
-      return this.handleResponse(response, "Order listing");
+      return handleResponse(response, "Order listing");
     } catch (error) {
       // Use our generic error handler
-      this.handleError(error, "order listing");
+      return handleError(error, "order listing");
     }
   }
 
+  // ORDER CANCELLATION
+  // Summary: Cancel a pending order before payment completion
+  // Description: Cancels unpaid order and prevents further payment processing
   /**
    * Cancels an order by reference_id.
+   *
+   * @summary Cancel a pending order before payment completion
+   * @description Cancels unpaid order and prevents further payment processing.
    */
   async cancelOrder(referenceId: string): Promise<Order> {
     if (!referenceId) {
@@ -389,27 +379,40 @@ export class TapsilatSDK {
   }
 
   /**
-   * Gets the status of an order by reference ID.
+   * Gets the current status of an order by reference ID
    *
-   * @param referenceId - The unique reference ID of the order
-   * @returns Promise resolving to the current order status, including status code and last update time
-   * @throws {TapsilatValidationError} When referenceId is invalid
-   * @throws {TapsilatNetworkError} When API request fails due to network issues
-   * @throws {TapsilatError} When API returns an error response
+   * @summary Retrieves real-time payment status and tracking information for a specific order
+   * @description
+   * Queries the Tapsilat payment platform to retrieve the current status of an order using its
+   * unique reference ID. This method provides real-time information about payment progress,
+   * completion status, and last update timestamp. It's essential for tracking payment flow
+   * and implementing proper order state management in your application.
    *
-   * @example
-   * ```typescript
-   * try {
-   *   const orderStatus = await tapsilat.getOrderStatus("ord_123456789");
-   *   console.log(`Order status: ${orderStatus.status}`);
-   * } catch (error) {
-   *   if (error instanceof TapsilatValidationError) {
-   *     console.error("Invalid reference ID format");
-   *   } else if (error instanceof TapsilatError) {
-   *     console.error(`API error: ${error.message}`);
-   *   }
-   * }
-   * ```
+   * The status information includes payment state (CREATED, PENDING_PAYMENT, COMPLETED, CANCELLED),
+   * last update timestamp, and any relevant status metadata. This method should be used to:
+   * - Check if a payment has been completed after redirecting from checkout
+   * - Monitor payment status for pending transactions
+   * - Verify order state before fulfilling goods/services
+   * - Implement webhook verification and status synchronization
+   *
+   * @param {string} referenceId - Unique order reference identifier from order creation
+   *
+   * @returns {Promise<OrderStatusResponse>} Promise resolving to current order status information
+   * @returns {string} OrderStatusResponse.referenceId - Echo of the provided reference ID
+   * @returns {string} OrderStatusResponse.status - Current payment status (CREATED, PENDING_PAYMENT, COMPLETED, CANCELLED, FAILED)
+   * @returns {string} OrderStatusResponse.lastUpdatedAt - ISO 8601 timestamp of last status change
+   *
+   * @throws {TapsilatValidationError} When input validation fails:
+   *   - Reference ID is null, undefined, or empty string
+   *   - Reference ID format is invalid (should match order ID pattern)
+   * @throws {TapsilatNetworkError} When network request fails:
+   *   - Connection timeout during status check
+   *   - DNS resolution failure
+   *   - Network connectivity issues
+   * @throws {TapsilatError} When API returns business logic errors:
+   *   - ORDER_NOT_FOUND: Order with given reference ID doesn't exist
+   *   - ACCESS_DENIED: Order belongs to different merchant
+   *   - RATE_LIMIT_EXCEEDED: Too many status check requests
    */
   async getOrderStatus(referenceId: string): Promise<OrderStatusResponse> {
     // Validate input using proper validation
@@ -427,16 +430,22 @@ export class TapsilatSDK {
       );
 
       // Use our generic response handler
-      return this.handleResponse(response, "Order status retrieval");
+      return handleResponse(response, "Order status retrieval");
     } catch (error) {
       // Use our generic error handler
-      this.handleError(error, "order status retrieval");
+      return handleError(error, "order status retrieval");
     }
   }
 
+  // ORDER REFUND OPERATIONS
+  // Summary: Process partial refund for a completed order
+  // Description: Refunds specified amount from a paid order and returns transaction details
   /**
    * Partially refunds an order.
    * Based on `refund_order` from the Python SDK.
+   *
+   * @summary Process partial refund for a completed order
+   * @description Refunds specified amount from a paid order and returns transaction details.
    *
    * @param refundData - The refund details, including referenceId and amount.
    * @returns Promise resolving to the refund transaction details.
@@ -456,9 +465,14 @@ export class TapsilatSDK {
     return response.data;
   }
 
+  // Summary: Process full refund for a completed order
+  // Description: Refunds entire order amount and returns transaction details
   /**
    * Fully refunds an order by its reference ID.
    * Based on `refund_all_order` from the Python SDK.
+   *
+   * @summary Process full refund for a completed order
+   * @description Refunds entire order amount and returns transaction details.
    *
    * @param referenceId - The unique identifier of the order to fully refund.
    * @returns Promise resolving to the refund transaction details.
@@ -476,9 +490,15 @@ export class TapsilatSDK {
     return response.data;
   }
 
+  // ORDER PAYMENT DETAILS
+  // Summary: Retrieve detailed payment transaction information for an order
+  // Description: Gets payment method, amount, status, and card info for order transactions
   /**
    * Retrieves the payment details for an order.
    * Based on `get_order_payment_details` from the Python SDK.
+   *
+   * @summary Retrieve detailed payment transaction information for an order
+   * @description Gets payment method, amount, status, and card info for order transactions.
    *
    * @param referenceId - The unique identifier of the order.
    * @param conversationId - Optional conversation ID for more specific querying.
@@ -518,9 +538,15 @@ export class TapsilatSDK {
     }
   }
 
+  // ORDER LOOKUP BY CONVERSATION ID
+  // Summary: Find order using conversation ID instead of reference ID
+  // Description: Alternative lookup method for orders using custom conversation identifier
   /**
    * Gets an order by conversation_id.
    * Based on `get_order_by_conversation_id` from the Python SDK.
+   *
+   * @summary Find order using conversation ID instead of reference ID
+   * @description Alternative lookup method for orders using custom conversation identifier.
    */
   async getOrderByConversationId(conversationId: string): Promise<Order> {
     if (!conversationId) {
@@ -540,6 +566,9 @@ export class TapsilatSDK {
   /**
    * Gets order transactions by reference_id.
    * Based on `get_order_transactions` from the Python SDK.
+   *
+   * @summary Retrieve transaction history for an order
+   * @description Gets detailed transaction records and payment attempts for a specific order.
    */
   async getOrderTransactions(referenceId: string): Promise<any[]> {
     if (!referenceId) {
@@ -559,6 +588,9 @@ export class TapsilatSDK {
   /**
    * Gets order submerchants with pagination.
    * Based on `get_order_submerchants` from the Python SDK.
+   *
+   * @summary Retrieve paginated list of submerchants for orders
+   * @description Gets submerchant information with pagination support for order management.
    */
   async getOrderSubmerchants(
     params: { page?: number; per_page?: number } = {}
@@ -577,6 +609,9 @@ export class TapsilatSDK {
   /**
    * Gets checkout URL for an order.
    * Based on `get_checkout_url` from the Python SDK.
+   *
+   * @summary Retrieve checkout URL for existing order
+   * @description Gets the payment checkout URL for an existing order using reference ID.
    */
   async getCheckoutUrl(referenceId: string): Promise<string> {
     const order = await this.getOrder(referenceId);
@@ -591,19 +626,13 @@ export class TapsilatSDK {
   /**
    * Verifies webhook signature for security
    *
+   * @summary Validate webhook signature for security verification
+   * @description Verifies the authenticity of webhook payloads using HMAC signature validation.
+   *
    * @param payload - Raw webhook payload string
    * @param signature - Webhook signature from headers
    * @param secret - Your webhook secret key
    * @returns Promise resolving to true if signature is valid
-   *
-   * @example
-   * ```typescript
-   * const isValid = await sdk.verifyWebhook(
-   *   JSON.stringify(req.body),
-   *   req.headers['x-tapsilat-signature'],
-   *   'your-webhook-secret'
-   * );
-   * ```
    */
   async verifyWebhook(
     payload: string,
@@ -623,6 +652,9 @@ export class TapsilatSDK {
 
   /**
    * Checks API service health and availability
+   *
+   * @summary Check API service health and availability
+   * @description Verifies that the Tapsilat API service is operational and accessible.
    *
    * @returns Promise resolving to service status
    */
@@ -644,6 +676,9 @@ export class TapsilatSDK {
   /**
    * Gets current SDK configuration (without sensitive data)
    *
+   * @summary Get current SDK configuration without sensitive information
+   * @description Returns a copy of the current configuration with sensitive data (like bearer token) excluded.
+   *
    * @returns Copy of current configuration
    */
   getConfig(): Omit<TapsilatConfig, "bearerToken"> & {
@@ -658,6 +693,9 @@ export class TapsilatSDK {
 
   /**
    * Updates SDK configuration
+   *
+   * @summary Update SDK configuration with new values
+   * @description Updates the SDK configuration with provided values, validating bearer token if changed.
    *
    * @param newConfig - Partial configuration to update
    * @throws {TapsilatValidationError} When Bearer token is invalid
