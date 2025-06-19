@@ -6,7 +6,7 @@ import {
   sanitizeMetadata,
   isInteger,
 } from "../utils/validators";
-import { verifyHmacSignature } from "../utils";
+import { verifyHmacSignature } from "../utils/verify";
 import { TapsilatValidationError } from "../errors/TapsilatError";
 
 describe("Validators", () => {

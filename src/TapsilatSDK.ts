@@ -6,13 +6,8 @@ import {
   isPositiveNumber,
   hasValidDecimalPlaces,
   isInteger,
-} from "./utils/validators";
-import {
   isValidEmail,
-  handleResponse,
-  handleError,
-  verifyHmacSignature,
-} from "./utils";
+} from "./utils/validators";
 import {
   TapsilatConfig,
   PaginatedResponse,
@@ -25,6 +20,8 @@ import {
   OrderCreateResponse,
 } from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
+import { handleError, handleResponse } from "./utils/response";
+import { verifyHmacSignature } from "./utils/verify";
 
 /**
  * Main SDK class for Tapsilat payment operations
