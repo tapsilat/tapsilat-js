@@ -6,18 +6,20 @@
 
 **Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform**
 
-[![Version](https://img.shields.io/badge/version-1.0.4-blue.svg)](https://www.npmjs.com/package/@tapsilat/tapsilat-js)
+[![Version](https://---
+
+## Advanced C## Authenticationnfiguration.shields.io/badge/version-1.0.4-blue.svg)](https://www.npmjs.com/package/@tapsilat/tapsilat-js)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 </div>
 
-## 🏢 About Tapsilat
+## About Tapsilat
 
 **Tapsilat** is Turkey's leading fintech platform providing comprehensive payment processing solutions for businesses of all sizes. Our cutting-edge technology enables secure, fast, and reliable payment transactions with support for multiple payment methods, currencies, and advanced fraud protection.
 
 ---
 
-## 🚀 Installation
+## Installation
 
 ```bash
 npm install @tapsilat/tapsilat-js
@@ -25,7 +27,7 @@ npm install @tapsilat/tapsilat-js
 
 ---
 
-## ⚡ Quick Start
+## Quick Start
 
 ### Initialize the SDK
 
@@ -71,7 +73,7 @@ console.log("Order status:", status.status);
 
 ---
 
-## 📖 API Methods & Examples
+## API Methods & Examples
 
 ### Order Management
 
@@ -255,19 +257,19 @@ Get your API token from the [Tapsilat Dashboard](https://tapsilat.dev) → Setti
 
 ---
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## 🔗 Resources
+## Resources
 
-- 🌐 **Website**: [https://tapsilat.dev](https://tapsilat.dev)
-- 🐛 **Issues**: [GitHub Issues](https://github.com/tapsilat/tapsilat-js/issues)
-- 📚 **Examples**: See [examples/basic-usage.js](examples/basic-usage.js) for a complete implementation
+- **Website**: [https://tapsilat.dev](https://tapsilat.dev)
+- **Issues**: [GitHub Issues](https://github.com/tapsilat/tapsilat-js/issues)
+- **Examples**: See [examples/basic-usage.js](examples/basic-usage.js) for a complete implementation
 
-## 📝 Type System
+## Type System
 
 All TypeScript types are organized in `src/types/index.ts` with proper JSDoc documentation including:
 - `@category` - Logical grouping of related types
