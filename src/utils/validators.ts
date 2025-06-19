@@ -1,6 +1,25 @@
 import { PaymentRequest, Currency, PaymentMethod } from "../types/index";
 import { TapsilatValidationError } from "../errors/TapsilatError";
 
+
+// EMAIL VALIDATION
+// Summary: Validates email format using basic regex pattern
+// Description: Ensures email addresses conform to standard format with username, @ symbol, and domain
+/**
+ * Validates email format using basic regex pattern
+ *
+ * @summary Validates email format using basic regex pattern
+ * @description Ensures email addresses conform to standard format with username, @ symbol, and domain
+ *
+ * @param email - Email address to validate
+ * @returns True if email matches required format, false otherwise
+ */
+export const isValidEmail = (email: string): boolean => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+
+
 // TYPE GUARDS
 // Summary: Type guards for payment method validation
 // Description: Checks if a value matches the allowed payment method types

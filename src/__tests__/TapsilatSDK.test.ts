@@ -4,7 +4,7 @@ import { OrderCreateRequest } from "../types/index";
 describe("TapsilatSDK", () => {
   const validConfig = {
     bearerToken:
-      "test-token-12345", // Example token, replace with a valid oneß
+      "BEARER_TOKEN", // Example token, replace with a valid oneß
     baseURL: "https://acquiring.tapsilat.dev/api/v1",
     timeout: 10000,
   };
