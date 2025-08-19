@@ -68,6 +68,53 @@ console.log("Order status:", status.status);
 
 ---
 
+## Features
+
+### Core Payment Operations
+- Secure authentication with bearer tokens
+- Complete payment lifecycle management
+- Multi-currency support (TRY, USD, EUR, GBP)
+- Advanced filtering and pagination
+
+### Payment Term Management
+- Create and manage installment plans
+- Update payment terms (amount, dates, status)
+- Delete payment terms
+- Term-specific refunds and termination
+- Complete order termination
+
+### Validation & Utilities
+- Turkish GSM number validation and formatting
+- Installment validation with flexible input formats
+- Input validation for all request parameters
+- Webhook signature verification
+
+### Technical Features
+- Full TypeScript support
+- Modern ES6+ architecture
+- Automatic retry logic
+- Configuration management
+- Health monitoring
+- Request/response interceptors
+
+---
+
+## SDK Compatibility
+
+This JavaScript SDK provides full feature parity with Tapsilat's Python and .NET SDKs:
+
+| Feature Category | JavaScript | Python | .NET | 
+|-----------------|------------|--------|------|
+| Order Management | Yes | Yes | Yes |
+| Payment Terms | Yes | Yes | Yes |
+| GSM Validation | Yes | Yes | Yes |
+| Installment Validation | Yes | Yes | Yes |
+| Webhook Verification | Yes | No | No |
+| TypeScript Support | Yes | No | Yes |
+| Health Monitoring | Yes | No | No |
+
+---
+
 ## API Methods & Examples
 
 ### Order Management
@@ -211,6 +258,112 @@ app.post('/webhooks/tapsilat', async (req, res) => {
   
   res.json({ received: true });
 });
+```
+
+### Payment Term Management
+
+#### Create Payment Term
+```typescript
+const paymentTerm = await tapsilat.createOrderTerm({
+  order_id: 'order-reference-id',
+  term_reference_id: 'term-001',
+  amount: 250.00,
+  due_date: '2024-12-31',
+  term_sequence: 1,
+  required: true,
+  status: 'pending',
+  data: 'First installment'
+});
+console.log('Payment term created:', paymentTerm.term_reference_id);
+```
+
+#### Update Payment Term
+```typescript
+const updatedTerm = await tapsilat.updateOrderTerm({
+  term_reference_id: 'term-001',
+  amount: 275.00,
+  due_date: '2025-01-15',
+  status: 'updated'
+});
+console.log('Payment term updated:', updatedTerm.status);
+```
+
+#### Delete Payment Term
+```typescript
+const deletedTerm = await tapsilat.deleteOrderTerm({
+  term_reference_id: 'term-001'
+});
+console.log('Payment term deleted:', deletedTerm.term_reference_id);
+```
+
+#### Refund Payment Term
+```typescript
+const termRefund = await tapsilat.refundOrderTerm({
+  term_id: 'term-001',
+  amount: 100.00,
+  reference_id: 'refund-ref-123'
+});
+console.log('Term refund processed:', termRefund.refund_id);
+```
+
+#### Terminate Payment Term
+```typescript
+const terminatedTerm = await tapsilat.terminateOrderTerm({
+  term_reference_id: 'term-001',
+  reason: 'Customer request'
+});
+console.log('Payment term terminated:', terminatedTerm.status);
+```
+
+#### Terminate Order
+```typescript
+const terminatedOrder = await tapsilat.terminateOrder({
+  reference_id: 'order-reference-id',
+  reason: 'Business decision'
+});
+console.log('Order terminated at:', terminatedOrder.terminated_at);
+```
+
+### Validation Utilities
+
+#### GSM Number Validation
+```typescript
+import { validateGsmNumber } from "@tapsilat/tapsilat-js";
+
+const gsmResult = validateGsmNumber('+90 555 123 45 67');
+if (gsmResult.isValid) {
+  console.log('Cleaned number:', gsmResult.cleanedNumber); // +905551234567
+} else {
+  console.error('Invalid GSM:', gsmResult.error);
+}
+
+// Supports multiple formats
+validateGsmNumber('0555 123 45 67');  // National format
+validateGsmNumber('555 123 45 67');   // Local format
+validateGsmNumber('5551234567');      // No formatting
+```
+
+#### Installments Validation
+```typescript
+import { validateInstallments } from "@tapsilat/tapsilat-js";
+
+// Single installment
+const single = validateInstallments(3);
+console.log(single.validatedInstallments); // [3]
+
+// Multiple installments
+const multiple = validateInstallments('1,3,6,12');
+console.log(multiple.validatedInstallments); // [1, 3, 6, 12]
+
+// Array format
+const array = validateInstallments([6, 3, 12, 1]);
+console.log(array.validatedInstallments); // [1, 3, 6, 12] (sorted, unique)
+
+// Error handling
+const invalid = validateInstallments('abc');
+if (!invalid.isValid) {
+  console.error('Validation error:', invalid.error);
+}
 ```
 
 ### Health Monitoring

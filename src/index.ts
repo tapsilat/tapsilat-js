@@ -21,8 +21,6 @@ export type {
   APIResponse,
   PaginationParams,
   PaginatedResponse,
-  
-  // Additional types from the moved types.ts
   Locale,
   Buyer,
   OrderCreateRequest,
@@ -49,7 +47,15 @@ export type {
   OrderPaymentTermCreateDTO,
   OrderPaymentTermUpdateDTO,
   OrderTermRefundRequest,
-  OrderResponse
+  OrderResponse,
+  PaymentTermResponse,
+  PaymentTermDeleteRequest,
+  PaymentTermRefundResponse,
+  PaymentTermTerminateRequest,
+  OrderTerminateRequest,
+  OrderTerminateResponse,
+  GsmValidationResult,
+  InstallmentsValidationResult
 } from "./types/index";
 
 // Errors
@@ -69,4 +75,6 @@ export {
   isValidPaymentMethod,
   isValidUrl,
   sanitizeMetadata,
+  validateGsmNumber,
+  validateInstallments,
 } from "./utils/validators";

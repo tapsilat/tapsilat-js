@@ -18,6 +18,15 @@ import {
   OrderPaymentDetail,
   OrderCreateRequest,
   OrderCreateResponse,
+  OrderPaymentTermCreateDTO,
+  OrderPaymentTermUpdateDTO,
+  OrderTermRefundRequest,
+  PaymentTermResponse,
+  PaymentTermDeleteRequest,
+  PaymentTermRefundResponse,
+  PaymentTermTerminateRequest,
+  OrderTerminateRequest,
+  OrderTerminateResponse,
 } from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
@@ -819,5 +828,359 @@ export class TapsilatSDK {
    */
   getConfigManager(): ConfigManager {
     return this.configManager;
+  }
+
+  // PAYMENT TERM MANAGEMENT
+  // Summary: Create, update, delete, and manage payment terms for orders
+  // Description: Full lifecycle management of payment terms including installments and refunds
+
+  /**
+   * Creates a new payment term for an existing order
+   *
+   * @summary Create payment term for installment or partial payment
+   * @description
+   * Creates a new payment term for an existing order, enabling installment payments
+   * or partial payment collection. Payment terms allow splitting order amounts
+   * across multiple payments with specific due dates and requirements.
+   *
+   * @param {OrderPaymentTermCreateDTO} termData - Payment term creation data
+   * @param {string} termData.order_id - Reference ID of the existing order
+   * @param {string} termData.term_reference_id - Unique identifier for this payment term
+   * @param {number} termData.amount - Amount for this payment term
+   * @param {string} termData.due_date - Due date for this payment (ISO 8601 format)
+   * @param {number} termData.term_sequence - Sequence number for this term
+   * @param {boolean} termData.required - Whether this payment term is required
+   * @param {string} termData.status - Initial status of the payment term
+   * @param {string} [termData.data] - Additional metadata for the term
+   * @param {string} [termData.paid_date] - Date when payment was completed
+   *
+   * @returns {Promise<PaymentTermResponse>} Promise resolving to created payment term details
+   * @throws {TapsilatValidationError} When input validation fails
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async createOrderTerm(
+    termData: OrderPaymentTermCreateDTO
+  ): Promise<PaymentTermResponse> {
+    // Validate required fields
+    if (!isNonEmptyString(termData.order_id)) {
+      throw new TapsilatValidationError(
+        "Order ID is required and must be a non-empty string",
+        { provided: termData.order_id }
+      );
+    }
+
+    if (!isNonEmptyString(termData.term_reference_id)) {
+      throw new TapsilatValidationError(
+        "Term reference ID is required and must be a non-empty string",
+        { provided: termData.term_reference_id }
+      );
+    }
+
+    if (!isPositiveNumber(termData.amount)) {
+      throw new TapsilatValidationError("Amount must be a positive number", {
+        provided: termData.amount,
+      });
+    }
+
+    if (!hasValidDecimalPlaces(termData.amount)) {
+      throw new TapsilatValidationError(
+        "Amount must have maximum 2 decimal places",
+        { provided: termData.amount }
+      );
+    }
+
+    if (!isNonEmptyString(termData.due_date)) {
+      throw new TapsilatValidationError(
+        "Due date is required and must be a non-empty string",
+        { provided: termData.due_date }
+      );
+    }
+
+    if (!isInteger(termData.term_sequence)) {
+      throw new TapsilatValidationError("Term sequence must be an integer", {
+        provided: termData.term_sequence,
+      });
+    }
+
+    if (typeof termData.required !== "boolean") {
+      throw new TapsilatValidationError("Required field must be a boolean", {
+        provided: termData.required,
+      });
+    }
+
+    if (!isNonEmptyString(termData.status)) {
+      throw new TapsilatValidationError(
+        "Status is required and must be a non-empty string",
+        { provided: termData.status }
+      );
+    }
+
+    try {
+      const createTermResponse =
+        await this.httpClient.post<PaymentTermResponse>(
+          "/order/term/create",
+          termData
+        );
+
+      return handleResponse(createTermResponse, "Payment term creation");
+    } catch (error) {
+      return handleError(error, "payment term creation");
+    }
+  }
+
+  /**
+   * Updates an existing payment term
+   *
+   * @summary Update payment term details
+   * @description
+   * Updates an existing payment term with new information such as amount,
+   * due date, status, or other metadata. This allows for flexible management
+   * of installment payments and payment schedules.
+   *
+   * @param {OrderPaymentTermUpdateDTO} updateData - Payment term update data
+   * @param {string} updateData.term_reference_id - Reference ID of the term to update
+   * @param {number} [updateData.amount] - New amount for the payment term
+   * @param {string} [updateData.due_date] - New due date (ISO 8601 format)
+   * @param {string} [updateData.paid_date] - Date when payment was completed
+   * @param {boolean} [updateData.required] - Whether this payment term is required
+   * @param {string} [updateData.status] - New status of the payment term
+   * @param {number} [updateData.term_sequence] - New sequence number
+   *
+   * @returns {Promise<PaymentTermResponse>} Promise resolving to updated payment term details
+   * @throws {TapsilatValidationError} When input validation fails
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async updateOrderTerm(
+    updateData: OrderPaymentTermUpdateDTO
+  ): Promise<PaymentTermResponse> {
+    // Validate required fields
+    if (!isNonEmptyString(updateData.term_reference_id)) {
+      throw new TapsilatValidationError(
+        "Term reference ID is required and must be a non-empty string",
+        { provided: updateData.term_reference_id }
+      );
+    }
+
+    // Validate optional amount if provided
+    if (updateData.amount !== undefined) {
+      if (!isPositiveNumber(updateData.amount)) {
+        throw new TapsilatValidationError("Amount must be a positive number", {
+          provided: updateData.amount,
+        });
+      }
+
+      if (!hasValidDecimalPlaces(updateData.amount)) {
+        throw new TapsilatValidationError(
+          "Amount must have maximum 2 decimal places",
+          { provided: updateData.amount }
+        );
+      }
+    }
+
+    // Validate optional term sequence if provided
+    if (updateData.term_sequence !== undefined) {
+      if (!isInteger(updateData.term_sequence)) {
+        throw new TapsilatValidationError("Term sequence must be an integer", {
+          provided: updateData.term_sequence,
+        });
+      }
+    }
+
+    // Validate optional required field if provided
+    if (
+      updateData.required !== undefined &&
+      typeof updateData.required !== "boolean"
+    ) {
+      throw new TapsilatValidationError("Required field must be a boolean", {
+        provided: updateData.required,
+      });
+    }
+
+    try {
+      const updateTermResponse =
+        await this.httpClient.post<PaymentTermResponse>(
+          "/order/term/update",
+          updateData
+        );
+
+      return handleResponse(updateTermResponse, "Payment term update");
+    } catch (error) {
+      return handleError(error, "payment term update");
+    }
+  }
+
+  /**
+   * Deletes a payment term
+   *
+   * @summary Delete payment term
+   * @description
+   * Permanently deletes a payment term from an order. This action cannot be undone.
+   * Only unpaid payment terms can be deleted.
+   *
+   * @param {PaymentTermDeleteRequest} deleteData - Payment term deletion data
+   * @param {string} deleteData.term_reference_id - Reference ID of the term to delete
+   *
+   * @returns {Promise<PaymentTermResponse>} Promise resolving to deleted payment term details
+   * @throws {TapsilatValidationError} When input validation fails
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async deleteOrderTerm(
+    deleteData: PaymentTermDeleteRequest
+  ): Promise<PaymentTermResponse> {
+    // Validate required fields
+    if (!isNonEmptyString(deleteData.term_reference_id)) {
+      throw new TapsilatValidationError(
+        "Term reference ID is required and must be a non-empty string",
+        { provided: deleteData.term_reference_id }
+      );
+    }
+
+    try {
+      const deleteTermResponse =
+        await this.httpClient.post<PaymentTermResponse>(
+          "/order/term/delete",
+          deleteData
+        );
+
+      return handleResponse(deleteTermResponse, "Payment term deletion");
+    } catch (error) {
+      return handleError(error, "payment term deletion");
+    }
+  }
+
+  /**
+   * Refunds a specific payment term
+   *
+   * @summary Refund payment term
+   * @description
+   * Processes a refund for a specific payment term. This allows partial refunds
+   * at the payment term level rather than the entire order level.
+   *
+   * @param {OrderTermRefundRequest} refundData - Payment term refund data
+   * @param {string} refundData.term_id - ID of the term to refund
+   * @param {number} refundData.amount - Amount to refund
+   * @param {string} [refundData.reference_id] - Optional reference ID
+   * @param {string} [refundData.term_payment_id] - Optional term payment ID
+   *
+   * @returns {Promise<PaymentTermRefundResponse>} Promise resolving to refund details
+   * @throws {TapsilatValidationError} When input validation fails
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async refundOrderTerm(
+    refundData: OrderTermRefundRequest
+  ): Promise<PaymentTermRefundResponse> {
+    // Validate required fields
+    if (!isNonEmptyString(refundData.term_id)) {
+      throw new TapsilatValidationError(
+        "Term ID is required and must be a non-empty string",
+        { provided: refundData.term_id }
+      );
+    }
+
+    if (!isPositiveNumber(refundData.amount)) {
+      throw new TapsilatValidationError("Amount must be a positive number", {
+        provided: refundData.amount,
+      });
+    }
+
+    if (!hasValidDecimalPlaces(refundData.amount)) {
+      throw new TapsilatValidationError(
+        "Amount must have maximum 2 decimal places",
+        { provided: refundData.amount }
+      );
+    }
+
+    try {
+      const refundTermResponse =
+        await this.httpClient.post<PaymentTermRefundResponse>(
+          "/order/term/refund",
+          refundData
+        );
+
+      return handleResponse(refundTermResponse, "Payment term refund");
+    } catch (error) {
+      return handleError(error, "payment term refund");
+    }
+  }
+
+  /**
+   * Terminates a payment term
+   *
+   * @summary Terminate payment term
+   * @description
+   * Terminates an active payment term, preventing further payments.
+   * This is useful for canceling installment plans or payment schedules.
+   *
+   * @param {PaymentTermTerminateRequest} terminateData - Payment term termination data
+   * @param {string} terminateData.term_reference_id - Reference ID of the term to terminate
+   * @param {string} [terminateData.reason] - Optional reason for termination
+   *
+   * @returns {Promise<PaymentTermResponse>} Promise resolving to terminated term details
+   * @throws {TapsilatValidationError} When input validation fails
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async terminateOrderTerm(
+    terminateData: PaymentTermTerminateRequest
+  ): Promise<PaymentTermResponse> {
+    // Validate required fields
+    if (!isNonEmptyString(terminateData.term_reference_id)) {
+      throw new TapsilatValidationError(
+        "Term reference ID is required and must be a non-empty string",
+        { provided: terminateData.term_reference_id }
+      );
+    }
+
+    try {
+      const terminateTermResponse =
+        await this.httpClient.post<PaymentTermResponse>(
+          "/order/term/terminate",
+          terminateData
+        );
+
+      return handleResponse(terminateTermResponse, "Payment term termination");
+    } catch (error) {
+      return handleError(error, "payment term termination");
+    }
+  }
+
+  /**
+   * Terminates an entire order
+   *
+   * @summary Terminate order
+   * @description
+   * Terminates an entire order, canceling all associated payment terms and
+   * preventing any further payment processing. This is a more comprehensive
+   * action than canceling individual payment terms.
+   *
+   * @param {OrderTerminateRequest} terminateData - Order termination data
+   * @param {string} terminateData.reference_id - Reference ID of the order to terminate
+   * @param {string} [terminateData.reason] - Optional reason for termination
+   *
+   * @returns {Promise<OrderTerminateResponse>} Promise resolving to terminated order details
+   * @throws {TapsilatValidationError} When input validation fails
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async terminateOrder(
+    terminateData: OrderTerminateRequest
+  ): Promise<OrderTerminateResponse> {
+    // Validate required fields
+    if (!isNonEmptyString(terminateData.reference_id)) {
+      throw new TapsilatValidationError(
+        "Reference ID is required and must be a non-empty string",
+        { provided: terminateData.reference_id }
+      );
+    }
+
+    try {
+      const terminateOrderResponse =
+        await this.httpClient.post<OrderTerminateResponse>(
+          "/order/terminate",
+          terminateData
+        );
+
+      return handleResponse(terminateOrderResponse, "Order termination");
+    } catch (error) {
+      return handleError(error, "order termination");
+    }
   }
 }

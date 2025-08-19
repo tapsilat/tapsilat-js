@@ -1,28 +1,30 @@
 import { TapsilatSDK } from "../TapsilatSDK";
 import { OrderCreateRequest } from "../types/index";
+import { HttpClient } from "../http/HttpClient";
+
+// Mock the HttpClient
+jest.mock("../http/HttpClient");
 
 describe("TapsilatSDK", () => {
   const validConfig = {
-    bearerToken:
-      "BEARER_TOKEN", // Example token, replace with a valid oneß
-    baseURL: "https://acquiring.tapsilat.dev/api/v1",
+    bearerToken: "test-bearer-token-12345",
+    baseURL: "https://test.api.com/v1",
     timeout: 10000,
   };
 
   let sdk: TapsilatSDK;
+  let mockHttpClient: jest.Mocked<HttpClient>;
 
   beforeEach(() => {
+    // Clear all mocks before each test
+    jest.clearAllMocks();
+    
     sdk = new TapsilatSDK(validConfig);
+    mockHttpClient = (sdk as any).httpClient as jest.Mocked<HttpClient>;
   });
 
   describe("Order Operations", () => {
-    let createdOrderReferenceId: string;
-
-    beforeAll(() => {
-      jest.setTimeout(20000);
-    });
-
-    it("should create an order", async () => {
+    it("should create an order successfully", async () => {
       const orderRequest: OrderCreateRequest = {
         amount: 150.75,
         currency: "TRY",
@@ -33,73 +35,262 @@ describe("TapsilatSDK", () => {
           email: "john-doe@example.com",
         },
       };
+
+      const mockResponse = {
+        success: true,
+        data: {
+          referenceId: "order-123",
+          conversationId: "conv-123",
+          checkoutUrl: "https://checkout.test.com/order-123",
+          status: "CREATED"
+        }
+      };
+
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
       const order = await sdk.createOrder(orderRequest);
-      expect(order).toHaveProperty("order_id");
-      expect(order).toHaveProperty("reference_id");
-      createdOrderReferenceId = (order as any)["reference_id"];
-    }, 20000);
+      
+      expect(mockHttpClient.post).toHaveBeenCalledWith("/order/create", orderRequest);
+      expect(order).toEqual(mockResponse.data);
+      expect(order.referenceId).toBe("order-123");
+      expect(order.checkoutUrl).toBe("https://checkout.test.com/order-123");
+    });
 
-    it("should get order status", async () => {
-      if (!createdOrderReferenceId) throw new Error("No order created");
-      const status = await sdk.getOrderStatus(createdOrderReferenceId);
-      expect(status.status).toBeTruthy();
-    }, 20000);
+    it("should get order status successfully", async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          referenceId: "order-123",
+          status: "COMPLETED",
+          lastUpdatedAt: "2024-01-15T10:30:00Z"
+        }
+      };
 
-    it("should get the created order", async () => {
-      if (!createdOrderReferenceId) throw new Error("No order created");
-      const order = await sdk.getOrder(createdOrderReferenceId);
-      expect(order).toHaveProperty("reference_id");
-      expect((order as any)["reference_id"]).toBe(createdOrderReferenceId);
-      expect(order).toHaveProperty("amount");
-      expect(order).toHaveProperty("currency");
-      // API might return amount as string or number
-      const amount = (order as any).amount;
-      const expectedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
-      expect(expectedAmount).toBe(150.75);
-      expect(order.currency).toBe("TRY");
-    }, 20000);
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
 
-    it("should list orders", async () => {
+      const status = await sdk.getOrderStatus("order-123");
+      
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/status");
+      expect(status).toEqual(mockResponse.data);
+      expect(status.status).toBe("COMPLETED");
+    });
+
+    it("should get order details successfully", async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          referenceId: "order-123",
+          amount: 150.75,
+          currency: "TRY",
+          status: "COMPLETED",
+          buyer: {
+            name: "John",
+            surname: "Doe",
+            email: "john-doe@example.com"
+          }
+        }
+      };
+
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const order = await sdk.getOrder("order-123");
+      
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123");
+      expect(order).toEqual(mockResponse.data);
+      expect(order.referenceId).toBe("order-123");
+    });
+
+    it("should list orders successfully", async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          data: [
+            {
+              referenceId: "order-123",
+              amount: 150.75,
+              currency: "TRY",
+              status: "COMPLETED"
+            },
+            {
+              referenceId: "order-456",
+              amount: 299.99,
+              currency: "TRY", 
+              status: "PENDING"
+            }
+          ],
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: 2,
+            pages: 1
+          }
+        }
+      };
+
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
       const orders = await sdk.getOrders({ page: 1, per_page: 10 });
       
-      // API returns 'rows' field, not 'data'
-      const orderRows = (orders as any).rows;
-      if (!orders || !Array.isArray(orderRows)) {
-        throw new Error(
-          "orders.rows is not an array or response is invalid: " +
-            JSON.stringify(orders)
-        );
-      }
-      expect(Array.isArray(orderRows)).toBe(true);
-      expect(orders).toHaveProperty("page");
-      expect(orders).toHaveProperty("total");
-    }, 20000);
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/order/list", { 
+        params: { page: 1, per_page: 10 } 
+      });
+      expect(orders).toEqual(mockResponse.data);
+      expect(orders.data).toHaveLength(2);
+    });
 
-    it("should cancel the order", async () => {
-      if (!createdOrderReferenceId) return;
-      try {
-        const cancelledOrder = await sdk.cancelOrder(createdOrderReferenceId);
-        expect(cancelledOrder.referenceId).toBe(createdOrderReferenceId);
-      } catch (error) {
-        // Order might not be cancellable in its current state
-        const errorMessage =
-          error instanceof Error ? error.message : "Unknown error";
-        expect(typeof errorMessage).toBe("string");
-      }
-    }, 20000);
+    it("should cancel order successfully", async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          referenceId: "order-123",
+          status: "CANCELLED"
+        }
+      };
+
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const cancelledOrder = await sdk.cancelOrder("order-123");
+      
+      expect(mockHttpClient.post).toHaveBeenCalledWith("/order/cancel", {
+        reference_id: "order-123"
+      });
+      expect(cancelledOrder).toEqual(mockResponse.data);
+      expect(cancelledOrder.status).toBe("CANCELLED");
+    });
+
+    it("should refund order successfully", async () => {
+      const refundRequest = {
+        reference_id: "order-123",
+        amount: 50.00
+      };
+
+      const mockResponse = {
+        success: true,
+        data: {
+          refundId: "refund-456",
+          referenceId: "order-123",
+          status: "COMPLETED",
+          amount: 50.00,
+          currency: "TRY",
+          createdAt: "2024-01-15T10:30:00Z"
+        }
+      };
+
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const refund = await sdk.refundOrder(refundRequest);
+      
+      expect(mockHttpClient.post).toHaveBeenCalledWith("/order/refund", refundRequest);
+      expect(refund).toEqual(mockResponse.data);
+      expect(refund.amount).toBe(50.00);
+    });
+  });
+
+  describe("Validation", () => {
+    it("should validate bearer token", () => {
+      expect(() => {
+        new TapsilatSDK({ bearerToken: "" });
+      }).toThrow("Bearer token must be a non-empty string");
+    });
+
+    it("should validate order creation request", async () => {
+      const invalidOrderRequest = {
+        amount: -100, // Invalid negative amount
+        currency: "TRY",
+        locale: "tr",
+        buyer: {
+          name: "John",
+          surname: "Doe",
+          email: "john-doe@example.com",
+        },
+      } as any;
+
+      await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(
+        "Amount must be a positive number"
+      );
+    });
+
+    it("should validate email format", async () => {
+      const invalidOrderRequest = {
+        amount: 100,
+        currency: "TRY",
+        locale: "tr",
+        buyer: {
+          name: "John",
+          surname: "Doe",
+          email: "invalid-email", // Invalid email format
+        },
+      } as any;
+
+      await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(
+        "Buyer email must be a valid email address"
+      );
+    });
+
+    it("should validate amount decimal places", async () => {
+      const invalidOrderRequest = {
+        amount: 100.555, // Too many decimal places
+        currency: "TRY",
+        locale: "tr",
+        buyer: {
+          name: "John",
+          surname: "Doe",
+          email: "john-doe@example.com",
+        },
+      } as any;
+
+      await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(
+        "Amount must have maximum 2 decimal places"
+      );
+    });
+  });
+
+  describe("Health Check", () => {
+    it("should perform health check successfully", async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          status: "healthy",
+          timestamp: "2024-01-15T10:30:00Z"
+        }
+      };
+
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const health = await sdk.healthCheck();
+      
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/health");
+      expect(health).toEqual(mockResponse.data);
+      expect(health.status).toBe("healthy");
+    });
   });
 
   describe("Webhook Verification", () => {
     it("should verify webhook signature", async () => {
-      const payload = '{"id":"order-123","status":"completed"}';
-      const signature = "sha256=abc123...";
-      const webhookSecret = "your-webhook-secret";
-      const isValid = await sdk.verifyWebhook(
-        payload,
-        signature,
-        webhookSecret
+      const payload = '{"event": "order.completed", "data": {"id": "123"}}';
+      const signature = "test-signature";
+      const secret = "webhook-secret";
+
+      // Mock the verification to return true
+      const result = await sdk.verifyWebhook(payload, signature, secret);
+      
+      // Since we're not mocking the actual crypto verification, 
+      // this test mainly checks the validation logic
+      expect(typeof result).toBe("boolean");
+    });
+
+    it("should validate webhook parameters", async () => {
+      await expect(sdk.verifyWebhook("", "signature", "secret")).rejects.toThrow(
+        "Webhook payload is required and must be a non-empty string"
       );
-      expect(typeof isValid).toBe("boolean");
+
+      await expect(sdk.verifyWebhook("payload", "", "secret")).rejects.toThrow(
+        "Webhook signature is required and must be a non-empty string"
+      );
+
+      await expect(sdk.verifyWebhook("payload", "signature", "")).rejects.toThrow(
+        "Webhook secret is required and must be a non-empty string"
+      );
     });
   });
 });

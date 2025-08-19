@@ -739,3 +739,117 @@ export interface OrderResponse {
   checkout_url: string;
   order_id?: string;
 }
+
+// PAYMENT TERM MANAGEMENT TYPES
+// Summary: Types for managing payment terms and installments
+// Description: Payment term operations including creation, update, deletion, and refunding
+
+/**
+ * @category Payment Terms
+ * @summary Response data from payment term operations
+ * @description Standard response structure for payment term API operations
+ * @interface PaymentTermResponse
+ */
+export interface PaymentTermResponse {
+  term_reference_id: string;
+  order_id: string;
+  amount: number;
+  due_date: string;
+  status: string;
+  term_sequence: number;
+  required: boolean;
+  created_at: string;
+  updated_at?: string;
+  paid_date?: string;
+  data?: string;
+}
+
+/**
+ * @category Payment Terms
+ * @summary Request data for deleting a payment term
+ * @description Contains the identifier needed to delete a specific payment term
+ * @interface PaymentTermDeleteRequest
+ */
+export interface PaymentTermDeleteRequest {
+  term_reference_id: string;
+}
+
+/**
+ * @category Payment Terms
+ * @summary Response from payment term refund operation
+ * @description Contains details about a processed payment term refund
+ * @interface PaymentTermRefundResponse
+ */
+export interface PaymentTermRefundResponse {
+  refund_id: string;
+  term_reference_id: string;
+  amount: number;
+  status: string;
+  created_at: string;
+  refund_reference_id?: string;
+}
+
+/**
+ * @category Payment Terms
+ * @summary Request to terminate a payment term
+ * @description Data required to terminate an active payment term
+ * @interface PaymentTermTerminateRequest
+ */
+export interface PaymentTermTerminateRequest {
+  term_reference_id: string;
+  reason?: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Request to terminate an order
+ * @description Data required to terminate an active order
+ * @interface OrderTerminateRequest
+ */
+export interface OrderTerminateRequest {
+  reference_id: string;
+  reason?: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Response from order termination
+ * @description Contains details about a terminated order
+ * @interface OrderTerminateResponse
+ */
+export interface OrderTerminateResponse {
+  reference_id: string;
+  status: string;
+  terminated_at: string;
+  reason?: string;
+}
+
+// VALIDATION TYPES
+// Summary: Types for validation utility functions
+// Description: Input and output types for GSM number and installment validation
+
+/**
+ * @category Validation
+ * @summary GSM number validation result
+ * @description Contains the validation result and cleaned phone number
+ * @interface GsmValidationResult
+ */
+export interface GsmValidationResult {
+  isValid: boolean;
+  cleanedNumber?: string;
+  error?: string;
+  originalNumber: string;
+}
+
+/**
+ * @category Validation
+ * @summary Installments validation result
+ * @description Contains the validation result for installment values
+ * @interface InstallmentsValidationResult
+ */
+export interface InstallmentsValidationResult {
+  isValid: boolean;
+  validatedInstallments: number[];
+  error?: string;
+  originalInput: string | number | number[];
+}

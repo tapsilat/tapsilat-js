@@ -1,4 +1,4 @@
-import { PaymentRequest, Currency, PaymentMethod } from "../types/index";
+import { PaymentRequest, Currency, PaymentMethod, GsmValidationResult, InstallmentsValidationResult } from "../types/index";
 import { TapsilatValidationError } from "../errors/TapsilatError";
 
 
@@ -446,5 +446,199 @@ export function validatePaginationParams(params: {
         'Sort order must be either "asc" or "desc"'
       );
     }
+  }
+}
+
+// GSM NUMBER VALIDATION
+// Summary: Validates and cleans Turkish GSM phone numbers
+// Description: Supports multiple phone number formats and automatically cleans formatting
+/**
+ * Validates and cleans GSM phone numbers
+ *
+ * @summary Validates and cleans Turkish GSM phone numbers
+ * @description
+ * Supports multiple phone number formats including international (+90), national (0), 
+ * and local formats. Automatically removes formatting characters and validates 
+ * against Turkish mobile number patterns.
+ *
+ * Supported formats:
+ * - +90 5XX XXX XX XX
+ * - 0 5XX XXX XX XX  
+ * - 5XX XXX XX XX
+ * - Various formatting with spaces, dashes, parentheses
+ *
+ * @param {string | number} gsmNumber - GSM number to validate and clean
+ * @returns {GsmValidationResult} Validation result with cleaned number or error
+ */
+export function validateGsmNumber(gsmNumber: string | number): GsmValidationResult {
+  const originalNumber = String(gsmNumber);
+  
+  // Basic validation
+  if (!originalNumber || typeof originalNumber !== 'string') {
+    return {
+      isValid: false,
+      error: "GSM number must be a non-empty string",
+      originalNumber
+    };
+  }
+
+  // Clean the number - remove all non-digit characters
+  let cleanedNumber = originalNumber.replace(/[^\d]/g, '');
+  
+  // Handle different formats
+  if (cleanedNumber.startsWith('90')) {
+    // International format +90 or 90
+    cleanedNumber = cleanedNumber.substring(2);
+  } else if (cleanedNumber.startsWith('0')) {
+    // National format 0
+    cleanedNumber = cleanedNumber.substring(1);
+  }
+  
+  // Validate Turkish mobile number pattern
+  // Turkish mobile numbers start with 5 and are 10 digits total
+  const turkishMobilePattern = /^5[0-9]{9}$/;
+  
+  if (!turkishMobilePattern.test(cleanedNumber)) {
+    return {
+      isValid: false,
+      error: "Invalid Turkish GSM number format. Must be 10 digits starting with 5",
+      originalNumber
+    };
+  }
+
+  // Additional validation for known Turkish mobile operators
+  const operatorPrefixes = ['50', '51', '52', '53', '54', '55', '56', '57', '58', '59'];
+  const prefix = cleanedNumber.substring(0, 2);
+  
+  if (!operatorPrefixes.includes(prefix)) {
+    return {
+      isValid: false,
+      error: "Invalid Turkish mobile operator prefix",
+      originalNumber
+    };
+  }
+
+  return {
+    isValid: true,
+    cleanedNumber: `+90${cleanedNumber}`,
+    originalNumber
+  };
+}
+
+// INSTALLMENTS VALIDATION
+// Summary: Validates installment values and converts to standardized format
+// Description: Handles various input formats and validates against business rules
+/**
+ * Validates installment values and converts to standardized format
+ *
+ * @summary Validates installment values and converts to standardized format
+ * @description
+ * Handles various input formats (string, number, array) and validates against
+ * business rules. Converts single installment values to arrays and validates
+ * that installment numbers are within acceptable ranges.
+ *
+ * Supported inputs:
+ * - Single number: 3 -> [3]
+ * - Comma-separated string: "1,3,6" -> [1,3,6]  
+ * - Array of numbers: [1,3,6,12] -> [1,3,6,12]
+ * - Empty/null values default to [1]
+ *
+ * @param {string | number | number[]} installments - Installment values to validate
+ * @returns {InstallmentsValidationResult} Validation result with standardized array
+ */
+export function validateInstallments(
+  installments: string | number | number[]
+): InstallmentsValidationResult {
+  const originalInput = installments;
+  
+  // Handle empty/null/undefined - default to single installment
+  if (!installments || installments === '' || installments === null || installments === undefined || installments === 0) {
+    return {
+      isValid: true,
+      validatedInstallments: [1],
+      originalInput: String(originalInput)
+    };
+  }
+
+  let installmentArray: number[] = [];
+
+  try {
+    if (typeof installments === 'number') {
+      // Single number
+      installmentArray = [installments];
+    } else if (typeof installments === 'string') {
+      // Handle comma-separated string
+      if (installments.includes(',')) {
+        installmentArray = installments
+          .split(',')
+          .map(item => {
+            const num = parseInt(item.trim(), 10);
+            if (isNaN(num)) {
+              throw new Error(`Invalid installment value: ${item.trim()}`);
+            }
+            return num;
+          });
+      } else {
+        // Single string number
+        const num = parseInt(installments.trim(), 10);
+        if (isNaN(num)) {
+          throw new Error(`Invalid installment value: ${installments}`);
+        }
+        installmentArray = [num];
+      }
+    } else if (Array.isArray(installments)) {
+      // Array of numbers
+      installmentArray = installments.map((item, index) => {
+        if (typeof item !== 'number' || isNaN(item)) {
+          throw new Error(`Invalid installment value at index ${index}: ${item}`);
+        }
+        return item;
+      });
+    } else {
+      return {
+        isValid: false,
+        validatedInstallments: [1],
+        error: "Installments must be a number, string, or array of numbers",
+        originalInput: String(originalInput)
+      };
+    }
+
+    // Validate installment values
+    for (const installment of installmentArray) {
+      if (!Number.isInteger(installment) || installment < 1) {
+        return {
+          isValid: false,
+          validatedInstallments: [1],
+          error: `Installment values must be positive integers, got: ${installment}`,
+          originalInput: String(originalInput)
+        };
+      }
+      
+      if (installment > 36) {
+        return {
+          isValid: false,
+          validatedInstallments: [1],
+          error: `Installment values cannot exceed 36, got: ${installment}`,
+          originalInput: String(originalInput)
+        };
+      }
+    }
+
+    // Remove duplicates and sort
+    const uniqueInstallments = [...new Set(installmentArray)].sort((a, b) => a - b);
+
+    return {
+      isValid: true,
+      validatedInstallments: uniqueInstallments,
+      originalInput: String(originalInput)
+    };
+
+  } catch (error) {
+    return {
+      isValid: false,
+      validatedInstallments: [1],
+      error: error instanceof Error ? error.message : "Unknown validation error",
+      originalInput: String(originalInput)
+    };
   }
 }
