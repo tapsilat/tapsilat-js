@@ -1,6 +1,6 @@
 {
   "name": "@tapsilat/tapsilat-js",
-  "version": "1.0.7",
+  "version": "2025.08.19.1",
   "description": "Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
