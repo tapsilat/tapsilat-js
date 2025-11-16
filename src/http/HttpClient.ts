@@ -242,14 +242,10 @@ export class HttpClient {
     }
 
     // Execute error interceptors as last resort
-    try {
-      return await this.interceptors.executeErrorInterceptors(lastError!, {
-        url: interceptedUrl,
-        options: interceptedOptions,
-      });
-    } catch (finalError) {
-      throw finalError;
-    }
+    return this.interceptors.executeErrorInterceptors(lastError!, {
+      url: interceptedUrl,
+      options: interceptedOptions,
+    });
   }
 
   /**
@@ -385,7 +381,7 @@ export class HttpClient {
           errorMessage || "Validation failed",
           this.extractValidationDetails(data)
         );
-      case 429:
+      case 429: {
         const rateLimitInfo = this.extractRateLimitInfo(response);
         return new TapsilatRateLimitError(
           errorMessage || "Rate limit exceeded",
@@ -395,6 +391,7 @@ export class HttpClient {
               )
             : undefined
         );
+      }
       case 404:
         return new TapsilatError(
           errorMessage || "Resource not found",

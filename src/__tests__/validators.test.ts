@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import {
   validatePaymentRequest,
   validateBearerToken,
@@ -205,7 +206,6 @@ describe("Crypto Utils", () => {
 
     it("should verify valid HMAC signature", () => {
       // Generate a valid signature
-      const crypto = require("crypto");
       const expectedSignature = crypto
         .createHmac("sha256", testSecret)
         .update(testPayload)
@@ -225,7 +225,6 @@ describe("Crypto Utils", () => {
     });
 
     it("should reject signature without sha256 prefix", () => {
-      const crypto = require("crypto");
       const expectedSignature = crypto
         .createHmac("sha256", testSecret)
         .update(testPayload)
@@ -238,7 +237,6 @@ describe("Crypto Utils", () => {
     });
 
     it("should reject signature with wrong secret", () => {
-      const crypto = require("crypto");
       const wrongSecret = "wrong-secret";
       const expectedSignature = crypto
         .createHmac("sha256", wrongSecret)
@@ -254,7 +252,6 @@ describe("Crypto Utils", () => {
 
     it("should handle different payload content", () => {
       const differentPayload = '{"order_id": "12345", "status": "completed"}';
-      const crypto = require("crypto");
       const expectedSignature = crypto
         .createHmac("sha256", testSecret)
         .update(differentPayload)
