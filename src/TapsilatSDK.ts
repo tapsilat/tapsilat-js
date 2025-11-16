@@ -70,7 +70,7 @@ export class TapsilatSDK {
    *
    * @param {TapsilatConfig} config - SDK configuration options
    * @param {string} config.bearerToken - API authentication token (required)
-   * @param {string} [config.baseURL='https://api.tapsilat.com/v1'] - API base URL
+   * @param {string} [config.baseURL='https://panel.tapsilat.dev/v1'] - API base URL
    * @param {number} [config.timeout=30000] - Request timeout in milliseconds
    * @param {number} [config.maxRetries=3] - Maximum number of retry attempts
    * @param {number} [config.retryDelay=1000] - Delay between retries in milliseconds
@@ -92,77 +92,71 @@ export class TapsilatSDK {
   /**
    * Creates a new order and returns a checkout URL
    *
-   * @summary Initiates a new payment order with buyer information and generates checkout URL
+   * @summary Initiates a new payment order with comprehensive order details
    * @description
    * Creates a new payment order in the Tapsilat system with the provided order details.
    * This method performs comprehensive validation of all input parameters, creates the order
-   * on the payment platform, and returns a checkout URL that customers can use to complete
-   * their payment. The method supports multiple currencies, locales, and comprehensive
-   * buyer information for compliance and fraud prevention.
+   * on the payment platform, and returns order identifiers including reference_id and order_id.
+   * The method supports multiple currencies, locales, payment options, basket items,
+   * and comprehensive buyer information for compliance and fraud prevention.
    *
-   * The returned checkout URL is valid for a limited time (typically 24 hours) and should
-   * be presented to the customer immediately. The order status can be tracked using the
-   * returned reference ID through the getOrderStatus method.
+   * The returned order_id and reference_id can be used to track order status through
+   * the getOrderStatus method.
    *
    * @param {OrderCreateRequest} orderRequest - Complete order information
    * @param {number} orderRequest.amount - Payment amount (must be positive, max 2 decimal places)
+   * @param {number} [orderRequest.tax_amount] - Tax amount included in total
    * @param {Currency} orderRequest.currency - Payment currency ('TRY', 'USD', 'EUR', 'GBP')
    * @param {Locale} orderRequest.locale - Display language ('tr' for Turkish, 'en' for English)
+   * @param {boolean} [orderRequest.three_d_force] - Force 3D Secure authentication
+   * @param {Address} [orderRequest.shipping_address] - Shipping address for delivery
+   * @param {BasketItem[]} orderRequest.basket_items - Array of items in the order
+   * @param {BillingAddress} orderRequest.billing_address - Billing address with tax information
    * @param {Buyer} orderRequest.buyer - Customer information for payment processing
-   * @param {string} orderRequest.buyer.name - Customer's first name (required)
-   * @param {string} orderRequest.buyer.surname - Customer's last name (required)
-   * @param {string} orderRequest.buyer.email - Customer's email address (required, validated)
-   * @param {string} [orderRequest.buyer.phone] - Customer's phone number
-   * @param {string} [orderRequest.buyer.identityNumber] - National ID or tax number
-   * @param {Address} [orderRequest.buyer.shippingAddress] - Shipping address for physical goods
-   * @param {Address} [orderRequest.buyer.billingAddress] - Billing address for invoicing
-   * @param {string} [orderRequest.description] - Order description for customer reference
-   * @param {string} [orderRequest.callbackUrl] - URL to redirect after payment completion
-   * @param {string} [orderRequest.conversationId] - Custom tracking ID for your system
+   * @param {string} [orderRequest.conversation_id] - Custom tracking ID for your system
+   * @param {boolean} [orderRequest.partial_payment] - Enable partial payment
+   * @param {boolean} [orderRequest.payment_methods] - Enable payment method selection
+   * @param {PaymentOption[]} [orderRequest.payment_options] - Available payment options
+   * @param {string} [orderRequest.payment_success_url] - URL to redirect after successful payment
+   * @param {string} [orderRequest.payment_failure_url] - URL to redirect after failed payment
+   * @param {number[]} [orderRequest.enabled_installments] - Allowed installment counts
    * @param {Record<string, unknown>} [orderRequest.metadata] - Additional custom data
    *
    * @returns {Promise<OrderCreateResponse>} Promise resolving to order creation response
-   * @returns {string} OrderCreateResponse.referenceId - Unique order identifier for tracking
-   * @returns {string} OrderCreateResponse.conversationId - Echo of provided conversation ID
-   * @returns {string} OrderCreateResponse.checkoutUrl - Payment page URL for customer
-   * @returns {string} OrderCreateResponse.status - Initial order status (typically 'CREATED')
-   * @returns {string} [OrderCreateResponse.qrCodeUrl] - QR code URL for mobile payments
+   * @returns {string} OrderCreateResponse.order_id - Internal order identifier
+   * @returns {string} OrderCreateResponse.reference_id - Unique order reference for tracking
+   * @returns {string} [OrderCreateResponse.checkout_url] - Payment page URL for customer
+   * @returns {string} [OrderCreateResponse.conversation_id] - Echo of provided conversation ID
+   * @returns {string} [OrderCreateResponse.status] - Initial order status
+   * @returns {string} [OrderCreateResponse.qr_code_url] - QR code URL for mobile payments
    *
    * @throws {TapsilatValidationError} When input validation fails:
    *   - Amount is not positive or has more than 2 decimal places
    *   - Currency is not supported
    *   - Buyer information is incomplete or invalid
-   *   - Email format is invalid
+   *   - Basket items are missing or invalid
+   *   - Billing address is missing
    *   - Required fields are missing
-   * @throws {TapsilatNetworkError} When network request fails:
-   *   - Connection timeout
-   *   - DNS resolution failure
-   *   - Network connectivity issues
-   * @throws {TapsilatError} When API returns business logic errors:
-   *   - Insufficient merchant balance
-   *   - Currency not enabled for merchant
-   *   - Buyer blocked due to fraud detection
-   *   - Rate limiting exceeded
+   * @throws {TapsilatNetworkError} When network request fails
+   * @throws {TapsilatError} When API returns business logic errors
    */
   async createOrder(
     orderRequest: OrderCreateRequest
   ): Promise<OrderCreateResponse> {
-    // Validate the order request directly
-    // Check if request is null/undefined
+    // Validate the order request
     if (!orderRequest) {
       throw new TapsilatValidationError(
         "Order request cannot be null or undefined"
       );
     }
 
-    // Validate amount - check if positive
+    // Validate amount
     if (!isPositiveNumber(orderRequest.amount)) {
       throw new TapsilatValidationError("Amount must be a positive number", {
         provided: orderRequest.amount,
       });
     }
 
-    // Validate amount - check decimal places
     if (!hasValidDecimalPlaces(orderRequest.amount)) {
       throw new TapsilatValidationError(
         "Amount must have maximum 2 decimal places",
@@ -175,6 +169,14 @@ export class TapsilatSDK {
       throw new TapsilatValidationError(
         "Currency is required and must be a non-empty string",
         { provided: orderRequest.currency }
+      );
+    }
+
+    // Validate locale
+    if (!isNonEmptyString(orderRequest.locale)) {
+      throw new TapsilatValidationError(
+        "Locale is required and must be a non-empty string",
+        { provided: orderRequest.locale }
       );
     }
 
@@ -199,7 +201,6 @@ export class TapsilatSDK {
       );
     }
 
-    // Validate buyer email - check if provided
     if (!isNonEmptyString(buyer.email)) {
       throw new TapsilatValidationError(
         "Buyer email is required and must be a non-empty string",
@@ -207,12 +208,23 @@ export class TapsilatSDK {
       );
     }
 
-    // Validate buyer email - check format
     if (!isValidEmail(buyer.email)) {
       throw new TapsilatValidationError(
         "Buyer email must be a valid email address",
         { provided: buyer.email }
       );
+    }
+
+    // Validate basket items
+    if (!orderRequest.basket_items || !Array.isArray(orderRequest.basket_items) || orderRequest.basket_items.length === 0) {
+      throw new TapsilatValidationError(
+        "Basket items are required and must be a non-empty array"
+      );
+    }
+
+    // Validate billing address
+    if (!orderRequest.billing_address) {
+      throw new TapsilatValidationError("Billing address is required");
     }
 
     try {

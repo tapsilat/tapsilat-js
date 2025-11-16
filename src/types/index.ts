@@ -137,12 +137,59 @@ export interface Customer {
  * @interface Address
  */
 export interface Address {
-  street: string;
+  address: string;
   city: string;
-  state?: string;
-  postalCode: string;
+  contact_name: string;
   country: string;
+  zip_code: string;
+  district?: string;
+  contact_phone?: string;
 }
+
+/**
+ * @category Customer Data
+ * @summary Billing address with tax information
+ * @description Extended address structure for billing with tax and company details
+ * @interface BillingAddress
+ */
+export interface BillingAddress extends Address {
+  billing_type: 'PERSONAL' | 'CORPORATE';
+  vat_number?: string;
+  tax_office?: string;
+  title?: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Item in the order basket
+ * @description Represents a product or service in the order with pricing and categorization
+ * @interface BasketItem
+ */
+export interface BasketItem {
+  id: string;
+  name: string;
+  category1: string;
+  category2?: string;
+  item_type: string;
+  price: number;
+  quantity: number;
+  coupon_discount?: number;
+  data?: string;
+  quantity_unit?: string;
+}
+
+/**
+ * @category Payment Processing
+ * @summary Available payment options for customers
+ * @description Different payment methods that can be enabled for an order
+ * @typedef {string} PaymentOption
+ */
+export type PaymentOption = 
+  | 'PAY_WITH_WALLET'
+  | 'PAY_WITH_CARD'
+  | 'PAY_WITH_LOAN'
+  | 'PAY_WITH_CASH'
+  | 'PAY_WITH_BANK';
 
 // REFUND REQUEST
 // Summary: Information needed to process a refund
@@ -287,13 +334,19 @@ export type Locale = "tr" | "en";
  * @interface Buyer
  */
 export interface Buyer {
+  id?: string;
   name: string;
   surname: string;
   email: string;
-  phone?: string;
-  identityNumber?: string;
-  shippingAddress?: Address;
-  billingAddress?: Address;
+  gsm_number?: string;
+  identity_number?: string;
+  registration_address?: string;
+  city?: string;
+  country?: string;
+  zip_code?: string;
+  ip?: string;
+  registration_date?: string;
+  last_login_date?: string;
 }
 
 // ORDER CREATE REQUEST
@@ -307,12 +360,21 @@ export interface Buyer {
  */
 export interface OrderCreateRequest {
   amount: number;
-  currency: Currency;
+  tax_amount?: number;
   locale: Locale;
+  three_d_force?: boolean;
+  currency: Currency;
+  shipping_address?: Address;
+  basket_items: BasketItem[];
+  billing_address: BillingAddress;
   buyer: Buyer;
-  description?: string;
-  callbackUrl?: string;
-  conversationId?: string;
+  conversation_id?: string;
+  partial_payment?: boolean;
+  payment_methods?: boolean;
+  payment_options?: PaymentOption[];
+  payment_success_url?: string;
+  payment_failure_url?: string;
+  enabled_installments?: number[];
   metadata?: Record<string, unknown>;
 }
 
@@ -326,11 +388,12 @@ export interface OrderCreateRequest {
  * @interface OrderCreateResponse
  */
 export interface OrderCreateResponse {
-  referenceId: string;
-  conversationId: string;
-  checkoutUrl: string;
-  status: string;
-  qrCodeUrl?: string;
+  order_id: string;
+  reference_id: string;
+  checkout_url?: string;
+  conversation_id?: string;
+  status?: string;
+  qr_code_url?: string;
 }
 
 /**

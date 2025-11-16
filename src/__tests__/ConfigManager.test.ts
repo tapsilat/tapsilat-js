@@ -5,7 +5,7 @@ import { TapsilatValidationError } from "../errors/TapsilatError";
 describe("ConfigManager", () => {
   const validConfig: TapsilatConfig = {
     bearerToken: "test-token-12345", // Valid token: alphanumeric with hyphens
-    baseURL: "https://api.tapsilat.com/v1",
+    baseURL: "https://panel.tapsilat.dev/v1",
     timeout: 30000,
     maxRetries: 3,
     retryDelay: 1000,
@@ -42,7 +42,7 @@ describe("ConfigManager", () => {
       
       expect(config).not.toHaveProperty("bearerToken");
       expect(config).toHaveProperty("hasBearerToken", true);
-      expect(config.baseURL).toBe("https://api.tapsilat.com/v1");
+      expect(config.baseURL).toBe("https://panel.tapsilat.dev/v1");
       expect(config.timeout).toBe(30000);
     });
 
@@ -91,7 +91,7 @@ describe("ConfigManager", () => {
       const config = configManager.getInternalConfig();
       
       expect(config).toHaveProperty("bearerToken", "test-token-12345");
-      expect(config.baseURL).toBe("https://api.tapsilat.com/v1");
+      expect(config.baseURL).toBe("https://panel.tapsilat.dev/v1");
     });
 
     it("should return a copy to prevent mutations", () => {
@@ -111,7 +111,7 @@ describe("ConfigManager", () => {
 
   describe("getBaseUrl", () => {
     it("should return base URL", () => {
-      expect(configManager.getBaseUrl()).toBe("https://api.tapsilat.com/v1");
+      expect(configManager.getBaseUrl()).toBe("https://panel.tapsilat.dev/v1");
     });
 
     it("should return undefined if base URL is not set", () => {

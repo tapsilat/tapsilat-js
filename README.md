@@ -332,15 +332,15 @@ import { validateGsmNumber } from "@tapsilat/tapsilat-js";
 
 const gsmResult = validateGsmNumber('+90 555 123 45 67');
 if (gsmResult.isValid) {
-  console.log('Cleaned number:', gsmResult.cleanedNumber); // +905551234567
+  console.log('Cleaned number:', gsmResult.cleanedNumber); // +90000000000
 } else {
   console.error('Invalid GSM:', gsmResult.error);
 }
 
 // Supports multiple formats
-validateGsmNumber('0555 123 45 67');  // National format
-validateGsmNumber('555 123 45 67');   // Local format
-validateGsmNumber('5551234567');      // No formatting
+validateGsmNumber('0999 123 45 67');  // National format
+validateGsmNumber('999 123 45 67');   // Local format
+validateGsmNumber('9991234567');      // No formatting
 ```
 
 #### Installments Validation

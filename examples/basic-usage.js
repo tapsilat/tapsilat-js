@@ -24,7 +24,7 @@ async function main() {
     // The SDK handles authentication, request formatting, and error handling
     const tapsilat = new TapsilatSDK({
       bearerToken: "YOUR_BEARER_TOKEN", // Replace with your actual bearer token
-      baseURL: "https://api.tapsilat.com/v1", // API base URL
+      baseURL: "https://panel.tapsilat.dev/v1", // API base URL
       timeout: 30000, // Request timeout in milliseconds
       retryAttempts: 3, // Number of automatic retry attempts for failed requests
     });
@@ -298,7 +298,7 @@ async function testOfflineFeatures() {
     // Valid SDK initialization
     const testSDK = new TapsilatSDK({
       bearerToken: "test-bearer-token-12345678901234567890",
-      baseURL: "https://test-api.tapsilat.com/v1"
+      baseURL: "https://test-panel.tapsilat.dev/v1"
     });
     console.log("SDK initialized successfully with valid config");
     
