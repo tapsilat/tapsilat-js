@@ -193,7 +193,7 @@ export class InterceptorManager {
       if (interceptor) {
         try {
           return await interceptor(error, request);
-        } catch (interceptorError) {
+        } catch {
           // Continue to next interceptor if this one fails
           continue;
         }

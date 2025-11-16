@@ -322,7 +322,7 @@ export class HttpClient {
       } else {
         responseData = await response.text();
       }
-    } catch (parseError) {
+    } catch {
       throw new TapsilatError("Failed to parse response body", "PARSE_ERROR");
     }
 
