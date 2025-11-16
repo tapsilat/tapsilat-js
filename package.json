@@ -20,24 +20,20 @@
     }
   },
   "scripts": {
-    "build": "rollup -c",
+    "clean": "rm -rf dist",
+    "build": "npm run clean && rollup -c",
     "dev": "rollup -c -w",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:integration": "jest --testPathPattern=integration",
-    "test:manual": "ts-node scripts/test-sdk.ts",
-    "test:all": "npm run test && npm run test:integration",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "type-check": "tsc --noEmit",
-    "clean": "rm -rf dist",
-    "prebuild": "npm run clean && npm run type-check",
-    "prepublishOnly": "npm run test && npm run build",
-    "example": "node examples/basic-usage.js",
+    "check": "npm run lint && npm run type-check && npm run test",
+    "examples:create-order": "node examples/create-order-complete.js",
     "prepare": "npm run build",
-    "release": "npm run test && npm run build && npm publish",
-    "release:beta": "npm run test && npm run build && npm publish --tag beta"
+    "prepublishOnly": "npm run check && npm run build"
   },
   "keywords": [
     "tapsilat",

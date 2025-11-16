@@ -35,16 +35,36 @@ describe("TapsilatSDK Integration Tests", () => {
         amount: 150.75,
         currency: "TRY",
         locale: "tr",
+        basket_items: [
+          {
+            id: "item-1",
+            name: "Test Product",
+            category1: "General",
+            item_type: "Digital",
+            price: 150.75,
+            quantity: 1,
+          },
+        ],
+        billing_address: {
+          address: "Example St 123",
+          city: "Istanbul",
+          contact_name: "John Doe",
+          country: "tr",
+          zip_code: "34000",
+          billing_type: "PERSONAL",
+        },
         buyer: {
           name: "John",
           surname: "Doe",
           email: "john-doe@example.com",
+          city: "Istanbul",
+          country: "tr",
         },
       };
       const order = await sdk.createOrder(orderRequest);
-      const checkoutUrl = order.checkoutUrl || (order as any)["checkout_url"];
-      const referenceId = order.referenceId || (order as any)["reference_id"];
-      
+      const checkoutUrl = order.checkout_url;
+      const referenceId = order.reference_id;
+
       expect(checkoutUrl).toBeTruthy();
       expect(referenceId).toBeTruthy();
       createdOrderReferenceId = referenceId;
@@ -61,13 +81,13 @@ describe("TapsilatSDK Integration Tests", () => {
     it("should get the created order", async () => {
       if (!createdOrderReferenceId) throw new Error("No order created");
       const order = await sdk.getOrder(createdOrderReferenceId);
-      expect(order.referenceId || (order as any)["reference_id"]).toBe(createdOrderReferenceId);
+      expect(order.reference_id).toBe(createdOrderReferenceId);
       // API might return amount as string or number
       const amount = (order as any).amount;
       const expectedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
       expect(expectedAmount).toBe(150.75);
       expect(order.currency).toBe("TRY");
-      console.log("✅ Retrieved order:", order.referenceId || (order as any)["reference_id"]);
+      console.log("✅ Retrieved order:", order.reference_id);
     });
 
     it("should list orders", async () => {
@@ -91,7 +111,7 @@ describe("TapsilatSDK Integration Tests", () => {
       if (!createdOrderReferenceId) return;
       try {
         const cancelledOrder = await sdk.cancelOrder(createdOrderReferenceId);
-        const orderRefId = cancelledOrder.referenceId || (cancelledOrder as any)["reference_id"];
+        const orderRefId = cancelledOrder.reference_id;
         expect(orderRefId).toBe(createdOrderReferenceId);
         console.log("✅ Cancelled order:", createdOrderReferenceId);
       } catch (error) {

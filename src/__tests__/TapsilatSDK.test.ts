@@ -14,6 +14,36 @@ describe("TapsilatSDK", () => {
 
   let sdk: TapsilatSDK;
   let mockHttpClient: jest.Mocked<HttpClient>;
+  const baseOrderRequest: OrderCreateRequest = {
+    amount: 150.75,
+    currency: "TRY",
+    locale: "tr",
+    basket_items: [
+      {
+        id: "item-1",
+        name: "Test Product",
+        category1: "General",
+        item_type: "Digital",
+        price: 150.75,
+        quantity: 1,
+      },
+    ],
+    billing_address: {
+      address: "Example St 123",
+      city: "Istanbul",
+      contact_name: "John Doe",
+      country: "tr",
+      zip_code: "34000",
+      billing_type: "PERSONAL",
+    },
+    buyer: {
+      name: "John",
+      surname: "Doe",
+      email: "john-doe@example.com",
+      city: "Istanbul",
+      country: "tr",
+    },
+  };
 
   beforeEach(() => {
     // Clear all mocks before each test
@@ -25,23 +55,14 @@ describe("TapsilatSDK", () => {
 
   describe("Order Operations", () => {
     it("should create an order successfully", async () => {
-      const orderRequest: OrderCreateRequest = {
-        amount: 150.75,
-        currency: "TRY",
-        locale: "tr",
-        buyer: {
-          name: "John",
-          surname: "Doe",
-          email: "john-doe@example.com",
-        },
-      };
+      const orderRequest: OrderCreateRequest = { ...baseOrderRequest };
 
       const mockResponse = {
         success: true,
         data: {
-          referenceId: "order-123",
-          conversationId: "conv-123",
-          checkoutUrl: "https://checkout.test.com/order-123",
+          reference_id: "order-123",
+          conversation_id: "conv-123",
+          checkout_url: "https://checkout.test.com/order-123",
           status: "CREATED"
         }
       };
@@ -52,15 +73,15 @@ describe("TapsilatSDK", () => {
       
       expect(mockHttpClient.post).toHaveBeenCalledWith("/order/create", orderRequest);
       expect(order).toEqual(mockResponse.data);
-      expect(order.referenceId).toBe("order-123");
-      expect(order.checkoutUrl).toBe("https://checkout.test.com/order-123");
+      expect(order.reference_id).toBe("order-123");
+      expect(order.checkout_url).toBe("https://checkout.test.com/order-123");
     });
 
     it("should get order status successfully", async () => {
       const mockResponse = {
         success: true,
         data: {
-          referenceId: "order-123",
+          reference_id: "order-123",
           status: "COMPLETED",
           lastUpdatedAt: "2024-01-15T10:30:00Z"
         }
@@ -79,7 +100,7 @@ describe("TapsilatSDK", () => {
       const mockResponse = {
         success: true,
         data: {
-          referenceId: "order-123",
+          reference_id: "order-123",
           amount: 150.75,
           currency: "TRY",
           status: "COMPLETED",
@@ -97,7 +118,7 @@ describe("TapsilatSDK", () => {
       
       expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123");
       expect(order).toEqual(mockResponse.data);
-      expect(order.referenceId).toBe("order-123");
+      expect(order.reference_id).toBe("order-123");
     });
 
     it("should list orders successfully", async () => {
@@ -106,13 +127,13 @@ describe("TapsilatSDK", () => {
         data: {
           data: [
             {
-              referenceId: "order-123",
+              reference_id: "order-123",
               amount: 150.75,
               currency: "TRY",
               status: "COMPLETED"
             },
             {
-              referenceId: "order-456",
+              reference_id: "order-456",
               amount: 299.99,
               currency: "TRY", 
               status: "PENDING"
@@ -142,7 +163,7 @@ describe("TapsilatSDK", () => {
       const mockResponse = {
         success: true,
         data: {
-          referenceId: "order-123",
+          reference_id: "order-123",
           status: "CANCELLED"
         }
       };
@@ -195,14 +216,8 @@ describe("TapsilatSDK", () => {
 
     it("should validate order creation request", async () => {
       const invalidOrderRequest = {
-        amount: -100, // Invalid negative amount
-        currency: "TRY",
-        locale: "tr",
-        buyer: {
-          name: "John",
-          surname: "Doe",
-          email: "john-doe@example.com",
-        },
+        ...baseOrderRequest,
+        amount: -100,
       } as any;
 
       await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(
@@ -212,13 +227,10 @@ describe("TapsilatSDK", () => {
 
     it("should validate email format", async () => {
       const invalidOrderRequest = {
-        amount: 100,
-        currency: "TRY",
-        locale: "tr",
+        ...baseOrderRequest,
         buyer: {
-          name: "John",
-          surname: "Doe",
-          email: "invalid-email", // Invalid email format
+          ...baseOrderRequest.buyer,
+          email: "invalid-email",
         },
       } as any;
 
@@ -229,14 +241,8 @@ describe("TapsilatSDK", () => {
 
     it("should validate amount decimal places", async () => {
       const invalidOrderRequest = {
-        amount: 100.555, // Too many decimal places
-        currency: "TRY",
-        locale: "tr",
-        buyer: {
-          name: "John",
-          surname: "Doe",
-          email: "john-doe@example.com",
-        },
+        ...baseOrderRequest,
+        amount: 100.555,
       } as any;
 
       await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(
