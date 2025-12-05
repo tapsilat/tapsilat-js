@@ -27,6 +27,14 @@ import {
   PaymentTermTerminateRequest,
   OrderTerminateRequest,
   OrderTerminateResponse,
+  SubscriptionGetRequest,
+  SubscriptionCancelRequest,
+  SubscriptionCreateRequest,
+  SubscriptionRedirectRequest,
+  SubscriptionDetail,
+  SubscriptionCreateResponse,
+  SubscriptionRedirectResponse,
+  OrganizationSettings,
 } from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
@@ -216,7 +224,11 @@ export class TapsilatSDK {
     }
 
     // Validate basket items
-    if (!orderRequest.basket_items || !Array.isArray(orderRequest.basket_items) || orderRequest.basket_items.length === 0) {
+    if (
+      !orderRequest.basket_items ||
+      !Array.isArray(orderRequest.basket_items) ||
+      orderRequest.basket_items.length === 0
+    ) {
       throw new TapsilatValidationError(
         "Basket items are required and must be a non-empty array"
       );
@@ -1193,6 +1205,155 @@ export class TapsilatSDK {
       return handleResponse(terminateOrderResponse, "Order termination");
     } catch (error) {
       return handleError(error, "order termination");
+    }
+  }
+
+  async orderManualCallback(
+    referenceId: string,
+    conversationId?: string
+  ): Promise<any> {
+    if (!isNonEmptyString(referenceId)) {
+      throw new TapsilatValidationError(
+        "Reference ID is required and must be a non-empty string"
+      );
+    }
+    const payload: any = { reference_id: referenceId };
+    if (conversationId) {
+      payload.conversation_id = conversationId;
+    }
+    try {
+      const response = await this.httpClient.post<any>(
+        "/order/manual-callback",
+        payload
+      );
+      return handleResponse(response, "Order manual callback");
+    } catch (error) {
+      return handleError(error, "order manual callback");
+    }
+  }
+
+  async orderRelatedUpdate(
+    referenceId: string,
+    relatedReferenceId: string
+  ): Promise<any> {
+    if (!isNonEmptyString(referenceId)) {
+      throw new TapsilatValidationError(
+        "Reference ID is required and must be a non-empty string"
+      );
+    }
+    if (!isNonEmptyString(relatedReferenceId)) {
+      throw new TapsilatValidationError(
+        "Related Reference ID is required and must be a non-empty string"
+      );
+    }
+    try {
+      const response = await this.httpClient.post<any>(
+        "/order/related-update",
+        {
+          reference_id: referenceId,
+          related_reference_id: relatedReferenceId,
+        }
+      );
+      return handleResponse(response, "Order related update");
+    } catch (error) {
+      return handleError(error, "order related update");
+    }
+  }
+
+  async getOrganizationSettings(): Promise<OrganizationSettings> {
+    try {
+      const response = await this.httpClient.get<OrganizationSettings>(
+        "/organization/settings"
+      );
+      return handleResponse(response, "Get organization settings");
+    } catch (error) {
+      return handleError(error, "get organization settings");
+    }
+  }
+
+  async getOrderTerm(termReferenceId: string): Promise<any> {
+    if (!isNonEmptyString(termReferenceId)) {
+      throw new TapsilatValidationError(
+        "Term Reference ID is required and must be a non-empty string"
+      );
+    }
+    try {
+      const response = await this.httpClient.get<any>(
+        `/order/term/${termReferenceId}`
+      );
+      return handleResponse(response, "Get order term");
+    } catch (error) {
+      return handleError(error, "get order term");
+    }
+  }
+
+  // SUBSCRIPTION METHODS
+
+  async createSubscription(
+    request: SubscriptionCreateRequest
+  ): Promise<SubscriptionCreateResponse> {
+    try {
+      const response = await this.httpClient.post<SubscriptionCreateResponse>(
+        "/subscription/create",
+        request
+      );
+      return handleResponse(response, "Create subscription");
+    } catch (error) {
+      return handleError(error, "create subscription");
+    }
+  }
+
+  async getSubscription(
+    request: SubscriptionGetRequest
+  ): Promise<SubscriptionDetail> {
+    try {
+      const response = await this.httpClient.post<SubscriptionDetail>(
+        "/subscription",
+        request
+      );
+      return handleResponse(response, "Get subscription");
+    } catch (error) {
+      return handleError(error, "get subscription");
+    }
+  }
+
+  async listSubscriptions(
+    params: { page?: number; per_page?: number } = {}
+  ): Promise<PaginatedResponse<any>> {
+    try {
+      const response = await this.httpClient.get<PaginatedResponse<any>>(
+        "/subscription/list",
+        { params }
+      );
+      return handleResponse(response, "List subscriptions");
+    } catch (error) {
+      return handleError(error, "list subscriptions");
+    }
+  }
+
+  async cancelSubscription(request: SubscriptionCancelRequest): Promise<any> {
+    try {
+      const response = await this.httpClient.post<any>(
+        "/subscription/cancel",
+        request
+      );
+      return handleResponse(response, "Cancel subscription");
+    } catch (error) {
+      return handleError(error, "cancel subscription");
+    }
+  }
+
+  async redirectSubscription(
+    request: SubscriptionRedirectRequest
+  ): Promise<SubscriptionRedirectResponse> {
+    try {
+      const response = await this.httpClient.post<SubscriptionRedirectResponse>(
+        "/subscription/redirect",
+        request
+      );
+      return handleResponse(response, "Redirect subscription");
+    } catch (error) {
+      return handleError(error, "redirect subscription");
     }
   }
 }

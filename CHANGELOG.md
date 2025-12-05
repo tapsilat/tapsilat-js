@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2025.12.05] - 2025-12-05
+
+### Added
+- **New Features**:
+  - `verifyWebhook`: Enhanced webhook signature verification.
+  - `healthCheck`: Check API health status.
+  - `terminateOrderTerm`: Terminate a specific order term.
+  - `orderManualCallback`: Trigger a manual callback for an order.
+  - `orderRelatedUpdate`: Update related order reference.
+  - `getOrganizationSettings`: Retrieve organization settings.
+  - `getOrderTerm`: Retrieve details of a specific order term.
+  - **Subscription Management**: Full suite of subscription methods (`createSubscription`, `getSubscription`, `listSubscriptions`, `cancelSubscription`, `redirectSubscription`).
+
+### Changed
+- Updated `package.json` version to `2025.12.05`.
+- Refactored tests to align with project structure.
+
 ## [1.0.4] - 2025-06-16
 
 ### Changed
