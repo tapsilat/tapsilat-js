@@ -59,6 +59,8 @@ export type {
   OrderTerminateResponse,
   GsmValidationResult,
   InstallmentsValidationResult,
+  OrderTransaction,
+  OrderSubmerchant,
   SubscriptionGetRequest,
   SubscriptionCancelRequest,
   SubscriptionBilling,

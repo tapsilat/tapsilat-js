@@ -50,7 +50,8 @@ describe("TapsilatSDK", () => {
     jest.clearAllMocks();
 
     sdk = new TapsilatSDK(validConfig);
-    mockHttpClient = (sdk as any).httpClient as jest.Mocked<HttpClient>;
+    mockHttpClient = (sdk as unknown as { httpClient: HttpClient })
+      .httpClient as jest.Mocked<HttpClient>;
   });
 
   describe("Order Operations", () => {
@@ -226,6 +227,7 @@ describe("TapsilatSDK", () => {
       const invalidOrderRequest = {
         ...baseOrderRequest,
         amount: -100,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
 
       await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(
@@ -240,6 +242,7 @@ describe("TapsilatSDK", () => {
           ...baseOrderRequest.buyer,
           email: "invalid-email",
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
 
       await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(
@@ -251,6 +254,7 @@ describe("TapsilatSDK", () => {
       const invalidOrderRequest = {
         ...baseOrderRequest,
         amount: 100.555,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any;
 
       await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(

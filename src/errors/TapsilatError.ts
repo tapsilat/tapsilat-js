@@ -2,7 +2,7 @@
  * @category Errors
  * @module TapsilatError
  */
-import { APIError } from '../types/index';
+import { APIError } from "../types/index";
 
 /**
  * @category Errors
@@ -13,24 +13,26 @@ import { APIError } from '../types/index';
  */
 export class TapsilatError extends Error {
   public readonly code: string;
-  public readonly details?: Record<string, any>;
+  public readonly details?: unknown;
 
   /**
    * @summary Creates a new TapsilatError instance
    * @description Initializes base error with message, code and optional details
-   * 
+   *
    * @param message - Human-readable error message
    * @param code - Error code for programmatic identification
    * @param details - Optional additional error context
    */
-  constructor(message: string, code: string, details?: Record<string, any>) {
+  constructor(message: string, code: string, details?: unknown) {
     super(message);
-    this.name = 'TapsilatError';
+    this.name = "TapsilatError";
     this.code = code;
     this.details = details;
-    
+
     // Maintain proper stack trace for where our error was thrown
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     if ((Error as any).captureStackTrace) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (Error as any).captureStackTrace(this, TapsilatError);
     }
   }
@@ -38,7 +40,7 @@ export class TapsilatError extends Error {
   /**
    * @summary Creates a TapsilatError from an API error response
    * @description Factory method to convert API error format to a TapsilatError instance
-   * 
+   *
    * @param apiError - API error object from response
    * @returns New TapsilatError instance with properties from API error
    */
@@ -60,15 +62,20 @@ export class TapsilatNetworkError extends TapsilatError {
   /**
    * @summary Creates a new network error instance
    * @description Initializes network error with message, code, status code and optional details
-   * 
+   *
    * @param message - Human-readable error message
    * @param code - Error code for programmatic identification
    * @param statusCode - HTTP status code if applicable
    * @param details - Optional additional error context
    */
-  constructor(message: string, code: string, statusCode?: number, details?: Record<string, any>) {
+  constructor(
+    message: string,
+    code: string,
+    statusCode?: number,
+    details?: unknown
+  ) {
     super(message, code, details);
-    this.name = 'TapsilatNetworkError';
+    this.name = "TapsilatNetworkError";
     this.statusCode = statusCode;
   }
 }
@@ -84,13 +91,13 @@ export class TapsilatValidationError extends TapsilatError {
   /**
    * @summary Creates a new validation error instance
    * @description Initializes validation error with message and optional field-specific details
-   * 
+   *
    * @param message - Human-readable error message
    * @param details - Optional field-specific validation errors
    */
-  constructor(message: string, details?: Record<string, any>) {
-    super(message, 'VALIDATION_ERROR', details);
-    this.name = 'TapsilatValidationError';
+  constructor(message: string, details?: unknown) {
+    super(message, "VALIDATION_ERROR", details);
+    this.name = "TapsilatValidationError";
   }
 }
 
@@ -105,12 +112,12 @@ export class TapsilatAuthenticationError extends TapsilatError {
   /**
    * @summary Creates a new authentication error instance
    * @description Initializes authentication error with an optional custom message
-   * 
+   *
    * @param message - Human-readable error message (defaults to 'Authentication failed')
    */
-  constructor(message: string = 'Authentication failed') {
-    super(message, 'AUTHENTICATION_ERROR');
-    this.name = 'TapsilatAuthenticationError';
+  constructor(message: string = "Authentication failed") {
+    super(message, "AUTHENTICATION_ERROR");
+    this.name = "TapsilatAuthenticationError";
   }
 }
 
@@ -127,13 +134,13 @@ export class TapsilatRateLimitError extends TapsilatError {
   /**
    * @summary Creates a new rate limit error instance
    * @description Initializes rate limit error with message and optional retry-after seconds
-   * 
+   *
    * @param message - Human-readable error message (defaults to 'Rate limit exceeded')
    * @param retryAfter - Optional seconds to wait before retrying
    */
-  constructor(message: string = 'Rate limit exceeded', retryAfter?: number) {
-    super(message, 'RATE_LIMIT_ERROR');
-    this.name = 'TapsilatRateLimitError';
+  constructor(message: string = "Rate limit exceeded", retryAfter?: number) {
+    super(message, "RATE_LIMIT_ERROR");
+    this.name = "TapsilatRateLimitError";
     this.retryAfter = retryAfter;
   }
-} 
+}

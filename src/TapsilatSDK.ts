@@ -35,6 +35,9 @@ import {
   SubscriptionCreateResponse,
   SubscriptionRedirectResponse,
   OrganizationSettings,
+  OrderTransaction,
+  OrderSubmerchant,
+  APIResponse,
 } from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
@@ -663,7 +666,7 @@ export class TapsilatSDK {
    * @throws {TapsilatValidationError} When referenceId is invalid
    * @throws {TapsilatError} When API returns an error response
    */
-  async getOrderTransactions(referenceId: string): Promise<any[]> {
+  async getOrderTransactions(referenceId: string): Promise<OrderTransaction[]> {
     // Validate referenceId
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
@@ -671,9 +674,9 @@ export class TapsilatSDK {
         { provided: referenceId }
       );
     }
-    const getOrderTransactionsResponse = await this.httpClient.get<any[]>(
-      `/order/${referenceId}/transactions`
-    );
+    const getOrderTransactionsResponse = await this.httpClient.get<
+      OrderTransaction[]
+    >(`/order/${referenceId}/transactions`);
 
     if (!getOrderTransactionsResponse.success)
       throw new TapsilatError(
@@ -707,13 +710,12 @@ export class TapsilatSDK {
    */
   async getOrderSubmerchants(
     params: { page?: number; per_page?: number } = {}
-  ): Promise<any> {
-    const getOrderSubmerchantsResponse = await this.httpClient.get<any>(
-      "/order/submerchants",
-      {
-        params: params,
-      }
-    );
+  ): Promise<PaginatedResponse<OrderSubmerchant>> {
+    const getOrderSubmerchantsResponse = await this.httpClient.get<
+      PaginatedResponse<OrderSubmerchant>
+    >("/order/submerchants", {
+      params: params,
+    });
 
     if (!getOrderSubmerchantsResponse.success)
       throw new TapsilatError(
@@ -747,8 +749,8 @@ export class TapsilatSDK {
    */
   async getCheckoutUrl(referenceId: string): Promise<string> {
     const order = await this.getOrder(referenceId);
-    if (order && (order as any).checkout_url) {
-      return (order as any).checkout_url;
+    if (order && order.checkout_url) {
+      return order.checkout_url;
     }
     throw new TapsilatError(
       "Checkout URL not found in order response",
@@ -1211,18 +1213,18 @@ export class TapsilatSDK {
   async orderManualCallback(
     referenceId: string,
     conversationId?: string
-  ): Promise<any> {
+  ): Promise<APIResponse<unknown>> {
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string"
       );
     }
-    const payload: any = { reference_id: referenceId };
+    const payload: Record<string, unknown> = { reference_id: referenceId };
     if (conversationId) {
       payload.conversation_id = conversationId;
     }
     try {
-      const response = await this.httpClient.post<any>(
+      const response = await this.httpClient.post<APIResponse<unknown>>(
         "/order/manual-callback",
         payload
       );
@@ -1235,7 +1237,7 @@ export class TapsilatSDK {
   async orderRelatedUpdate(
     referenceId: string,
     relatedReferenceId: string
-  ): Promise<any> {
+  ): Promise<APIResponse<unknown>> {
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string"
@@ -1247,7 +1249,7 @@ export class TapsilatSDK {
       );
     }
     try {
-      const response = await this.httpClient.post<any>(
+      const response = await this.httpClient.post<APIResponse<unknown>>(
         "/order/related-update",
         {
           reference_id: referenceId,
@@ -1271,14 +1273,14 @@ export class TapsilatSDK {
     }
   }
 
-  async getOrderTerm(termReferenceId: string): Promise<any> {
+  async getOrderTerm(termReferenceId: string): Promise<PaymentTermResponse> {
     if (!isNonEmptyString(termReferenceId)) {
       throw new TapsilatValidationError(
         "Term Reference ID is required and must be a non-empty string"
       );
     }
     try {
-      const response = await this.httpClient.get<any>(
+      const response = await this.httpClient.get<PaymentTermResponse>(
         `/order/term/${termReferenceId}`
       );
       return handleResponse(response, "Get order term");
@@ -1319,21 +1321,22 @@ export class TapsilatSDK {
 
   async listSubscriptions(
     params: { page?: number; per_page?: number } = {}
-  ): Promise<PaginatedResponse<any>> {
+  ): Promise<PaginatedResponse<SubscriptionDetail>> {
     try {
-      const response = await this.httpClient.get<PaginatedResponse<any>>(
-        "/subscription/list",
-        { params }
-      );
+      const response = await this.httpClient.get<
+        PaginatedResponse<SubscriptionDetail>
+      >("/subscription/list", { params });
       return handleResponse(response, "List subscriptions");
     } catch (error) {
       return handleError(error, "list subscriptions");
     }
   }
 
-  async cancelSubscription(request: SubscriptionCancelRequest): Promise<any> {
+  async cancelSubscription(
+    request: SubscriptionCancelRequest
+  ): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<any>(
+      const response = await this.httpClient.post<APIResponse<unknown>>(
         "/subscription/cancel",
         request
       );

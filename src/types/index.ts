@@ -80,7 +80,7 @@ export interface PaymentRequest {
   currency: Currency;
   paymentMethod: PaymentMethod;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   returnUrl?: string;
   webhookUrl?: string;
   customerId?: string;
@@ -102,7 +102,7 @@ export interface PaymentResponse {
   currency: Currency;
   paymentMethod: PaymentMethod;
   description?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
   paymentUrl?: string;
@@ -252,7 +252,7 @@ export interface WebhookEvent {
 export interface APIError {
   code: string;
   message: string;
-  details?: Record<string, any>;
+  details?: unknown;
 }
 
 // API RESPONSE
@@ -270,7 +270,7 @@ export interface APIResponse<T> {
   error?: {
     message: string;
     code: string;
-    details?: any;
+    details?: unknown;
   };
   status?: number;
   headers?: Record<string, string>;
@@ -1011,4 +1011,19 @@ export interface OrganizationSettings {
   domain_address?: string;
   checkout_domain?: string;
   subscription_domain?: string;
+}
+
+export interface OrderTransaction {
+  id: string;
+  date: string;
+  amount: number;
+  type: string;
+  status: string;
+  [key: string]: unknown;
+}
+
+export interface OrderSubmerchant {
+  id: string;
+  name: string;
+  [key: string]: unknown;
 }

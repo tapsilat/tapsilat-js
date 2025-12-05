@@ -23,7 +23,7 @@ export interface RequestConfig extends Omit<RequestInit, "method" | "body"> {
   retries?: number;
   baseURL?: string;
   maxRetries?: number;
-  params?: Record<string, any>;
+  params?: Record<string, unknown>;
 }
 
 /**
@@ -42,7 +42,7 @@ export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
  */
 export type RequestBody =
   | Record<string, unknown>
-  | Record<string, any>
+  | Record<string, unknown>
   | object
   | unknown[]
   | string
@@ -53,7 +53,7 @@ export type RequestBody =
  * @summary HTTP Client for making API requests to Tapsilat services
  * @description Provides a robust client with comprehensive error handling,
  * retry logic, and request/response interceptors for interacting with the Tapsilat API
- * 
+ *
  * @example
  * ```typescript
  * const client = new HttpClient({
@@ -72,7 +72,7 @@ export class HttpClient {
   /**
    * @summary Creates a new HTTP client instance
    * @description Initializes the HTTP client with the provided configuration
-   * 
+   *
    * @param config - The configuration for the Tapsilat API client
    */
   constructor(config: TapsilatConfig) {
@@ -245,14 +245,14 @@ export class HttpClient {
     return this.interceptors.executeErrorInterceptors(lastError!, {
       url: interceptedUrl,
       options: interceptedOptions,
-    });
+    }) as Promise<APIResponse<T>>;
   }
 
   /**
    * @category HTTP Client Internals
    * @summary Makes the actual HTTP request with timeout handling
    * @description Performs the fetch request with timeout handling and abort controller
-   * 
+   *
    * @param url - Full URL to request
    * @param options - Fetch request options
    * @param timeout - Optional timeout in milliseconds
@@ -304,7 +304,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Processes the fetch response and converts to APIResponse format
    * @description Parses the response and formats it according to the APIResponse interface
-   * 
+   *
    * @param response - The raw fetch Response object
    * @returns Processed API response
    */
@@ -351,7 +351,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Creates appropriate error based on response status and data
    * @description Maps HTTP status codes to specific Tapsilat error types
-   * 
+   *
    * @param response - The raw fetch Response object
    * @param data - The parsed response data
    * @returns Appropriate TapsilatError subclass instance
@@ -422,7 +422,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Extracts error message from response data
    * @description Attempts to find an error message in various locations within the response
-   * 
+   *
    * @param data - The parsed response data
    * @returns Error message if found
    */
@@ -443,7 +443,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Extracts validation details from error response
    * @description Parses field-specific validation errors from the API response
-   * 
+   *
    * @param data - The parsed response data
    * @returns Object mapping field names to error messages
    */
@@ -461,7 +461,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Extracts rate limit information from response headers
    * @description Reads and parses rate limiting headers from the API response
-   * 
+   *
    * @param response - The raw fetch Response object
    * @returns Rate limit information including limits and reset time
    */
@@ -485,7 +485,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Builds the complete URL for the request
    * @description Constructs the full URL with base URL and query parameters
-   * 
+   *
    * @param url - The endpoint path or full URL
    * @param customBaseURL - Optional override for the base URL
    * @param params - Optional query parameters
@@ -494,7 +494,7 @@ export class HttpClient {
   private buildUrl(
     url: string,
     customBaseURL?: string,
-    params?: Record<string, any>
+    params?: Record<string, unknown>
   ): string {
     const baseURL =
       customBaseURL ||
@@ -531,7 +531,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Builds RequestInit options for the fetch request
    * @description Prepares headers and request configuration for fetch API
-   * 
+   *
    * @param method - The HTTP method to use
    * @param body - Optional request body
    * @param config - Additional request configuration
@@ -580,7 +580,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Determines if an error should prevent retrying
    * @description Checks error types to decide if retry attempts should be aborted
-   * 
+   *
    * @param error - The error that occurred
    * @returns Whether retry should be prevented for this error
    */
@@ -597,7 +597,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Calculates retry delay with exponential backoff
    * @description Implements exponential backoff with jitter for retry attempts
-   * 
+   *
    * @param attempt - The current retry attempt number (0-indexed)
    * @returns Delay in milliseconds before next retry
    */
@@ -614,7 +614,7 @@ export class HttpClient {
    * @category HTTP Client Internals
    * @summary Utility method to create delay
    * @description Creates a promise that resolves after the specified time
-   * 
+   *
    * @param ms - Delay time in milliseconds
    * @returns Promise that resolves after the delay
    */

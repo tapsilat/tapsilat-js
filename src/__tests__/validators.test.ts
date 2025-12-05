@@ -42,6 +42,7 @@ describe("Validators", () => {
 
     it("should reject invalid currency", () => {
       expect(() =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         validatePaymentRequest({ ...validRequest, currency: "INVALID" as any })
       ).toThrow(TapsilatValidationError);
     });
@@ -50,6 +51,7 @@ describe("Validators", () => {
       expect(() =>
         validatePaymentRequest({
           ...validRequest,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           paymentMethod: "invalid_method" as any,
         })
       ).toThrow(TapsilatValidationError);
@@ -83,6 +85,7 @@ describe("Validators", () => {
     });
 
     it("should reject non-string bearer token", () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(() => validateBearerToken(null as any)).toThrow(
         TapsilatValidationError
       );
@@ -219,9 +222,9 @@ describe("Crypto Utils", () => {
 
     it("should reject invalid HMAC signature", () => {
       const invalidSignature = "sha256=invalid-signature-hash";
-      expect(verifyHmacSignature(testPayload, invalidSignature, testSecret)).toBe(
-        false
-      );
+      expect(
+        verifyHmacSignature(testPayload, invalidSignature, testSecret)
+      ).toBe(false);
     });
 
     it("should reject signature without sha256 prefix", () => {
@@ -231,9 +234,9 @@ describe("Crypto Utils", () => {
         .digest("hex");
 
       // Missing sha256= prefix
-      expect(verifyHmacSignature(testPayload, expectedSignature, testSecret)).toBe(
-        false
-      );
+      expect(
+        verifyHmacSignature(testPayload, expectedSignature, testSecret)
+      ).toBe(false);
     });
 
     it("should reject signature with wrong secret", () => {
@@ -258,9 +261,9 @@ describe("Crypto Utils", () => {
         .digest("hex");
 
       const fullSignature = `sha256=${expectedSignature}`;
-      expect(verifyHmacSignature(differentPayload, fullSignature, testSecret)).toBe(
-        true
-      );
+      expect(
+        verifyHmacSignature(differentPayload, fullSignature, testSecret)
+      ).toBe(true);
     });
   });
 });

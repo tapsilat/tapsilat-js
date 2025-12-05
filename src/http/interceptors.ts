@@ -24,9 +24,9 @@ export type RequestInterceptor = (
  * @typedef {Function} ResponseInterceptor
  */
 export type ResponseInterceptor = (
-  response: APIResponse<any>,
+  response: APIResponse<unknown>,
   request: { url: string; options: RequestInit }
-) => Promise<APIResponse<any>> | APIResponse<any>;
+) => Promise<APIResponse<unknown>> | APIResponse<unknown>;
 
 /**
  * @category Interceptors
@@ -37,7 +37,7 @@ export type ResponseInterceptor = (
 export type ErrorInterceptor = (
   error: Error,
   request: { url: string; options: RequestInit }
-) => Promise<never | APIResponse<any>> | never | APIResponse<any>;
+) => Promise<never | APIResponse<unknown>> | never | APIResponse<unknown>;
 
 /**
  * @category HTTP
@@ -146,7 +146,10 @@ export class InterceptorManager {
 
     for (const interceptor of this.responseInterceptors) {
       if (interceptor) {
-        currentResponse = await interceptor(currentResponse, request);
+        currentResponse = (await interceptor(
+          currentResponse as APIResponse<unknown>,
+          request
+        )) as APIResponse<T>;
       }
     }
 
@@ -188,7 +191,7 @@ export class InterceptorManager {
   async executeErrorInterceptors(
     error: Error,
     request: { url: string; options: RequestInit }
-  ): Promise<never | APIResponse<any>> {
+  ): Promise<never | APIResponse<unknown>> {
     for (const interceptor of this.errorInterceptors) {
       if (interceptor) {
         try {
@@ -230,7 +233,7 @@ export const createLoggingInterceptor = (
   response: ResponseInterceptor;
   error: ErrorInterceptor;
 } => ({
-  request: (url, options) => {
+  request: (url, options): { url: string; options: RequestInit } => {
     if (debug) {
       console.log(`🔄 API Request: ${options.method} ${url}`);
       console.log("Headers:", options.headers);
@@ -241,7 +244,7 @@ export const createLoggingInterceptor = (
     return { url, options };
   },
 
-  response: (response, request) => {
+  response: (response, request): APIResponse<unknown> => {
     if (debug) {
       console.log(`✅ API Response: ${request.options.method} ${request.url}`);
       console.log("Success:", response.success);
@@ -252,7 +255,7 @@ export const createLoggingInterceptor = (
     return response;
   },
 
-  error: (error, request) => {
+  error: (error, request): never => {
     if (debug) {
       console.error(`❌ API Error: ${request.options.method} ${request.url}`);
       console.error("Error:", error.message);
@@ -275,7 +278,7 @@ export const createTimingInterceptor = (): {
   const timings = new Map<string, number>();
 
   return {
-    request: (url, options) => {
+    request: (url, options): { url: string; options: RequestInit } => {
       const requestId = `${options.method}-${url}-${Date.now()}`;
       timings.set(requestId, Date.now());
 
@@ -291,8 +294,9 @@ export const createTimingInterceptor = (): {
       };
     },
 
-    response: (response, request) => {
-      const requestId = (request.options.headers as any)?.["X-Request-ID"];
+    response: (response, request): APIResponse<unknown> => {
+      const headers = request.options.headers as Record<string, unknown>;
+      const requestId = headers?.["X-Request-ID"] as string;
       if (requestId && timings.has(requestId)) {
         const startTime = timings.get(requestId)!;
         const duration = Date.now() - startTime;

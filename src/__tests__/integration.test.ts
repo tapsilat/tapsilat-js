@@ -83,8 +83,10 @@ describe("TapsilatSDK Integration Tests", () => {
       const order = await sdk.getOrder(createdOrderReferenceId);
       expect(order.reference_id).toBe(createdOrderReferenceId);
       // API might return amount as string or number
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const amount = (order as any).amount;
-      const expectedAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+      const expectedAmount =
+        typeof amount === "string" ? parseFloat(amount) : amount;
       expect(expectedAmount).toBe(150.75);
       expect(order.currency).toBe("TRY");
       console.log("✅ Retrieved order:", order.reference_id);
@@ -92,16 +94,26 @@ describe("TapsilatSDK Integration Tests", () => {
 
     it("should list orders", async () => {
       const orders = await sdk.getOrders({ page: 1, per_page: 10 });
-      
+
       // Handle either pagination format
-      const orderData = 'data' in orders ? orders.data : (orders as any).rows;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const orderData = "data" in orders ? orders.data : (orders as any).rows;
       expect(Array.isArray(orderData)).toBe(true);
-      
+
       // Handle either pagination format for metadata
-      const paginationInfo = 'pagination' in orders ? orders.pagination : orders;
-      const page = 'page' in paginationInfo ? paginationInfo.page : (paginationInfo as any).page;
-      const total = 'total' in paginationInfo ? paginationInfo.total : (paginationInfo as any).total;
-      
+      const paginationInfo =
+        "pagination" in orders ? orders.pagination : orders;
+      const page =
+        "page" in paginationInfo
+          ? paginationInfo.page
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (paginationInfo as any).page;
+      const total =
+        "total" in paginationInfo
+          ? paginationInfo.total
+          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (paginationInfo as any).total;
+
       expect(page).toBeTruthy();
       expect(total).toBeTruthy();
       console.log("✅ Listed orders:", orderData.length);
@@ -127,7 +139,11 @@ describe("TapsilatSDK Integration Tests", () => {
       const payload = '{"id":"order-123","status":"completed"}';
       const signature = "sha256=abc123...";
       const webhookSecret = "your-webhook-secret";
-      const isValid = await sdk.verifyWebhook(payload, signature, webhookSecret);
+      const isValid = await sdk.verifyWebhook(
+        payload,
+        signature,
+        webhookSecret
+      );
       expect(typeof isValid).toBe("boolean");
     });
   });
