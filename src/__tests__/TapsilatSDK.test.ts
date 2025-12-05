@@ -48,7 +48,7 @@ describe("TapsilatSDK", () => {
   beforeEach(() => {
     // Clear all mocks before each test
     jest.clearAllMocks();
-    
+
     sdk = new TapsilatSDK(validConfig);
     mockHttpClient = (sdk as any).httpClient as jest.Mocked<HttpClient>;
   });
@@ -63,15 +63,18 @@ describe("TapsilatSDK", () => {
           reference_id: "order-123",
           conversation_id: "conv-123",
           checkout_url: "https://checkout.test.com/order-123",
-          status: "CREATED"
-        }
+          status: "CREATED",
+        },
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
 
       const order = await sdk.createOrder(orderRequest);
-      
-      expect(mockHttpClient.post).toHaveBeenCalledWith("/order/create", orderRequest);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        "/order/create",
+        orderRequest
+      );
       expect(order).toEqual(mockResponse.data);
       expect(order.reference_id).toBe("order-123");
       expect(order.checkout_url).toBe("https://checkout.test.com/order-123");
@@ -83,15 +86,17 @@ describe("TapsilatSDK", () => {
         data: {
           reference_id: "order-123",
           status: "COMPLETED",
-          lastUpdatedAt: "2024-01-15T10:30:00Z"
-        }
+          lastUpdatedAt: "2024-01-15T10:30:00Z",
+        },
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
 
       const status = await sdk.getOrderStatus("order-123");
-      
-      expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/status");
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        "/order/order-123/status"
+      );
       expect(status).toEqual(mockResponse.data);
       expect(status.status).toBe("COMPLETED");
     });
@@ -107,15 +112,15 @@ describe("TapsilatSDK", () => {
           buyer: {
             name: "John",
             surname: "Doe",
-            email: "john-doe@example.com"
-          }
-        }
+            email: "john-doe@example.com",
+          },
+        },
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
 
       const order = await sdk.getOrder("order-123");
-      
+
       expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123");
       expect(order).toEqual(mockResponse.data);
       expect(order.reference_id).toBe("order-123");
@@ -130,30 +135,30 @@ describe("TapsilatSDK", () => {
               reference_id: "order-123",
               amount: 150.75,
               currency: "TRY",
-              status: "COMPLETED"
+              status: "COMPLETED",
             },
             {
               reference_id: "order-456",
               amount: 299.99,
-              currency: "TRY", 
-              status: "PENDING"
-            }
+              currency: "TRY",
+              status: "PENDING",
+            },
           ],
           pagination: {
             page: 1,
             limit: 10,
             total: 2,
-            pages: 1
-          }
-        }
+            pages: 1,
+          },
+        },
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
 
       const orders = await sdk.getOrders({ page: 1, per_page: 10 });
-      
-      expect(mockHttpClient.get).toHaveBeenCalledWith("/order/list", { 
-        params: { page: 1, per_page: 10 } 
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/order/list", {
+        params: { page: 1, per_page: 10 },
       });
       expect(orders).toEqual(mockResponse.data);
       expect(orders.data).toHaveLength(2);
@@ -164,16 +169,16 @@ describe("TapsilatSDK", () => {
         success: true,
         data: {
           reference_id: "order-123",
-          status: "CANCELLED"
-        }
+          status: "CANCELLED",
+        },
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
 
       const cancelledOrder = await sdk.cancelOrder("order-123");
-      
+
       expect(mockHttpClient.post).toHaveBeenCalledWith("/order/cancel", {
-        reference_id: "order-123"
+        reference_id: "order-123",
       });
       expect(cancelledOrder).toEqual(mockResponse.data);
       expect(cancelledOrder.status).toBe("CANCELLED");
@@ -182,7 +187,7 @@ describe("TapsilatSDK", () => {
     it("should refund order successfully", async () => {
       const refundRequest = {
         reference_id: "order-123",
-        amount: 50.00
+        amount: 50.0,
       };
 
       const mockResponse = {
@@ -191,19 +196,22 @@ describe("TapsilatSDK", () => {
           refundId: "refund-456",
           referenceId: "order-123",
           status: "COMPLETED",
-          amount: 50.00,
+          amount: 50.0,
           currency: "TRY",
-          createdAt: "2024-01-15T10:30:00Z"
-        }
+          createdAt: "2024-01-15T10:30:00Z",
+        },
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
 
       const refund = await sdk.refundOrder(refundRequest);
-      
-      expect(mockHttpClient.post).toHaveBeenCalledWith("/order/refund", refundRequest);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        "/order/refund",
+        refundRequest
+      );
       expect(refund).toEqual(mockResponse.data);
-      expect(refund.amount).toBe(50.00);
+      expect(refund.amount).toBe(50.0);
     });
   });
 
@@ -257,14 +265,14 @@ describe("TapsilatSDK", () => {
         success: true,
         data: {
           status: "healthy",
-          timestamp: "2024-01-15T10:30:00Z"
-        }
+          timestamp: "2024-01-15T10:30:00Z",
+        },
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
 
       const health = await sdk.healthCheck();
-      
+
       expect(mockHttpClient.get).toHaveBeenCalledWith("/health");
       expect(health).toEqual(mockResponse.data);
       expect(health.status).toBe("healthy");
@@ -273,20 +281,29 @@ describe("TapsilatSDK", () => {
 
   describe("Webhook Verification", () => {
     it("should verify webhook signature", async () => {
-      const payload = '{"event": "order.completed", "data": {"id": "123"}}';
-      const signature = "test-signature";
-      const secret = "webhook-secret";
+      const payload = "data";
+      const secret = "key";
+      // hmac-sha256 of "data" with key "key"
+      const signature =
+        "sha256=5031fe3d989c6d1537a013fa6e739da23463fdaec3b70137d828e36ace221bd0";
 
-      // Mock the verification to return true
       const result = await sdk.verifyWebhook(payload, signature, secret);
-      
-      // Since we're not mocking the actual crypto verification, 
-      // this test mainly checks the validation logic
-      expect(typeof result).toBe("boolean");
+      expect(result).toBe(true);
+    });
+
+    it("should return false for invalid signature", async () => {
+      const payload = "data";
+      const secret = "key";
+      const signature = "sha256=invalid";
+
+      const result = await sdk.verifyWebhook(payload, signature, secret);
+      expect(result).toBe(false);
     });
 
     it("should validate webhook parameters", async () => {
-      await expect(sdk.verifyWebhook("", "signature", "secret")).rejects.toThrow(
+      await expect(
+        sdk.verifyWebhook("", "signature", "secret")
+      ).rejects.toThrow(
         "Webhook payload is required and must be a non-empty string"
       );
 
@@ -294,9 +311,89 @@ describe("TapsilatSDK", () => {
         "Webhook signature is required and must be a non-empty string"
       );
 
-      await expect(sdk.verifyWebhook("payload", "signature", "")).rejects.toThrow(
+      await expect(
+        sdk.verifyWebhook("payload", "signature", "")
+      ).rejects.toThrow(
         "Webhook secret is required and must be a non-empty string"
       );
+    });
+  });
+
+  describe("New Features", () => {
+    it("should terminate order term", async () => {
+      const request = { term_reference_id: "term_ref_123", reason: "reason" };
+      const mockResponse = { success: true, data: { success: true } };
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.terminateOrderTerm(request);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        "/order/term/terminate",
+        request
+      );
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should trigger manual callback", async () => {
+      const referenceId = "ref_123";
+      const conversationId = "conv_123";
+      const mockResponse = { success: true, data: { success: true } };
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.orderManualCallback(referenceId, conversationId);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        "/order/manual-callback",
+        {
+          reference_id: referenceId,
+          conversation_id: conversationId,
+        }
+      );
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should update related order", async () => {
+      const referenceId = "ref_123";
+      const relatedReferenceId = "rel_ref_123";
+      const mockResponse = { success: true, data: { success: true } };
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.orderRelatedUpdate(
+        referenceId,
+        relatedReferenceId
+      );
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        "/order/related-update",
+        {
+          reference_id: referenceId,
+          related_reference_id: relatedReferenceId,
+        }
+      );
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should get organization settings", async () => {
+      const mockResponse = { success: true, data: { setting: "value" } };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getOrganizationSettings();
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/settings");
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should get order term", async () => {
+      const termReferenceId = "term_ref_123";
+      const mockResponse = { success: true, data: { id: "term_1" } };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getOrderTerm(termReferenceId);
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        `/order/term/${termReferenceId}`
+      );
+      expect(result).toEqual(mockResponse.data);
     });
   });
 });

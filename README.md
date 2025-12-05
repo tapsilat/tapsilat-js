@@ -324,6 +324,60 @@ const terminatedOrder = await tapsilat.terminateOrder({
 console.log('Order terminated at:', terminatedOrder.terminated_at);
 ```
 
+### Subscription Management
+
+#### Create Subscription
+```typescript
+const subscription = await tapsilat.createSubscription({
+  plan_id: 'plan-123',
+  subscriber: {
+    name: 'John',
+    surname: 'Doe',
+    email: 'john@example.com',
+    gsm_number: '+905551234567'
+  },
+  pricing: {
+    amount: 100,
+    currency: 'TRY'
+  }
+});
+console.log('Subscription created:', subscription.reference_id);
+```
+
+#### Get Subscription Details
+```typescript
+const sub = await tapsilat.getSubscription({
+  reference_id: 'sub-ref-123'
+});
+console.log('Subscription status:', sub.status);
+```
+
+#### List Subscriptions
+```typescript
+const subs = await tapsilat.listSubscriptions(1, 10);
+subs.rows.forEach(sub => {
+  console.log(`Subscription ${sub.reference_id}: ${sub.status}`);
+});
+```
+
+#### Cancel Subscription
+```typescript
+const result = await tapsilat.cancelSubscription({
+  reference_id: 'sub-ref-123',
+  reason: 'Customer request'
+});
+console.log('Subscription cancelled:', result.success);
+```
+
+#### Redirect Subscription
+```typescript
+const redirect = await tapsilat.redirectSubscription({
+  reference_id: 'sub-ref-123',
+  return_url: 'https://mysite.com/callback'
+});
+console.log('Redirect URL:', redirect.url);
+```
+
 ### Validation Utilities
 
 #### GSM Number Validation
@@ -364,6 +418,34 @@ const invalid = validateInstallments('abc');
 if (!invalid.isValid) {
   console.error('Validation error:', invalid.error);
 }
+```
+
+### Organization & Settings
+
+#### Get Organization Settings
+```typescript
+const settings = await tapsilat.getOrganizationSettings();
+console.log('Organization Settings:', settings);
+```
+
+### Manual Operations
+
+#### Trigger Manual Callback
+```typescript
+const callbackResult = await tapsilat.orderManualCallback(
+  'order-reference-id',
+  'conversation-id' // optional
+);
+console.log('Callback triggered:', callbackResult.success);
+```
+
+#### Update Related Order
+```typescript
+const updateResult = await tapsilat.orderRelatedUpdate(
+  'order-reference-id',
+  'related-reference-id'
+);
+console.log('Related order updated:', updateResult.success);
 ```
 
 ### Health Monitoring

@@ -153,7 +153,7 @@ export interface Address {
  * @interface BillingAddress
  */
 export interface BillingAddress extends Address {
-  billing_type: 'PERSONAL' | 'CORPORATE';
+  billing_type: "PERSONAL" | "CORPORATE";
   vat_number?: string;
   tax_office?: string;
   title?: string;
@@ -184,12 +184,12 @@ export interface BasketItem {
  * @description Different payment methods that can be enabled for an order
  * @typedef {string} PaymentOption
  */
-export type PaymentOption = 
-  | 'PAY_WITH_WALLET'
-  | 'PAY_WITH_CARD'
-  | 'PAY_WITH_LOAN'
-  | 'PAY_WITH_CASH'
-  | 'PAY_WITH_BANK';
+export type PaymentOption =
+  | "PAY_WITH_WALLET"
+  | "PAY_WITH_CARD"
+  | "PAY_WITH_LOAN"
+  | "PAY_WITH_CASH"
+  | "PAY_WITH_BANK";
 
 // REFUND REQUEST
 // Summary: Information needed to process a refund
@@ -915,4 +915,100 @@ export interface InstallmentsValidationResult {
   validatedInstallments: number[];
   error?: string;
   originalInput: string | number | number[];
+}
+
+// SUBSCRIPTION TYPES
+export interface SubscriptionGetRequest {
+  external_reference_id?: string;
+  reference_id?: string;
+}
+
+export interface SubscriptionCancelRequest {
+  external_reference_id?: string;
+  reference_id?: string;
+}
+
+export interface SubscriptionBilling {
+  address?: string;
+  city?: string;
+  contact_name?: string;
+  country?: string;
+  vat_number?: string;
+  zip_code?: string;
+}
+
+export interface SubscriptionUser {
+  address?: string;
+  city?: string;
+  country?: string;
+  email?: string;
+  first_name?: string;
+  id?: string;
+  identity_number?: string;
+  last_name?: string;
+  phone?: string;
+  zip_code?: string;
+}
+
+export interface SubscriptionCreateRequest {
+  amount?: number;
+  billing?: SubscriptionBilling;
+  card_id?: string;
+  currency?: string;
+  cycle?: number;
+  external_reference_id?: string;
+  failure_url?: string;
+  payment_date?: number;
+  period?: number;
+  success_url?: string;
+  title?: string;
+  user?: SubscriptionUser;
+}
+
+export interface SubscriptionRedirectRequest {
+  subscription_id?: string;
+}
+
+export interface SubscriptionOrder {
+  amount?: string;
+  currency?: string;
+  payment_date?: string;
+  payment_url?: string;
+  reference_id?: string;
+  status?: string;
+}
+
+export interface SubscriptionDetail {
+  amount?: string;
+  currency?: string;
+  due_date?: string;
+  external_reference_id?: string;
+  is_active?: boolean;
+  orders?: SubscriptionOrder[];
+  payment_date?: number;
+  payment_status?: string;
+  period?: number;
+  title?: string;
+}
+
+export interface SubscriptionCreateResponse {
+  code?: number;
+  message?: string;
+  order_reference_id?: string;
+  reference_id?: string;
+}
+
+export interface SubscriptionRedirectResponse {
+  url?: string;
+}
+
+export interface OrganizationSettings {
+  ttl?: number;
+  retry_count?: number;
+  allow_payment?: boolean;
+  session_ttl?: number;
+  custom_checkout?: boolean;
+  domain_address?: string;
+  checkout_domain?: string;
+  subscription_domain?: string;
 }
