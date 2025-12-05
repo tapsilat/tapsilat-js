@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Subscription Management**: Full suite of subscription methods (`createSubscription`, `getSubscription`, `listSubscriptions`, `cancelSubscription`, `redirectSubscription`).
 
 ### Changed
-- Updated `package.json` version to `2025.12.05`.
+- Updated `package.json` version to `2025.12.5.2`.
 - Refactored tests to align with project structure.
 
 ## [1.0.4] - 2025-06-16
