@@ -58,7 +58,18 @@ export type {
   OrderTerminateRequest,
   OrderTerminateResponse,
   GsmValidationResult,
-  InstallmentsValidationResult
+  InstallmentsValidationResult,
+  SubscriptionGetRequest,
+  SubscriptionCancelRequest,
+  SubscriptionBilling,
+  SubscriptionUser,
+  SubscriptionCreateRequest,
+  SubscriptionRedirectRequest,
+  SubscriptionOrder,
+  SubscriptionDetail,
+  SubscriptionCreateResponse,
+  SubscriptionRedirectResponse,
+  OrganizationSettings,
 } from "./types/index";
 
 // Errors
