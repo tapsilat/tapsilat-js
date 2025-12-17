@@ -915,17 +915,23 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API health check fails or returns invalid data
    */
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    // There is no dedicated /health endpoint. We use /system/order-statuses as a proxy.
-    const healthCheckResponse = await this.httpClient.get<{
-      status: string;
-      timestamp: string;
-    }>("/health");
+    // We use the direct /health endpoint which returns plain string "OK"
+    const healthCheckResponse = await this.httpClient.get<string>("/health");
 
-    if (!healthCheckResponse.success)
+    if (!healthCheckResponse.success) {
       throw new TapsilatError(
         healthCheckResponse.error?.message || "Health check failed",
         healthCheckResponse.error?.code || "HEALTH_CHECK_FAILED"
       );
+    }
+
+    // The API returns "OK" string, verify consistency
+    if (healthCheckResponse.data !== "OK") {
+      throw new TapsilatError(
+        `Unexpected health check response: ${healthCheckResponse.data}`,
+        "HEALTH_CHECK_INVALID_RESPONSE"
+      );
+    }
 
     return {
       status: "UP",

@@ -361,10 +361,7 @@ describe("TapsilatSDK", () => {
     it("should perform health check successfully", async () => {
       const mockResponse = {
         success: true,
-        data: {
-          status: "healthy",
-          timestamp: "2024-01-15T10:30:00Z",
-        },
+        data: "OK",
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
