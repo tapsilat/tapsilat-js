@@ -915,10 +915,11 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API health check fails or returns invalid data
    */
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
+    // There is no dedicated /health endpoint. We use /system/order-statuses as a proxy.
     const healthCheckResponse = await this.httpClient.get<{
       status: string;
       timestamp: string;
-    }>("/health");
+    }>("/system/order-statuses", { params: { per_page: 1 } });
 
     if (!healthCheckResponse.success)
       throw new TapsilatError(
@@ -926,13 +927,10 @@ export class TapsilatSDK {
         healthCheckResponse.error?.code || "HEALTH_CHECK_FAILED"
       );
 
-    if (!healthCheckResponse.data)
-      throw new TapsilatError(
-        "Health check response data is missing",
-        "HEALTH_CHECK_DATA_MISSING"
-      );
-
-    return healthCheckResponse.data;
+    return {
+      status: "UP",
+      timestamp: new Date().toISOString(),
+    };
   }
 
   // CONFIGURATION MANAGEMENT
@@ -1052,7 +1050,7 @@ export class TapsilatSDK {
     try {
       const createTermResponse =
         await this.httpClient.post<PaymentTermResponse>(
-          "/order/term/create",
+          "/order/term",
           termData
         );
 
@@ -1132,8 +1130,8 @@ export class TapsilatSDK {
 
     try {
       const updateTermResponse =
-        await this.httpClient.post<PaymentTermResponse>(
-          "/order/term/update",
+        await this.httpClient.patch<PaymentTermResponse>(
+          "/order/term",
           updateData
         );
 
@@ -1171,8 +1169,8 @@ export class TapsilatSDK {
 
     try {
       const deleteTermResponse =
-        await this.httpClient.post<PaymentTermResponse>(
-          "/order/term/delete",
+        await this.httpClient.delete<PaymentTermResponse>(
+          "/order/term",
           deleteData
         );
 
@@ -1389,7 +1387,10 @@ export class TapsilatSDK {
     }
     try {
       const response = await this.httpClient.get<PaymentTermResponse>(
-        `/order/term/${termReferenceId}`
+        `/order/term`,
+        {
+          params: { term_reference_id: termReferenceId },
+        }
       );
       return handleResponse(response, "Get order term");
     } catch (error) {
@@ -1421,7 +1422,17 @@ export class TapsilatSDK {
         "/subscription",
         request
       );
-      return handleResponse(response, "Get subscription");
+      const data = handleResponse(response, "Get subscription");
+
+      if (data.orders) {
+        data.orders.forEach((order) => {
+          if (order.payment_url && !order.payment_url.startsWith("http")) {
+            order.payment_url = `https://${order.payment_url}`;
+          }
+        });
+      }
+
+      return data;
     } catch (error) {
       return handleError(error, "get subscription");
     }
@@ -1462,7 +1473,21 @@ export class TapsilatSDK {
         "/subscription/redirect",
         request
       );
-      return handleResponse(response, "Redirect subscription");
+      const data = handleResponse(response, "Redirect subscription");
+
+      if (data.url) {
+        // Extract subscription ID from the signed URL to create a clean link
+        // api returns: /token/subscription/{id}
+        // we want: https://checkout.tapsilat.dev/subscription/{id}
+        const match = data.url.match(/\/subscription\/([a-f0-9-]{36})$/);
+        if (match) {
+          data.url = `https://checkout.tapsilat.dev/?reference_id=${match[1]}`;
+        } else if (data.url.startsWith("/")) {
+          data.url = `https://checkout.tapsilat.dev${data.url}`;
+        }
+      }
+
+      return data;
     } catch (error) {
       return handleError(error, "redirect subscription");
     }
