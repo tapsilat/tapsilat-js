@@ -20,7 +20,8 @@ describe("TapsilatSDK Integration Tests", () => {
     sdk = new TapsilatSDK({
       bearerToken: testBearerToken,
       baseURL:
-        process.env.TAPSILAT_TEST_BASE_URL || "https://sandbox.tapsilat.com/v1",
+        process.env.TAPSILAT_TEST_BASE_URL ||
+        "https://panel.tapsilat.dev/api/v1",
       timeout: 30000,
       maxRetries: 3,
       debug: true,
