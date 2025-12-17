@@ -72,6 +72,8 @@ export type {
   SubscriptionCreateResponse,
   SubscriptionRedirectResponse,
   OrganizationSettings,
+  OrderAccountingRequest,
+  OrderPostAuthRequest,
 } from "./types/index";
 
 // Errors
