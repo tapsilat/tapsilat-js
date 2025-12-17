@@ -371,9 +371,19 @@ describe("TapsilatSDK", () => {
 
       const health = await sdk.healthCheck();
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith("/health");
-      expect(health).toEqual(mockResponse.data);
-      expect(health.status).toBe("healthy");
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        "/system/order-statuses",
+        {
+          params: { per_page: 1 },
+        }
+      );
+      // The healthCheck implementation now constructs its own response object
+      // rather than returning the raw API response data directly.
+      // So we expect the constructed object.
+      expect(health).toEqual({
+        status: "UP",
+        timestamp: expect.any(String),
+      });
     });
   });
 
@@ -488,9 +498,9 @@ describe("TapsilatSDK", () => {
 
       const result = await sdk.getOrderTerm(termReferenceId);
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith(
-        `/order/term/${termReferenceId}`
-      );
+      expect(mockHttpClient.get).toHaveBeenCalledWith(`/order/term`, {
+        params: { term_reference_id: termReferenceId },
+      });
       expect(result).toEqual(mockResponse.data);
     });
 
