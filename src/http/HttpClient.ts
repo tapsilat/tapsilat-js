@@ -172,9 +172,36 @@ export class HttpClient {
   ): Promise<APIResponse<T>>;
   async delete<T = unknown>(
     url: string,
+    body: RequestBody,
+    config?: RequestConfig
+  ): Promise<APIResponse<T>>;
+  async delete<T = unknown>(
+    url: string,
+    bodyOrConfig?: RequestBody | RequestConfig,
     config?: RequestConfig
   ): Promise<APIResponse<T>> {
-    return this.request<T>("DELETE", url, undefined, config);
+    let body: RequestBody | undefined;
+    let requestConfig: RequestConfig | undefined = config;
+
+    if (bodyOrConfig && this.isRequestConfig(bodyOrConfig)) {
+      requestConfig = bodyOrConfig as RequestConfig;
+    } else {
+      body = bodyOrConfig as RequestBody;
+    }
+
+    return this.request<T>("DELETE", url, body, requestConfig);
+  }
+
+  private isRequestConfig(obj: unknown): obj is RequestConfig {
+    return (
+      typeof obj === "object" &&
+      obj !== null &&
+      !Array.isArray(obj) &&
+      (Object.keys(obj).some((k) =>
+        ["headers", "timeout", "retries", "baseURL", "params"].includes(k)
+      ) ||
+        Object.keys(obj).length === 0)
+    );
   }
 
   /**
