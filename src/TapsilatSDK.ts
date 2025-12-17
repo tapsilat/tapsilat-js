@@ -919,7 +919,7 @@ export class TapsilatSDK {
     const healthCheckResponse = await this.httpClient.get<{
       status: string;
       timestamp: string;
-    }>("/system/order-statuses", { params: { per_page: 1 } });
+    }>("/health");
 
     if (!healthCheckResponse.success)
       throw new TapsilatError(

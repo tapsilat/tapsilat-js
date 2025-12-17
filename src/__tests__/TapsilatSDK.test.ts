@@ -371,12 +371,7 @@ describe("TapsilatSDK", () => {
 
       const health = await sdk.healthCheck();
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith(
-        "/system/order-statuses",
-        {
-          params: { per_page: 1 },
-        }
-      );
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/health");
       // The healthCheck implementation now constructs its own response object
       // rather than returning the raw API response data directly.
       // So we expect the constructed object.
