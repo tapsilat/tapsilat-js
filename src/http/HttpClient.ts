@@ -499,7 +499,7 @@ export class HttpClient {
     const baseURL =
       customBaseURL ||
       this.config.baseURL ||
-      "https://acquiring.tapsilat.dev/api/v1";
+      "https://panel.tapsilat.dev/api/v1";
 
     if (url.startsWith("http://") || url.startsWith("https://")) {
       return url;
