@@ -31,7 +31,7 @@ import { TapsilatSDK } from "@tapsilat/tapsilat-js";
 
 const tapsilat = new TapsilatSDK({
   bearerToken: process.env.TAPSILAT_BEARER_TOKEN!,
-  baseURL: "https://acquiring.tapsilat.dev/api/v1",
+  baseURL: "https://panel.tapsilat.dev/api/v1",
 });
 ```
 
