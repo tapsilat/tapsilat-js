@@ -1,5 +1,10 @@
 import { TapsilatSDK } from "../TapsilatSDK";
-import { OrderCreateRequest } from "../types/index";
+import {
+  OrderCreateRequest,
+  OrderAccountingRequest,
+  OrderPostAuthRequest,
+  SubscriptionRedirectRequest,
+} from "../types/index";
 import { HttpClient } from "../http/HttpClient";
 
 // Mock the HttpClient
@@ -214,6 +219,63 @@ describe("TapsilatSDK", () => {
       expect(refund).toEqual(mockResponse.data);
       expect(refund.amount).toBe(50.0);
     });
+
+    it("should process order accounting successfully", async () => {
+      const request: OrderAccountingRequest = {
+        order_reference_id: "order-123",
+      };
+
+      const mockResponse = {
+        success: true,
+        data: { success: true },
+      };
+
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.orderAccounting(request);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        "/order/accounting",
+        request
+      );
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should process order post-auth successfully", async () => {
+      const request: OrderPostAuthRequest = {
+        reference_id: "order-123",
+        amount: 100.0,
+      };
+
+      const mockResponse = {
+        success: true,
+        data: { success: true },
+      };
+
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.orderPostAuth(request);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        "/order/postauth",
+        request
+      );
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should retrieve system order statuses successfully", async () => {
+      const mockResponse = {
+        success: true,
+        data: ["CREATED", "FAILED", "COMPLETED"],
+      };
+
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getSystemOrderStatuses();
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/order-statuses");
+      expect(result).toEqual(mockResponse.data);
+    });
   });
 
   describe("Validation", () => {
@@ -259,6 +321,38 @@ describe("TapsilatSDK", () => {
 
       await expect(sdk.createOrder(invalidOrderRequest)).rejects.toThrow(
         "Amount must have maximum 2 decimal places"
+      );
+    });
+
+    it("should validate order accounting request", async () => {
+      const request = {
+        order_reference_id: "",
+      } as OrderAccountingRequest;
+
+      await expect(sdk.orderAccounting(request)).rejects.toThrow(
+        "Order reference ID is required"
+      );
+    });
+
+    it("should validate post-auth request", async () => {
+      const request = {
+        reference_id: "",
+        amount: 100.0,
+      } as OrderPostAuthRequest;
+
+      await expect(sdk.orderPostAuth(request)).rejects.toThrow(
+        "Reference ID is required"
+      );
+    });
+
+    it("should validate post-auth amount", async () => {
+      const request = {
+        reference_id: "order-123",
+        amount: -100,
+      } as OrderPostAuthRequest;
+
+      await expect(sdk.orderPostAuth(request)).rejects.toThrow(
+        "Amount must be a positive number"
       );
     });
   });
@@ -396,6 +490,93 @@ describe("TapsilatSDK", () => {
 
       expect(mockHttpClient.get).toHaveBeenCalledWith(
         `/order/term/${termReferenceId}`
+      );
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should get order by conversation id", async () => {
+      const conversationId = "conv-123";
+      const mockResponse = {
+        success: true,
+        data: {
+          id: "order-1",
+          reference_id: "ref-1",
+          amount: 100,
+          currency: "TRY",
+        },
+      };
+
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const order = await sdk.getOrderByConversationId(conversationId);
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith(
+        `/order/conversation/${conversationId}`
+      );
+      expect(order).toEqual(mockResponse.data);
+    });
+
+    it("should get order submerchants", async () => {
+      const mockResponse = {
+        success: true,
+        data: {
+          data: [{ id: "sub-1", name: "Submerchant 1" }],
+          pagination: { page: 1, limit: 10, total: 1, pages: 1 },
+        },
+      };
+
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getOrderSubmerchants({ page: 1, per_page: 10 });
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/order/submerchants", {
+        params: { page: 1, per_page: 10 },
+      });
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should refund all order", async () => {
+      const referenceId = "ref-123";
+      const mockResponse = {
+        success: true,
+        data: {
+          refundId: "refund-1",
+          referenceId: referenceId,
+          status: "completed",
+          amount: 100,
+          currency: "TRY",
+          createdAt: "2023-01-01",
+        },
+      };
+
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.refundAllOrder(referenceId);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith("/order/refund-all", {
+        reference_id: referenceId,
+      });
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should redirect subscription", async () => {
+      const request: SubscriptionRedirectRequest = {
+        subscription_id: "sub-123",
+      };
+      const mockResponse = {
+        success: true,
+        data: {
+          url: "https://example.com/redirect",
+        },
+      };
+
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.redirectSubscription(request);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith(
+        "/subscription/redirect",
+        request
       );
       expect(result).toEqual(mockResponse.data);
     });

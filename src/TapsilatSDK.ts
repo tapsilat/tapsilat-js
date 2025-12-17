@@ -38,6 +38,8 @@ import {
   OrderTransaction,
   OrderSubmerchant,
   APIResponse,
+  OrderAccountingRequest,
+  OrderPostAuthRequest,
 } from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
@@ -255,6 +257,104 @@ export class TapsilatSDK {
     } catch (error) {
       // Use our generic error handler
       return handleError(error, "order creation");
+    }
+  }
+
+  // ORDER ACCOUNTING
+  // Summary: Process accounting for an order
+  // Description: Handles accounting operations for a specific order using its reference ID
+  /**
+   * Process accounting for an order
+   *
+   * @summary Process accounting for an order
+   * @description Handles accounting operations for a specific order using its reference ID.
+   *
+   * @param {OrderAccountingRequest} request - Accounting request details
+   * @returns {Promise<APIResponse<unknown>>} Promise resolving to the accounting response
+   * @throws {TapsilatValidationError} When input validation fails
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async orderAccounting(
+    request: OrderAccountingRequest
+  ): Promise<APIResponse<unknown>> {
+    if (!isNonEmptyString(request.order_reference_id)) {
+      throw new TapsilatValidationError(
+        "Order reference ID is required and must be a non-empty string",
+        { provided: request.order_reference_id }
+      );
+    }
+
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>(
+        "/order/accounting",
+        request
+      );
+      return handleResponse(response, "Order accounting");
+    } catch (error) {
+      return handleError(error, "order accounting");
+    }
+  }
+
+  // ORDER POST-AUTHORIZATION
+  // Summary: Process post-authorization for an order
+  // Description: Handles post-authorization operations for a specific order
+  /**
+   * Process post-authorization for an order
+   *
+   * @summary Process post-authorization for an order
+   * @description Handles post-authorization operations for a specific order.
+   *
+   * @param {OrderPostAuthRequest} request - Post-authorization request details
+   * @returns {Promise<APIResponse<unknown>>} Promise resolving to the post-auth response
+   * @throws {TapsilatValidationError} When input validation fails
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async orderPostAuth(
+    request: OrderPostAuthRequest
+  ): Promise<APIResponse<unknown>> {
+    if (!isNonEmptyString(request.reference_id)) {
+      throw new TapsilatValidationError(
+        "Reference ID is required and must be a non-empty string",
+        { provided: request.reference_id }
+      );
+    }
+    if (!isPositiveNumber(request.amount)) {
+      throw new TapsilatValidationError("Amount must be a positive number", {
+        provided: request.amount,
+      });
+    }
+
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>(
+        "/order/postauth",
+        request
+      );
+      return handleResponse(response, "Order post-auth");
+    } catch (error) {
+      return handleError(error, "order post-auth");
+    }
+  }
+
+  // SYSTEM ORDER STATUSES
+  // Summary: Retrieve system order statuses
+  // Description: Gets a list of all possible order statuses in the system
+  /**
+   * Retrieve system order statuses
+   *
+   * @summary Retrieve system order statuses
+   * @description Gets a list of all possible order statuses in the system.
+   *
+   * @returns {Promise<APIResponse<unknown>>} Promise resolving to system order statuses
+   * @throws {TapsilatError} When API returns an error response
+   */
+  async getSystemOrderStatuses(): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<unknown>>(
+        "/system/order-statuses"
+      );
+      return handleResponse(response, "Get system order statuses");
+    } catch (error) {
+      return handleError(error, "get system order statuses");
     }
   }
 

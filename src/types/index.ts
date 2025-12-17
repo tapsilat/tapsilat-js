@@ -1027,3 +1027,24 @@ export interface OrderSubmerchant {
   name: string;
   [key: string]: unknown;
 }
+
+/**
+ * @category Order Management
+ * @summary Request for order accounting
+ * @description Data required to process accounting for an order
+ * @interface OrderAccountingRequest
+ */
+export interface OrderAccountingRequest {
+  order_reference_id: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Request for order post-authorization
+ * @description Data required to process post-authorization for an order
+ * @interface OrderPostAuthRequest
+ */
+export interface OrderPostAuthRequest {
+  amount: number;
+  reference_id: string;
+}
