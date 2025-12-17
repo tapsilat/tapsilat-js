@@ -358,6 +358,11 @@ export interface Buyer {
  * @description Contains all required and optional fields to initiate an order including amount, currency, customer information, and callback URLs
  * @interface OrderCreateRequest
  */
+export interface OrderMetadata {
+  key: string;
+  value: string;
+}
+
 export interface OrderCreateRequest {
   amount: number;
   tax_amount?: number;
@@ -375,7 +380,7 @@ export interface OrderCreateRequest {
   payment_success_url?: string;
   payment_failure_url?: string;
   enabled_installments?: number[];
-  metadata?: Record<string, unknown>;
+  metadata?: OrderMetadata[];
 }
 
 // ORDER CREATE RESPONSE

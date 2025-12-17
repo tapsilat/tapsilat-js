@@ -411,7 +411,15 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API returns an error response
    */
   async getOrders(
-    params: { page?: number; per_page?: number } = {}
+    params: {
+      page?: number;
+      per_page?: number;
+      start_date?: string;
+      end_date?: string;
+      status?: string;
+      organization_id?: string;
+      related_reference_id?: string;
+    } = {}
   ): Promise<PaginatedResponse<Order>> {
     try {
       // Validate pagination parameters if provided
