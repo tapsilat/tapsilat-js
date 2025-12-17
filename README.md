@@ -466,7 +466,7 @@ The SDK can be customized with various configuration options:
 ```typescript
 const tapsilat = new TapsilatSDK({
   bearerToken: process.env.TAPSILAT_BEARER_TOKEN!,
-  baseURL: "https://acquiring.tapsilat.dev/api/v1",
+  baseURL: "https://panel.tapsilat.dev/api/v1",
   timeout: 30000, // 30 seconds
   retryAttempts: 3, // Auto-retry on network errors
   debug: true, // Enable detailed logging
