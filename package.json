@@ -1,6 +1,6 @@
 {
   "name": "@tapsilat/tapsilat-js",
-  "version": "2025.12.19",
+  "version": "2026.04.02",
   "description": "Enterprise-grade TypeScript SDK for Tapsilat Payment Processing Platform",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -26,7 +26,7 @@
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "lint:fix": "eslint src --ext .ts --fix",
-    "test": "jest",
+    "test": "jest src/__tests__",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:integration": "jest --testPathPattern=integration",

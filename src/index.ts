@@ -74,6 +74,17 @@ export type {
   OrganizationSettings,
   OrderAccountingRequest,
   OrderPostAuthRequest,
+  AddBasketItemRequest,
+  RemoveBasketItemRequest,
+  UpdateBasketItemRequest,
+  OrgCreateBusinessRequest,
+  GetUserLimitRequest,
+  SetLimitUserRequest,
+  GetVposRequest,
+  OrgCreateUserReq,
+  OrgUserVerifyReq,
+  OrgUserMobileVerifyReq,
+  CallbackURLDTO,
 } from "./types/index";
 
 // Errors

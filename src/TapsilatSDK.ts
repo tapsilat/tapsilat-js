@@ -18,6 +18,9 @@ import {
   OrderPaymentDetail,
   OrderCreateRequest,
   OrderCreateResponse,
+  OrderCreateDTO,
+  OrderConsent,
+  SubscriptionPriceOption,
   OrderPaymentTermCreateDTO,
   OrderPaymentTermUpdateDTO,
   OrderTermRefundRequest,
@@ -40,6 +43,17 @@ import {
   APIResponse,
   OrderAccountingRequest,
   OrderPostAuthRequest,
+  AddBasketItemRequest,
+  RemoveBasketItemRequest,
+  UpdateBasketItemRequest,
+  CallbackURLDTO,
+  OrgCreateBusinessRequest,
+  GetUserLimitRequest,
+  SetLimitUserRequest,
+  GetVposRequest,
+  OrgCreateUserReq,
+  OrgUserVerifyReq,
+  OrgUserMobileVerifyReq,
 } from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
@@ -97,6 +111,85 @@ export class TapsilatSDK {
     validateBearerToken(config.bearerToken);
     this.configManager = new ConfigManager(config);
     this.httpClient = new HttpClient(this.configManager.getInternalConfig());
+  }
+
+  /**
+   * Access to order operations
+   */
+  get orders(): any {
+    return {
+      create: (request: OrderCreateDTO) => this.createOrder(request as any),
+      get: (referenceId: string) => this.getOrder(referenceId),
+      list: (params?: any) => this.getOrders(params),
+      cancel: (referenceId: string) => this.cancelOrder(referenceId),
+      status: (referenceId: string) => this.getOrderStatus(referenceId),
+      refund: (request: OrderRefundRequest) => this.refundOrder(request),
+      refundAll: (referenceId: string) => this.refundAllOrder(referenceId),
+      paymentDetails: (referenceId: string, conversationId?: string) => this.getOrderPaymentDetails(referenceId, conversationId),
+      byConversationId: (conversationId: string) => this.getOrderByConversationId(conversationId),
+      transactions: (referenceId: string) => this.getOrderTransactions(referenceId),
+      submerchants: (params?: any) => this.getOrderSubmerchants(params),
+      checkoutUrl: (referenceId: string) => this.getCheckoutUrl(referenceId),
+      accounting: (request: OrderAccountingRequest) => this.orderAccounting(request),
+      postAuth: (request: OrderPostAuthRequest) => this.orderPostAuth(request),
+      manualCallback: (referenceId: string, conversationId?: string) => this.orderManualCallback(referenceId, conversationId),
+      relatedUpdate: (referenceId: string, relatedReferenceId: string) => this.orderRelatedUpdate(referenceId, relatedReferenceId),
+      addBasketItem: (request: AddBasketItemRequest) => this.addBasketItem(request),
+      removeBasketItem: (request: RemoveBasketItemRequest) => this.removeBasketItem(request),
+      updateBasketItem: (request: UpdateBasketItemRequest) => this.updateBasketItem(request),
+      createTerm: (request: OrderPaymentTermCreateDTO) => this.createOrderTerm(request),
+      updateTerm: (request: OrderPaymentTermUpdateDTO) => this.updateOrderTerm(request),
+      deleteTerm: (request: PaymentTermDeleteRequest) => this.deleteOrderTerm(request),
+      refundTerm: (request: OrderTermRefundRequest) => this.refundOrderTerm(request),
+      getTerm: (termReferenceId: string) => this.getOrderTerm(termReferenceId),
+      terminateTerm: (request: PaymentTermTerminateRequest) => this.terminateOrderTerm(request),
+      terminate: (request: OrderTerminateRequest) => this.terminateOrder(request),
+    };
+  }
+
+  /**
+   * Access to subscription operations
+   */
+  get subscriptions(): any {
+    return {
+      create: (request: SubscriptionCreateRequest) => this.createSubscription(request),
+      get: (request: SubscriptionGetRequest) => this.getSubscription(request),
+      list: (params?: any) => this.listSubscriptions(params),
+      cancel: (request: SubscriptionCancelRequest) => this.cancelSubscription(request),
+      redirect: (request: SubscriptionRedirectRequest) => this.redirectSubscription(request),
+    };
+  }
+
+  /**
+   * Access to organization operations
+   */
+  get organization(): any {
+    return {
+      settings: () => this.getOrganizationSettings(),
+      callback: () => this.getOrganizationCallback(),
+      updateCallback: (request: CallbackURLDTO) => this.updateOrganizationCallback(request),
+      createBusiness: (request: OrgCreateBusinessRequest) => this.createOrganizationBusiness(request),
+      currencies: () => this.getOrganizationCurrencies(),
+      getLimitUser: (request: GetUserLimitRequest) => this.getOrganizationLimitUser(request),
+      setLimitUser: (request: SetLimitUserRequest) => this.setOrganizationLimitUser(request),
+      limits: () => this.getOrganizationLimits(),
+      meta: () => this.getOrganizationMeta(),
+      scopes: () => this.getOrganizationScopes(),
+      suborganizations: () => this.getOrganizationSuborganizations(),
+      createUser: (request: OrgCreateUserReq) => this.createOrganizationUser(request),
+      verifyUser: (request: OrgUserVerifyReq) => this.verifyOrganizationUser(request),
+      verifyUserMobile: (request: OrgUserMobileVerifyReq) => this.verifyOrganizationUserMobile(request),
+      listVpos: (request: GetVposRequest) => this.listOrganizationVpos(request),
+    };
+  }
+
+  /**
+   * Access to webhook operations
+   */
+  get webhooks(): any {
+    return {
+      verify: (payload: string, signature: string, secret: string) => this.verifyWebhook(payload, signature, secret),
+    };
   }
 
   // ORDER CREATION
@@ -228,21 +321,7 @@ export class TapsilatSDK {
       );
     }
 
-    // Validate basket items
-    if (
-      !orderRequest.basket_items ||
-      !Array.isArray(orderRequest.basket_items) ||
-      orderRequest.basket_items.length === 0
-    ) {
-      throw new TapsilatValidationError(
-        "Basket items are required and must be a non-empty array"
-      );
-    }
-
-    // Validate billing address
-    if (!orderRequest.billing_address) {
-      throw new TapsilatValidationError("Billing address is required");
-    }
+    // Basket items and billing address are optional in Python ref and Swagger
 
     try {
       // Make the API request
@@ -1337,7 +1416,7 @@ export class TapsilatSDK {
     }
     try {
       const response = await this.httpClient.post<APIResponse<unknown>>(
-        "/order/manual-callback",
+        "/order/callback",
         payload
       );
       return handleResponse(response, "Order manual callback");
@@ -1361,8 +1440,8 @@ export class TapsilatSDK {
       );
     }
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
-        "/order/related-update",
+      const response = await this.httpClient.patch<APIResponse<unknown>>(
+        "/order/releated",
         {
           reference_id: referenceId,
           related_reference_id: relatedReferenceId,
@@ -1405,6 +1484,210 @@ export class TapsilatSDK {
   }
 
   // SUBSCRIPTION METHODS
+
+  /**
+   * Add a new item to an existing order basket
+   */
+  async addBasketItem(request: AddBasketItemRequest): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>("/order/basket-item", request);
+      return handleResponse(response, "Add basket item");
+    } catch (error) {
+      return handleError(error, "add basket item");
+    }
+  }
+
+  /**
+   * Remove an item from an existing order basket
+   */
+  async removeBasketItem(request: RemoveBasketItemRequest): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.delete<APIResponse<unknown>>("/order/basket-item", request);
+      return handleResponse(response, "Remove basket item");
+    } catch (error) {
+      return handleError(error, "remove basket item");
+    }
+  }
+
+  /**
+   * Update an existing item in an order basket
+   */
+  async updateBasketItem(request: UpdateBasketItemRequest): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.patch<APIResponse<unknown>>("/order/basket-item", request);
+      return handleResponse(response, "Update basket item");
+    } catch (error) {
+      return handleError(error, "update basket item");
+    }
+  }
+
+  /**
+   * Retrieve organization callback (webhook) settings
+   */
+  async getOrganizationCallback(): Promise<APIResponse<CallbackURLDTO>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<CallbackURLDTO>>("/organization/callback");
+      return handleResponse(response, "Get organization callback");
+    } catch (error) {
+      return handleError(error, "get organization callback");
+    }
+  }
+
+  /**
+   * Update organization callback (webhook) settings
+   */
+  async updateOrganizationCallback(request: CallbackURLDTO): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.patch<APIResponse<unknown>>("/organization/callback", request);
+      return handleResponse(response, "Update organization callback");
+    } catch (error) {
+      return handleError(error, "update organization callback");
+    }
+  }
+
+  /**
+   * Create a new business entity within the organization
+   */
+  async createOrganizationBusiness(request: OrgCreateBusinessRequest): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/business/create", request);
+      return handleResponse(response, "Create organization business");
+    } catch (error) {
+      return handleError(error, "create organization business");
+    }
+  }
+
+  /**
+   * Retrieve supported currencies for the organization
+   */
+  async getOrganizationCurrencies(): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/currencies");
+      return handleResponse(response, "Get organization currencies");
+    } catch (error) {
+      return handleError(error, "get organization currencies");
+    }
+  }
+
+  /**
+   * Retrieve limit information for a specific organization user
+   */
+  async getOrganizationLimitUser(request: GetUserLimitRequest): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/limit/user", { params: request as any });
+      return handleResponse(response, "Get organization user limit");
+    } catch (error) {
+      return handleError(error, "get organization user limit");
+    }
+  }
+
+  /**
+   * Set limit for a specific organization user
+   */
+  async setOrganizationLimitUser(request: SetLimitUserRequest): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/limit/user", request);
+      return handleResponse(response, "Set organization user limit");
+    } catch (error) {
+      return handleError(error, "set organization user limit");
+    }
+  }
+
+  /**
+   * Retrieve organization overall limits
+   */
+  async getOrganizationLimits(): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/limits");
+      return handleResponse(response, "Get organization limits");
+    } catch (error) {
+      return handleError(error, "get organization limits");
+    }
+  }
+
+  /**
+   * Retrieve meta information for the organization
+   */
+  async getOrganizationMeta(): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/meta");
+      return handleResponse(response, "Get organization meta");
+    } catch (error) {
+      return handleError(error, "get organization meta");
+    }
+  }
+
+  /**
+   * Retrieve supported scopes for the organization
+   */
+  async getOrganizationScopes(): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/scopes");
+      return handleResponse(response, "Get organization scopes");
+    } catch (error) {
+      return handleError(error, "get organization scopes");
+    }
+  }
+
+  /**
+   * Retrieve list of sub-organizations
+   */
+  async getOrganizationSuborganizations(): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/suborganizations");
+      return handleResponse(response, "Get organization suborganizations");
+    } catch (error) {
+      return handleError(error, "get organization suborganizations");
+    }
+  }
+
+  /**
+   * Create a new user within the organization
+   */
+  async createOrganizationUser(request: OrgCreateUserReq): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/create", request);
+      return handleResponse(response, "Create organization user");
+    } catch (error) {
+      return handleError(error, "create organization user");
+    }
+  }
+
+  /**
+   * Verify an organization user
+   */
+  async verifyOrganizationUser(request: OrgUserVerifyReq): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify", request);
+      return handleResponse(response, "Verify organization user");
+    } catch (error) {
+      return handleError(error, "verify organization user");
+    }
+  }
+
+  /**
+   * Verify an organization user via mobile
+   */
+  async verifyOrganizationUserMobile(request: OrgUserMobileVerifyReq): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify-mobile", request);
+      return handleResponse(response, "Verify organization user mobile");
+    } catch (error) {
+      return handleError(error, "verify organization user mobile");
+    }
+  }
+
+  /**
+   * List virtual POS terminals for the organization
+   */
+  async listOrganizationVpos(request: GetVposRequest): Promise<APIResponse<unknown>> {
+    try {
+      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/list-vpos", request);
+      return handleResponse(response, "List organization VPOs");
+    } catch (error) {
+      return handleError(error, "list organization VPOs");
+    }
+  }
 
   async createSubscription(
     request: SubscriptionCreateRequest
