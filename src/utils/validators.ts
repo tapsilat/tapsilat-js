@@ -560,7 +560,7 @@ export function validateInstallments(
     };
   }
 
-  let installmentArray: number[] = [];
+  let installmentArray: number[];
 
   try {
     if (typeof installments === 'number') {
