@@ -1416,7 +1416,7 @@ export class TapsilatSDK {
     }
     try {
       const response = await this.httpClient.post<APIResponse<unknown>>(
-        "/order/callback",
+        "/order/manual-callback",
         payload
       );
       return handleResponse(response, "Order manual callback");
@@ -1440,8 +1440,8 @@ export class TapsilatSDK {
       );
     }
     try {
-      const response = await this.httpClient.patch<APIResponse<unknown>>(
-        "/order/releated",
+      const response = await this.httpClient.post<APIResponse<unknown>>(
+        "/order/related-update",
         {
           reference_id: referenceId,
           related_reference_id: relatedReferenceId,
