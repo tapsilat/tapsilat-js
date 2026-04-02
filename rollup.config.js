@@ -7,13 +7,13 @@ const config = [
     input: 'src/index.ts',
     output: [
       {
-        file: 'dist/index.js',
+        file: 'dist/index.cjs',
         format: 'cjs',
         sourcemap: true,
         exports: 'named',
       },
       {
-        file: 'dist/index.esm.js',
+        file: 'dist/index.js',
         format: 'esm',
         sourcemap: true,
         exports: 'named',
