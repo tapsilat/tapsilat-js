@@ -114,11 +114,14 @@ export class TapsilatSDK {
   /**
    * Access to order operations
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get orders(): any {
     return {
-      create: (request: OrderCreateDTO) => this.createOrder(request as any),
+      create: (request: OrderCreateDTO) =>
+        this.createOrder(request as unknown as OrderCreateRequest),
       get: (referenceId: string) => this.getOrder(referenceId),
-      list: (params?: any) => this.getOrders(params),
+      list: (params?: Parameters<TapsilatSDK["getOrders"]>[0]) =>
+        this.getOrders(params),
       cancel: (referenceId: string) => this.cancelOrder(referenceId),
       status: (referenceId: string) => this.getOrderStatus(referenceId),
       refund: (request: OrderRefundRequest) => this.refundOrder(request),
@@ -126,7 +129,9 @@ export class TapsilatSDK {
       paymentDetails: (referenceId: string, conversationId?: string) => this.getOrderPaymentDetails(referenceId, conversationId),
       byConversationId: (conversationId: string) => this.getOrderByConversationId(conversationId),
       transactions: (referenceId: string) => this.getOrderTransactions(referenceId),
-      submerchants: (params?: any) => this.getOrderSubmerchants(params),
+      submerchants: (
+        params?: Parameters<TapsilatSDK["getOrderSubmerchants"]>[0]
+      ) => this.getOrderSubmerchants(params),
       checkoutUrl: (referenceId: string) => this.getCheckoutUrl(referenceId),
       accounting: (request: OrderAccountingRequest) => this.orderAccounting(request),
       postAuth: (request: OrderPostAuthRequest) => this.orderPostAuth(request),
@@ -148,11 +153,13 @@ export class TapsilatSDK {
   /**
    * Access to subscription operations
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get subscriptions(): any {
     return {
       create: (request: SubscriptionCreateRequest) => this.createSubscription(request),
       get: (request: SubscriptionGetRequest) => this.getSubscription(request),
-      list: (params?: any) => this.listSubscriptions(params),
+      list: (params?: Parameters<TapsilatSDK["listSubscriptions"]>[0]) =>
+        this.listSubscriptions(params),
       cancel: (request: SubscriptionCancelRequest) => this.cancelSubscription(request),
       redirect: (request: SubscriptionRedirectRequest) => this.redirectSubscription(request),
     };
@@ -161,6 +168,7 @@ export class TapsilatSDK {
   /**
    * Access to organization operations
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get organization(): any {
     return {
       settings: () => this.getOrganizationSettings(),
@@ -184,6 +192,7 @@ export class TapsilatSDK {
   /**
    * Access to webhook operations
    */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get webhooks(): any {
     return {
       verify: (payload: string, signature: string, secret: string) => this.verifyWebhook(payload, signature, secret),
@@ -1572,7 +1581,10 @@ export class TapsilatSDK {
    */
   async getOrganizationLimitUser(request: GetUserLimitRequest): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/limit/user", { params: request as any });
+      const response = await this.httpClient.get<APIResponse<unknown>>(
+        "/organization/limit/user",
+        { params: request }
+      );
       return handleResponse(response, "Get organization user limit");
     } catch (error) {
       return handleError(error, "get organization user limit");
