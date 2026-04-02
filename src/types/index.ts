@@ -137,11 +137,11 @@ export interface Customer {
  * @interface Address
  */
 export interface Address {
-  address: string;
-  city: string;
-  contact_name: string;
-  country: string;
-  zip_code: string;
+  address?: string;
+  city?: string;
+  contact_name?: string;
+  country?: string;
+  zip_code?: string;
   district?: string;
   contact_phone?: string;
 }
@@ -166,13 +166,13 @@ export interface BillingAddress extends Address {
  * @interface BasketItem
  */
 export interface BasketItem {
-  id: string;
-  name: string;
-  category1: string;
+  id?: string;
+  name?: string;
+  category1?: string;
   category2?: string;
-  item_type: string;
-  price: number;
-  quantity: number;
+  item_type?: string;
+  price?: number;
+  quantity?: number;
   coupon_discount?: number;
   data?: string;
   quantity_unit?: string;
@@ -370,9 +370,10 @@ export interface OrderCreateRequest {
   three_d_force?: boolean;
   currency: Currency;
   shipping_address?: Address;
-  basket_items: BasketItem[];
-  billing_address: BillingAddress;
+  basket_items?: BasketItem[];
+  billing_address?: BillingAddress;
   buyer: Buyer;
+  consents?: OrderConsent[];
   conversation_id?: string;
   partial_payment?: boolean;
   payment_methods?: boolean;
@@ -381,6 +382,7 @@ export interface OrderCreateRequest {
   payment_failure_url?: string;
   enabled_installments?: number[];
   metadata?: OrderMetadata[];
+  sub_organization?: SubOrganizationDTO;
 }
 
 // ORDER CREATE RESPONSE
@@ -703,6 +705,17 @@ export interface SubmerchantDTO {
 }
 
 /**
+ * @category Order Management
+ * @summary Order consent information
+ * @description Title and URL for legal consents required during order creation
+ * @interface OrderConsent
+ */
+export interface OrderConsent {
+  title?: string;
+  url?: string;
+}
+
+/**
  * @category API DTOs
  * @summary Comprehensive order creation request
  * @description Full API request structure for creating an order with all possible options
@@ -710,12 +723,13 @@ export interface SubmerchantDTO {
  */
 export interface OrderCreateDTO {
   amount: number;
-  currency: string;
-  locale: string;
+  currency: Currency;
+  locale: Locale;
   buyer: BuyerDTO;
   basket_items?: BasketItemDTO[];
   billing_address?: BillingAddressDTO;
   checkout_design?: CheckoutDesignDTO;
+  consents?: OrderConsent[];
   conversation_id?: string;
   enabled_installments?: number[];
   external_reference_id?: string;
@@ -968,6 +982,12 @@ export interface SubscriptionCreateRequest {
   success_url?: string;
   title?: string;
   user?: SubscriptionUser;
+  price_option?: SubscriptionPriceOption;
+}
+
+export interface SubscriptionPriceOption {
+  count: number;
+  price: number;
 }
 
 export interface SubscriptionRedirectRequest {
@@ -1041,6 +1061,152 @@ export interface OrderSubmerchant {
  */
 export interface OrderAccountingRequest {
   order_reference_id: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Request to add an item to the basket
+ * @description Data required to add a new item to an existing order basket
+ * @interface AddBasketItemRequest
+ */
+export interface AddBasketItemRequest {
+  order_reference_id: string;
+  basket_item: BasketItemDTO;
+}
+
+/**
+ * @category Order Management
+ * @summary Request to remove an item from the basket
+ * @description Data required to remove an item from an existing order basket
+ * @interface RemoveBasketItemRequest
+ */
+export interface RemoveBasketItemRequest {
+  order_reference_id: string;
+  basket_item_id: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Request to update a basket item
+ * @description Data required to update an existing item in an order basket
+ * @interface UpdateBasketItemRequest
+ */
+export interface UpdateBasketItemRequest {
+  order_reference_id: string;
+  basket_item: BasketItemDTO;
+}
+
+/**
+ * @category Organization
+ * @summary Webhook callback URL configuration
+ * @description Configuration for various webhook callback endpoints
+ * @interface CallbackURLDTO
+ */
+export interface CallbackURLDTO {
+  callback_url?: string;
+  cancel_callback_url?: string;
+  fail_callback_url?: string;
+  refund_callback_url?: string;
+}
+
+/**
+ * @category Organization
+ * @summary Organization business types
+ * @enum {number}
+ */
+export enum BusinessType {
+  INDIVIDUAL = 0,
+  CORPORATE = 1,
+}
+
+/**
+ * @category Organization
+ * @summary Request to create a business entity
+ * @description Comprehensive data for creating a new business entity in an organization
+ * @interface OrgCreateBusinessRequest
+ */
+export interface OrgCreateBusinessRequest {
+  address: string;
+  business_name: string;
+  business_type: BusinessType;
+  email: string;
+  first_name: string;
+  identity_number: string;
+  last_name: string;
+  phone: string;
+  tax_number: string;
+  tax_office: string;
+  zip_code: string;
+}
+
+/**
+ * @category Organization
+ * @summary Request for user limit information
+ * @description Data required to fetch limits for a specific user
+ * @interface GetUserLimitRequest
+ */
+export interface GetUserLimitRequest {
+  user_id: string;
+  [key: string]: unknown;
+}
+
+/**
+ * @category Organization
+ * @summary Request to set user limits
+ * @description Data required to set a specific limit for a user
+ * @interface SetLimitUserRequest
+ */
+export interface SetLimitUserRequest {
+  limit_id: string;
+  user_id: string;
+}
+
+/**
+ * @category Organization
+ * @summary Request for VPOS list
+ * @description Parameters for filtering and retrieving virtual POS terminals
+ * @interface GetVposRequest
+ */
+export interface GetVposRequest {
+  currency_id: string;
+  [key: string]: unknown;
+}
+
+/**
+ * @category Organization
+ * @summary Request to create an organization user
+ * @description Comprehensive data for creating a new user within an organization
+ * @interface OrgCreateUserReq
+ */
+export interface OrgCreateUserReq {
+  conversation_id: string;
+  email: string;
+  first_name: string;
+  identity_number: string;
+  is_mail_verified: boolean;
+  last_name: string;
+  phone: string;
+  reference_id: string;
+}
+
+/**
+ * @category Organization
+ * @summary Request to verify a user
+ * @description Data required to verify a user's account
+ * @interface OrgUserVerifyReq
+ */
+export interface OrgUserVerifyReq {
+  user_id: string;
+}
+
+/**
+ * @category Organization
+ * @summary Request to verify user's mobile number
+ * @description Data required to initiate or complete mobile number verification
+ * @interface OrgUserMobileVerifyReq
+ */
+export interface OrgUserMobileVerifyReq {
+  user_id: string;
 }
 
 /**

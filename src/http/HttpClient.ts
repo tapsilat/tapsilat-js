@@ -577,7 +577,7 @@ export class HttpClient {
     });
 
     // Set content type for requests with body
-    if (body && method !== "GET" && method !== "DELETE") {
+    if (body && method !== "GET") {
       if (!(body instanceof FormData)) {
         headers.set("Content-Type", "application/json");
       }
@@ -589,8 +589,8 @@ export class HttpClient {
       ...config,
     };
 
-    // Add body for non-GET/DELETE requests
-    if (body && method !== "GET" && method !== "DELETE") {
+    // Add body for non-GET requests
+    if (body && method !== "GET") {
       if (body instanceof FormData) {
         options.body = body;
       } else if (typeof body === "string") {

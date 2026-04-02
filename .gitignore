@@ -33,6 +33,8 @@ coverage/
 logs/
 *.log
 
+# Docker
+.docker
 # Runtime
 .cache/
 .tmp/
