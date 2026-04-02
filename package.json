@@ -60,7 +60,7 @@
     "@types/node": "^20.9.2",
     "@typescript-eslint/eslint-plugin": "^8.11.0",
     "@typescript-eslint/parser": "^8.11.0",
-    "eslint": "^8.57.1",
+    "eslint": "^9.39.4",
     "jest": "^30.3.0",
     "rollup": "^4.5.0",
     "rollup-plugin-dts": "^6.1.0",

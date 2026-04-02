@@ -19,8 +19,6 @@ import {
   OrderCreateRequest,
   OrderCreateResponse,
   OrderCreateDTO,
-  OrderConsent,
-  SubscriptionPriceOption,
   OrderPaymentTermCreateDTO,
   OrderPaymentTermUpdateDTO,
   OrderTermRefundRequest,
