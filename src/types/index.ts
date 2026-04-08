@@ -453,6 +453,95 @@ export interface Order extends OrderCreateResponse {
 }
 
 /**
+ * @category Order Management
+ * @summary Response payload for order detail retrieval
+ * @description Swagger-aligned response schema for GET /order/{id}
+ * @interface GetOrderResponse
+ */
+export interface GetOrderResponse {
+  amount?: string;
+  basket_items?: BasketItemDTO[];
+  billing_address?: BillingAddressDTO;
+  buyer?: BuyerDTO;
+  checkout_design?: CheckoutDesignDTO;
+  checkout_url?: string;
+  conversation_id?: string;
+  created_at?: string;
+  currency?: string;
+  external_reference_id?: string;
+  locale?: string;
+  metadata?: MetadataDTO[];
+  paid_amount?: string;
+  payment_failure_url?: string;
+  payment_options?: string[];
+  payment_success_url?: string;
+  payment_terms?: PaymentTermDTO[];
+  redirect_failure_url?: string;
+  redirect_success_url?: string;
+  reference_id?: string;
+  refunded_amount?: string;
+  shipping_address?: ShippingAddressDTO;
+  status?: number;
+  status_enum?: string;
+  total?: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Query parameters for order listing
+ * @description Swagger-aligned query options for GET /order/list
+ * @interface GetOrdersRequest
+ */
+export interface GetOrdersRequest {
+  page?: number;
+  per_page?: number;
+  start_date?: string;
+  end_date?: string;
+  organization_id?: string;
+  related_reference_id?: string;
+  buyer_id?: string;
+  status?: number;
+}
+
+/**
+ * @category Order Management
+ * @summary Single list item returned by order listing
+ * @description Swagger-aligned row schema for GET /order/list
+ * @interface GetOrdersListItem
+ */
+export interface GetOrdersListItem {
+  checkout_url?: string;
+  email?: string;
+  id?: string;
+  metadata?: MetadataDTO[];
+  name?: string;
+  organization?: string;
+  organization_id?: string;
+  paid_amount?: number;
+  paid_term_count?: number;
+  reference_id?: string;
+  refund_date?: string;
+  status?: number;
+  total?: string;
+  total_term_count?: number;
+  unpaid_amount?: number;
+}
+
+/**
+ * @category Order Management
+ * @summary Response payload for order listing
+ * @description Swagger-aligned response schema for GET /order/list
+ * @interface GetOrdersResponse
+ */
+export interface GetOrdersResponse {
+  page?: number;
+  per_page?: number;
+  rows?: GetOrdersListItem[];
+  total?: number;
+  total_pages?: number;
+}
+
+/**
  * @category Refunds
  * @summary Refund request information for an order
  * @description Contains the data needed to process a refund for a specific order

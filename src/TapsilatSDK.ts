@@ -12,6 +12,9 @@ import {
   TapsilatConfig,
   PaginatedResponse,
   Order,
+  GetOrderResponse,
+  GetOrdersRequest,
+  GetOrdersResponse,
   OrderRefundRequest,
   OrderRefundResponse,
   OrderStatusResponse,
@@ -463,7 +466,7 @@ export class TapsilatSDK {
    * @throws {TapsilatNetworkError} When API request fails due to network issues
    * @throws {TapsilatError} When API returns an error response
    */
-  async getOrder(referenceId: string): Promise<Order> {
+  async getOrder(referenceId: string): Promise<GetOrderResponse> {
     // Validate input
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
@@ -474,13 +477,13 @@ export class TapsilatSDK {
 
     try {
       // Make the API request
-      const getOrderResponse = await this.httpClient.get<Order>(
+      const getOrderResponse = await this.httpClient.get<GetOrderResponse>(
         `/order/${referenceId}`
       );
 
       // Use our generic response handler
       return handleResponse(getOrderResponse, "Order retrieval");
-    } catch (error) {
+    } catch (error: unknown) {
       // Use our generic error handler
       return handleError(error, "order retrieval");
     }
@@ -501,16 +504,8 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API returns an error response
    */
   async getOrders(
-    params: {
-      page?: number;
-      per_page?: number;
-      start_date?: string;
-      end_date?: string;
-      status?: string;
-      organization_id?: string;
-      related_reference_id?: string;
-    } = {}
-  ): Promise<PaginatedResponse<Order>> {
+    params: GetOrdersRequest = {}
+  ): Promise<GetOrdersResponse> {
     try {
       // Validate pagination parameters if provided
       // Check if page is defined
@@ -550,14 +545,23 @@ export class TapsilatSDK {
         }
       }
 
+      // Check if status is defined
+      if (params.status !== undefined && !isInteger(params.status)) {
+        throw new TapsilatValidationError(
+          "Status must be an integer",
+          { provided: params.status }
+        );
+      }
+
       // Make the API request
-      const getOrdersResponse = await this.httpClient.get<
-        PaginatedResponse<Order>
-      >("/order/list", { params: params });
+      const getOrdersResponse = await this.httpClient.get<GetOrdersResponse>(
+        "/order/list",
+        { params: params as Record<string, unknown> }
+      );
 
       // Use our generic response handler
       return handleResponse(getOrdersResponse, "Order listing");
-    } catch (error) {
+    } catch (error: unknown) {
       // Use our generic error handler
       return handleError(error, "order listing");
     }

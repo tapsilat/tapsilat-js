@@ -1,6 +1,8 @@
 import { TapsilatSDK } from "../TapsilatSDK";
 import {
   OrderCreateRequest,
+  GetOrderResponse,
+  GetOrdersResponse,
   OrderAccountingRequest,
   OrderPostAuthRequest,
   OrderPostAuthResponse,
@@ -110,19 +112,22 @@ describe("TapsilatSDK", () => {
     });
 
     it("should get order details successfully", async () => {
+      const mockData: GetOrderResponse = {
+        reference_id: "order-123",
+        amount: "150.75",
+        currency: "TRY",
+        status: 9,
+        status_enum: "Completed",
+        buyer: {
+          name: "John",
+          surname: "Doe",
+          email: "john-doe@example.com",
+        },
+      };
+
       const mockResponse = {
         success: true,
-        data: {
-          reference_id: "order-123",
-          amount: 150.75,
-          currency: "TRY",
-          status: "COMPLETED",
-          buyer: {
-            name: "John",
-            surname: "Doe",
-            email: "john-doe@example.com",
-          },
-        },
+        data: mockData,
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
@@ -130,35 +135,35 @@ describe("TapsilatSDK", () => {
       const order = await sdk.getOrder("order-123");
 
       expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123");
-      expect(order).toEqual(mockResponse.data);
+      expect(order).toEqual(mockData);
       expect(order.reference_id).toBe("order-123");
     });
 
     it("should list orders successfully", async () => {
+      const mockData: GetOrdersResponse = {
+        page: 1,
+        per_page: 10,
+        total: 2,
+        total_pages: 1,
+        rows: [
+          {
+            reference_id: "order-123",
+            total: "150.75",
+            status: 9,
+            checkout_url: "https://example.com/checkout/order-123",
+          },
+          {
+            reference_id: "order-456",
+            total: "299.99",
+            status: 2,
+            checkout_url: "https://example.com/checkout/order-456",
+          },
+        ],
+      };
+
       const mockResponse = {
         success: true,
-        data: {
-          data: [
-            {
-              reference_id: "order-123",
-              amount: 150.75,
-              currency: "TRY",
-              status: "COMPLETED",
-            },
-            {
-              reference_id: "order-456",
-              amount: 299.99,
-              currency: "TRY",
-              status: "PENDING",
-            },
-          ],
-          pagination: {
-            page: 1,
-            limit: 10,
-            total: 2,
-            pages: 1,
-          },
-        },
+        data: mockData,
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
@@ -168,8 +173,8 @@ describe("TapsilatSDK", () => {
       expect(mockHttpClient.get).toHaveBeenCalledWith("/order/list", {
         params: { page: 1, per_page: 10 },
       });
-      expect(orders).toEqual(mockResponse.data);
-      expect(orders.data).toHaveLength(2);
+      expect(orders).toEqual(mockData);
+      expect(orders.rows).toHaveLength(2);
     });
 
     it("should cancel order successfully", async () => {
@@ -370,6 +375,24 @@ describe("TapsilatSDK", () => {
       await expect(sdk.orderPostAuth(request)).rejects.toThrow(
         "Amount must be a positive number"
       );
+    });
+
+    it("should validate order listing page as integer", async () => {
+      await expect(
+        sdk.getOrders({ page: 1.5, per_page: 10 })
+      ).rejects.toThrow("Page number must be an integer");
+    });
+
+    it("should validate order listing per_page as positive", async () => {
+      await expect(
+        sdk.getOrders({ page: 1, per_page: 0 })
+      ).rejects.toThrow("Items per page must be greater than 0");
+    });
+
+    it("should validate order listing status as integer", async () => {
+      await expect(
+        sdk.getOrders({ status: 2.5 })
+      ).rejects.toThrow("Status must be an integer");
     });
   });
 
