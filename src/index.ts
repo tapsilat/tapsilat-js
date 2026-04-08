@@ -33,6 +33,8 @@ export type {
   GetOrdersRequest,
   GetOrdersListItem,
   GetOrdersResponse,
+  CancelOrderRequest,
+  CancelOrderResponse,
   OrderRefundRequest,
   OrderRefundResponse,
   OrderStatusResponse,

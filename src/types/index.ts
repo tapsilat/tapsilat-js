@@ -542,6 +542,28 @@ export interface GetOrdersResponse {
 }
 
 /**
+ * @category Order Management
+ * @summary Request payload for order cancellation
+ * @description Swagger-aligned request schema for POST /order/cancel
+ * @interface CancelOrderRequest
+ */
+export interface CancelOrderRequest {
+  reference_id: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Response payload for order cancellation
+ * @description Swagger-aligned response schema for POST /order/cancel
+ * @interface CancelOrderResponse
+ */
+export interface CancelOrderResponse {
+  is_success?: boolean;
+  message?: string;
+  status?: string;
+}
+
+/**
  * @category Refunds
  * @summary Refund request information for an order
  * @description Contains the data needed to process a refund for a specific order
@@ -571,13 +593,12 @@ export interface OrderRefundResponse {
 /**
  * @category Order Management
  * @summary Order status information
- * @description Provides the current status of an order and when it was last updated
+ * @description Swagger-aligned response payload for GET /order/{id}/status
  * @interface OrderStatusResponse
  */
 export interface OrderStatusResponse {
-  referenceId: string;
-  status: string; // e.g., 'CREATED', 'PENDING_PAYMENT', 'COMPLETED', 'CANCELLED'
-  lastUpdatedAt: string;
+  error_code?: string;
+  status?: string;
 }
 
 /**

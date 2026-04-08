@@ -111,8 +111,7 @@ describe("TapsilatSDK Integration Tests", () => {
       if (!createdOrderReferenceId) return;
       try {
         const cancelledOrder = await sdk.cancelOrder(createdOrderReferenceId);
-        const orderRefId = cancelledOrder.reference_id;
-        expect(orderRefId).toBe(createdOrderReferenceId);
+        expect(cancelledOrder.status).toBeTruthy();
         console.log("✅ Cancelled order:", createdOrderReferenceId);
       } catch (error) {
         const errorMessage =

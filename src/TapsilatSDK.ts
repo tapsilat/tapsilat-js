@@ -15,6 +15,8 @@ import {
   GetOrderResponse,
   GetOrdersRequest,
   GetOrdersResponse,
+  CancelOrderRequest,
+  CancelOrderResponse,
   OrderRefundRequest,
   OrderRefundResponse,
   OrderStatusResponse,
@@ -581,20 +583,24 @@ export class TapsilatSDK {
    * @throws {TapsilatValidationError} When referenceId is invalid
    * @throws {TapsilatError} When API returns an error response or order cannot be canceled
    */
-  async cancelOrder(referenceId: string): Promise<Order> {
-    // Validate referenceId
-    if (!isNonEmptyString(referenceId)) {
+  async cancelOrder(referenceId: string): Promise<CancelOrderResponse> {
+      if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Order referenceId is required and must be a non-empty string",
         { provided: referenceId }
       );
     }
+    try {
+        // Validate referenceId
+  
 
-    const cancelOrderResponse = await this.httpClient.post<Order>(
+    const cancelOrderPayload: CancelOrderRequest = {
+      reference_id: referenceId,
+    };
+
+    const cancelOrderResponse = await this.httpClient.post<CancelOrderResponse>(
       "/order/cancel",
-      {
-        reference_id: referenceId,
-      }
+      cancelOrderPayload
     );
 
     // Check if API call was successful
@@ -615,6 +621,11 @@ export class TapsilatSDK {
     }
 
     return cancelOrderResponse.data;
+    } catch (error) {
+      return handleError(error, "order cancellation");
+      
+    }
+  
   }
 
   // ORDER STATUS RETRIEVAL
@@ -626,12 +637,12 @@ export class TapsilatSDK {
    * @summary Retrieves real-time payment status and tracking information for a specific order
    * @description
    * Queries the Tapsilat payment platform to retrieve the current status of an order using its
-   * unique reference ID. This method provides real-time information about payment progress,
-   * completion status, and last update timestamp. It's essential for tracking payment flow
+   * unique reference ID. This method provides real-time information about payment processing
+   * status and error code (if returned by the API). It's essential for tracking payment flow
    * and implementing proper order state management in your application.
    *
-   * The status information includes payment state (CREATED, PENDING_PAYMENT, COMPLETED, CANCELLED),
-   * last update timestamp, and any relevant status metadata. This method should be used to:
+   * The status information includes payment state and API-level error code metadata.
+   * This method should be used to:
    * - Check if a payment has been completed after redirecting from checkout
    * - Monitor payment status for pending transactions
    * - Verify order state before fulfilling goods/services
@@ -640,13 +651,11 @@ export class TapsilatSDK {
    * @param {string} referenceId - Unique order reference identifier from order creation
    *
    * @returns {Promise<OrderStatusResponse>} Promise resolving to current order status information
-   * @returns {string} OrderStatusResponse.referenceId - Echo of the provided reference ID
-   * @returns {string} OrderStatusResponse.status - Current payment status (CREATED, PENDING_PAYMENT, COMPLETED, CANCELLED, FAILED)
-   * @returns {string} OrderStatusResponse.lastUpdatedAt - ISO 8601 timestamp of last status change
+   * @returns {string} [OrderStatusResponse.error_code] - API-level error code when present
+   * @returns {string} [OrderStatusResponse.status] - Current payment processing status
    *
    * @throws {TapsilatValidationError} When input validation fails:
    *   - Reference ID is null, undefined, or empty string
-   *   - Reference ID format is invalid (should match order ID pattern)
    * @throws {TapsilatNetworkError} When network request fails:
    *   - Connection timeout during status check
    *   - DNS resolution failure
@@ -674,7 +683,7 @@ export class TapsilatSDK {
 
       // Use our generic response handler
       return handleResponse(getOrderStatusResponse, "Order status retrieval");
-    } catch (error) {
+    } catch (error: unknown) {
       // Use our generic error handler
       return handleError(error, "order status retrieval");
     }

@@ -3,6 +3,7 @@ import {
   OrderCreateRequest,
   GetOrderResponse,
   GetOrdersResponse,
+  CancelOrderResponse,
   OrderAccountingRequest,
   OrderPostAuthRequest,
   OrderPostAuthResponse,
@@ -94,9 +95,8 @@ describe("TapsilatSDK", () => {
       const mockResponse = {
         success: true,
         data: {
-          reference_id: "order-123",
           status: "COMPLETED",
-          lastUpdatedAt: "2024-01-15T10:30:00Z",
+          error_code: "",
         },
       };
 
@@ -178,12 +178,15 @@ describe("TapsilatSDK", () => {
     });
 
     it("should cancel order successfully", async () => {
+      const mockData: CancelOrderResponse = {
+        is_success: true,
+        message: "Order cancelled successfully",
+        status: "CANCELLED",
+      };
+
       const mockResponse = {
         success: true,
-        data: {
-          reference_id: "order-123",
-          status: "CANCELLED",
-        },
+        data: mockData,
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
@@ -193,7 +196,7 @@ describe("TapsilatSDK", () => {
       expect(mockHttpClient.post).toHaveBeenCalledWith("/order/cancel", {
         reference_id: "order-123",
       });
-      expect(cancelledOrder).toEqual(mockResponse.data);
+      expect(cancelledOrder).toEqual(mockData);
       expect(cancelledOrder.status).toBe("CANCELLED");
     });
 
@@ -393,6 +396,18 @@ describe("TapsilatSDK", () => {
       await expect(
         sdk.getOrders({ status: 2.5 })
       ).rejects.toThrow("Status must be an integer");
+    });
+
+    it("should validate cancel order reference id", async () => {
+      await expect(
+        sdk.cancelOrder("")
+      ).rejects.toThrow("Order referenceId is required");
+    });
+
+    it("should validate order status reference id", async () => {
+      await expect(
+        sdk.getOrderStatus("")
+      ).rejects.toThrow("Order referenceId is required");
     });
   });
 
