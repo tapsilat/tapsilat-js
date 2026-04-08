@@ -15,6 +15,7 @@ import {
   OrderRefundRequest,
   OrderRefundResponse,
   OrderStatusResponse,
+  GetSystemOrderStatusesResponse,
   OrderPaymentDetail,
   OrderCreateRequest,
   OrderCreateResponse,
@@ -42,6 +43,7 @@ import {
   OrderAccountingRequest,
   OrderAccountingResponse,
   OrderPostAuthRequest,
+  OrderPostAuthResponse,
   AddBasketItemRequest,
   RemoveBasketItemRequest,
   UpdateBasketItemRequest,
@@ -341,7 +343,7 @@ export class TapsilatSDK {
 
       // Use our generic response handler
       return handleResponse(createOrderResponse, "Order creation");
-    } catch (error) {
+    } catch (error: unknown) {
       // Use our generic error handler
       return handleError(error, "order creation");
     }
@@ -378,7 +380,7 @@ export class TapsilatSDK {
         request
       );
       return handleResponse(orderAccountingResponse, "Order accounting");
-    } catch (error) {
+    } catch (error:unknown) {
       return handleError(error, "order accounting");
     }
   }
@@ -393,13 +395,13 @@ export class TapsilatSDK {
    * @description Handles post-authorization operations for a specific order.
    *
    * @param {OrderPostAuthRequest} request - Post-authorization request details
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to the post-auth response
+   * @returns {Promise<OrderPostAuthResponse>} Promise resolving to the post-auth response
    * @throws {TapsilatValidationError} When input validation fails
    * @throws {TapsilatError} When API returns an error response
    */
   async orderPostAuth(
     request: OrderPostAuthRequest
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<OrderPostAuthResponse> {
     if (!isNonEmptyString(request.reference_id)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string",
@@ -413,12 +415,12 @@ export class TapsilatSDK {
     }
 
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const orderPostAuthResponse = await this.httpClient.post<OrderPostAuthResponse>(
         "/order/postauth",
         request
       );
-      return handleResponse(response, "Order post-auth");
-    } catch (error) {
+      return handleResponse(orderPostAuthResponse, "Order post-auth");
+    } catch (error: unknown) {
       return handleError(error, "order post-auth");
     }
   }
@@ -432,16 +434,16 @@ export class TapsilatSDK {
    * @summary Retrieve system order statuses
    * @description Gets a list of all possible order statuses in the system.
    *
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to system order statuses
+   * @returns {Promise<GetSystemOrderStatusesResponse>} Promise resolving to system order statuses
    * @throws {TapsilatError} When API returns an error response
    */
-  async getSystemOrderStatuses(): Promise<APIResponse<unknown>> {
+  async getSystemOrderStatuses(): Promise<GetSystemOrderStatusesResponse> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>(
+      const getSystemOrderStatusesResponse = await this.httpClient.get<GetSystemOrderStatusesResponse>(
         "/system/order-statuses"
       );
-      return handleResponse(response, "Get system order statuses");
-    } catch (error) {
+      return handleResponse(getSystemOrderStatusesResponse, "Get system order statuses");
+    } catch (error: unknown) {
       return handleError(error, "get system order statuses");
     }
   }

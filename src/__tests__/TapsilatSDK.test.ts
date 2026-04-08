@@ -3,6 +3,8 @@ import {
   OrderCreateRequest,
   OrderAccountingRequest,
   OrderPostAuthRequest,
+  OrderPostAuthResponse,
+  GetSystemOrderStatusesResponse,
   SubscriptionRedirectRequest,
 } from "../types/index";
 import { HttpClient } from "../http/HttpClient";
@@ -247,9 +249,15 @@ describe("TapsilatSDK", () => {
         amount: 100.0,
       };
 
+      const mockData: OrderPostAuthResponse = {
+        code: 200,
+        is_success: true,
+        message: "OK",
+      };
+
       const mockResponse = {
         success: true,
-        data: { success: true },
+        data: mockData,
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
@@ -260,13 +268,21 @@ describe("TapsilatSDK", () => {
         "/order/postauth",
         request
       );
-      expect(result).toEqual(mockResponse.data);
+      expect(result).toEqual(mockData);
     });
 
     it("should retrieve system order statuses successfully", async () => {
+      const mockData: GetSystemOrderStatusesResponse = {
+        rows: [
+          { code: 1, message: "CREATED" },
+          { code: 2, message: "FAILED" },
+          { code: 3, message: "COMPLETED" },
+        ],
+      };
+
       const mockResponse = {
         success: true,
-        data: ["CREATED", "FAILED", "COMPLETED"],
+        data: mockData,
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
@@ -274,7 +290,7 @@ describe("TapsilatSDK", () => {
       const result = await sdk.getSystemOrderStatuses();
 
       expect(mockHttpClient.get).toHaveBeenCalledWith("/system/order-statuses");
-      expect(result).toEqual(mockResponse.data);
+      expect(result).toEqual(mockData);
     });
   });
 

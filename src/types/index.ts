@@ -492,6 +492,27 @@ export interface OrderStatusResponse {
 }
 
 /**
+ * @category System
+ * @summary System order status item
+ * @description Represents a single status entry returned by the system order statuses endpoint
+ * @interface SystemOrderStatus
+ */
+export interface SystemOrderStatus {
+  code?: number;
+  message?: string;
+}
+
+/**
+ * @category System
+ * @summary Response for system order statuses
+ * @description API response payload for listing available system order statuses
+ * @interface GetSystemOrderStatusesResponse
+ */
+export interface GetSystemOrderStatusesResponse {
+  rows?: SystemOrderStatus[];
+}
+
+/**
  * @category Payment Processing
  * @summary Payment transaction details
  * @description Contains information about a payment transaction including method, amount, and card details
@@ -1262,4 +1283,16 @@ export interface OrgUserMobileVerifyReq {
 export interface OrderPostAuthRequest {
   amount: number;
   reference_id: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Response for order post-authorization
+ * @description API response payload returned after post-authorization operation
+ * @interface OrderPostAuthResponse
+ */
+export interface OrderPostAuthResponse {
+  code?: number;
+  is_success?: boolean;
+  message?: string;
 }
