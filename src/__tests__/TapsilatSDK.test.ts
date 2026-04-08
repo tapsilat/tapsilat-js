@@ -227,7 +227,7 @@ describe("TapsilatSDK", () => {
 
       const mockResponse = {
         success: true,
-        data: { success: true },
+        data: { code: 200, message: "OK" },
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);

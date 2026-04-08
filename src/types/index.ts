@@ -154,6 +154,11 @@ export interface Address {
  */
 export interface BillingAddress extends Address {
   billing_type: "PERSONAL" | "CORPORATE";
+  citizenship?: string;
+  neighbourhood?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
   vat_number?: string;
   tax_office?: string;
   title?: string;
@@ -170,12 +175,20 @@ export interface BasketItem {
   name?: string;
   category1?: string;
   category2?: string;
+  commission_amount?: number;
+  coupon?: string;
+  mcc?: string;
   item_type?: string;
+  paid_amount?: number;
+  payer?: BasketItemPayerDTO;
   price?: number;
   quantity?: number;
+  quantity_float?: number;
   coupon_discount?: number;
   data?: string;
   quantity_unit?: string;
+  sub_merchant_key?: string;
+  sub_merchant_price?: string;
 }
 
 /**
@@ -337,12 +350,14 @@ export interface Buyer {
   id?: string;
   name: string;
   surname: string;
+  birth_date?: string;
   email: string;
   gsm_number?: string;
   identity_number?: string;
   registration_address?: string;
   city?: string;
   country?: string;
+  title?: string;
   zip_code?: string;
   ip?: string;
   registration_date?: string;
@@ -369,20 +384,30 @@ export interface OrderCreateRequest {
   locale: Locale;
   three_d_force?: boolean;
   currency: Currency;
-  shipping_address?: Address;
+  checkout_design?: CheckoutDesignDTO;
+  shipping_address?: ShippingAddressDTO;
   basket_items?: BasketItem[];
   billing_address?: BillingAddress;
   buyer: Buyer;
   consents?: OrderConsent[];
   conversation_id?: string;
+  external_reference_id?: string;
+  order_cards?: OrderCardDTO[];
+  paid_amount?: number;
   partial_payment?: boolean;
+  payment_mode?: string;
   payment_methods?: boolean;
   payment_options?: PaymentOption[];
   payment_success_url?: string;
   payment_failure_url?: string;
+  payment_terms?: PaymentTermDTO[];
+  pf_sub_merchant?: OrderPFSubMerchantDTO;
+  redirect_failure_url?: string;
+  redirect_success_url?: string;
   enabled_installments?: number[];
   metadata?: OrderMetadata[];
   sub_organization?: SubOrganizationDTO;
+  submerchants?: SubmerchantDTO[];
 }
 
 // ORDER CREATE RESPONSE
@@ -540,6 +565,7 @@ export interface BasketItemDTO {
   data?: string;
   id?: string;
   item_type?: string;
+  mcc?: string;
   name?: string;
   paid_amount?: number;
   payer?: BasketItemPayerDTO;
@@ -566,6 +592,10 @@ export interface BillingAddressDTO {
   contact_phone?: string;
   country?: string;
   district?: string;
+  neighbourhood?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
   tax_office?: string;
   title?: string;
   vat_number?: string;
@@ -734,15 +764,18 @@ export interface OrderCreateDTO {
   enabled_installments?: number[];
   external_reference_id?: string;
   metadata?: MetadataDTO[];
-  order_cards?: OrderCardDTO;
+  order_cards?: OrderCardDTO[];
   paid_amount?: number;
   partial_payment?: boolean;
   payment_failure_url?: string;
+  payment_mode?: string;
   payment_methods?: boolean;
   payment_options?: string[];
   payment_success_url?: string;
   payment_terms?: PaymentTermDTO[];
   pf_sub_merchant?: OrderPFSubMerchantDTO;
+  redirect_failure_url?: string;
+  redirect_success_url?: string;
   shipping_address?: ShippingAddressDTO;
   sub_organization?: SubOrganizationDTO;
   submerchants?: SubmerchantDTO[];
@@ -1061,6 +1094,17 @@ export interface OrderSubmerchant {
  */
 export interface OrderAccountingRequest {
   order_reference_id: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Response for order accounting
+ * @description API response payload returned after order accounting operation
+ * @interface OrderAccountingResponse
+ */
+export interface OrderAccountingResponse {
+  code?: number;
+  message?: string;
 }
 
 /**

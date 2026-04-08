@@ -40,6 +40,7 @@ import {
   OrderSubmerchant,
   APIResponse,
   OrderAccountingRequest,
+  OrderAccountingResponse,
   OrderPostAuthRequest,
   AddBasketItemRequest,
   RemoveBasketItemRequest,
@@ -356,13 +357,14 @@ export class TapsilatSDK {
    * @description Handles accounting operations for a specific order using its reference ID.
    *
    * @param {OrderAccountingRequest} request - Accounting request details
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to the accounting response
+   * @returns {Promise<OrderAccountingResponse>} Promise resolving to the accounting response
    * @throws {TapsilatValidationError} When input validation fails
    * @throws {TapsilatError} When API returns an error response
    */
   async orderAccounting(
     request: OrderAccountingRequest
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<OrderAccountingResponse> {
+
     if (!isNonEmptyString(request.order_reference_id)) {
       throw new TapsilatValidationError(
         "Order reference ID is required and must be a non-empty string",
@@ -371,11 +373,11 @@ export class TapsilatSDK {
     }
 
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const orderAccountingResponse = await this.httpClient.post<OrderAccountingResponse>(
         "/order/accounting",
         request
       );
-      return handleResponse(response, "Order accounting");
+      return handleResponse(orderAccountingResponse, "Order accounting");
     } catch (error) {
       return handleError(error, "order accounting");
     }

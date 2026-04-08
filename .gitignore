@@ -45,4 +45,5 @@ logs/
 !.yarn/releases
 !.yarn/plugins
 !.yarn/sdks
-!.yarn/versions 
+!.yarn/versions
+example.swagger.json 

@@ -73,6 +73,7 @@ export type {
   SubscriptionRedirectResponse,
   OrganizationSettings,
   OrderAccountingRequest,
+  OrderAccountingResponse,
   OrderPostAuthRequest,
   AddBasketItemRequest,
   RemoveBasketItemRequest,
