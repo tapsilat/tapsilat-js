@@ -336,7 +336,6 @@ export class TapsilatSDK {
       );
     }
 
-    // Basket items and billing address are optional in Python ref and Swagger
 
     try {
       // Make the API request
@@ -385,7 +384,7 @@ export class TapsilatSDK {
         request
       );
       return handleResponse(orderAccountingResponse, "Order accounting");
-    } catch (error:unknown) {
+    } catch (error: unknown) {
       return handleError(error, "order accounting");
     }
   }
@@ -584,48 +583,46 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API returns an error response or order cannot be canceled
    */
   async cancelOrder(referenceId: string): Promise<CancelOrderResponse> {
-      if (!isNonEmptyString(referenceId)) {
+    if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Order referenceId is required and must be a non-empty string",
         { provided: referenceId }
       );
     }
+
     try {
-        // Validate referenceId
-  
+      const cancelOrderPayload: CancelOrderRequest = {
+        reference_id: referenceId,
+      };
 
-    const cancelOrderPayload: CancelOrderRequest = {
-      reference_id: referenceId,
-    };
+      const cancelOrderResponse = await this.httpClient.post<CancelOrderResponse>(
+        "/order/cancel",
+        cancelOrderPayload
+      );
 
-    const cancelOrderResponse = await this.httpClient.post<CancelOrderResponse>(
-      "/order/cancel",
-      cancelOrderPayload
-    );
-
-    // Check if API call was successful
-    if (!cancelOrderResponse.success) {
-      throw new TapsilatError(
-        cancelOrderResponse.error?.message ||
+      // Check if API call was successful
+      if (!cancelOrderResponse.success) {
+        throw new TapsilatError(
+          cancelOrderResponse.error?.message ||
           "Order cancellation API call failed",
-        cancelOrderResponse.error?.code || "CANCELLATION_API_FAILED"
-      );
-    }
+          cancelOrderResponse.error?.code || "CANCELLATION_API_FAILED"
+        );
+      }
 
-    // Check if response data exists
-    if (!cancelOrderResponse.data) {
-      throw new TapsilatError(
-        "Order cancellation response data is missing",
-        "CANCELLATION_DATA_MISSING"
-      );
-    }
+      // Check if response data exists
+      if (!cancelOrderResponse.data) {
+        throw new TapsilatError(
+          "Order cancellation response data is missing",
+          "CANCELLATION_DATA_MISSING"
+        );
+      }
 
-    return cancelOrderResponse.data;
-    } catch (error) {
+      return cancelOrderResponse.data;
+    } catch (error: unknown) {
       return handleError(error, "order cancellation");
-      
+
     }
-  
+
   }
 
   // ORDER STATUS RETRIEVAL
@@ -706,26 +703,31 @@ export class TapsilatSDK {
   async refundOrder(
     refundData: OrderRefundRequest
   ): Promise<OrderRefundResponse> {
-    const refundOrderResponse = await this.httpClient.post<OrderRefundResponse>(
-      "/order/refund",
-      refundData
-    );
+    try {
+      const refundOrderResponse =
+        await this.httpClient.post<OrderRefundResponse>(
+          "/order/refund",
+          refundData
+        );
 
-    if (!refundOrderResponse.success) {
-      throw new TapsilatError(
-        refundOrderResponse.error?.message || "Order refund failed",
-        refundOrderResponse.error?.code || "REFUND_FAILED"
-      );
+      if (!refundOrderResponse.success) {
+        throw new TapsilatError(
+          refundOrderResponse.error?.message || "Order refund failed",
+          refundOrderResponse.error?.code || "REFUND_FAILED"
+        );
+      }
+
+      if (!refundOrderResponse.data) {
+        throw new TapsilatError(
+          "Order refund response data is missing",
+          "REFUND_DATA_MISSING"
+        );
+      }
+
+      return refundOrderResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order refund");
     }
-
-    if (!refundOrderResponse.data) {
-      throw new TapsilatError(
-        "Order refund response data is missing",
-        "REFUND_DATA_MISSING"
-      );
-    }
-
-    return refundOrderResponse.data;
   }
 
   // ORDER FULL REFUND OPERATIONS
@@ -743,26 +745,30 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API returns an error response or full refund fails
    */
   async refundAllOrder(referenceId: string): Promise<OrderRefundResponse> {
-    const refundAllOrderResponse =
-      await this.httpClient.post<OrderRefundResponse>("/order/refund-all", {
-        reference_id: referenceId,
-      });
+    try {
+      const refundAllOrderResponse =
+        await this.httpClient.post<OrderRefundResponse>("/order/refund-all", {
+          reference_id: referenceId,
+        });
 
-    if (!refundAllOrderResponse.success) {
-      throw new TapsilatError(
-        refundAllOrderResponse.error?.message || "Full order refund failed",
-        refundAllOrderResponse.error?.code || "FULL_REFUND_FAILED"
-      );
+      if (!refundAllOrderResponse.success) {
+        throw new TapsilatError(
+          refundAllOrderResponse.error?.message || "Full order refund failed",
+          refundAllOrderResponse.error?.code || "FULL_REFUND_FAILED"
+        );
+      }
+
+      if (!refundAllOrderResponse.data) {
+        throw new TapsilatError(
+          "Full order refund response data is missing",
+          "FULL_REFUND_DATA_MISSING"
+        );
+      }
+
+      return refundAllOrderResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "full order refund");
     }
-
-    if (!refundAllOrderResponse.data) {
-      throw new TapsilatError(
-        "Full order refund response data is missing",
-        "FULL_REFUND_DATA_MISSING"
-      );
-    }
-
-    return refundAllOrderResponse.data;
   }
 
   // ORDER PAYMENT DETAILS
@@ -790,32 +796,36 @@ export class TapsilatSDK {
         "Reference ID is required and must be a non-empty string"
       );
 
-    const getOrderPaymentDetailsResponse = conversationId
-      ? await this.httpClient.post<OrderPaymentDetail[]>(
+    try {
+      const getOrderPaymentDetailsResponse = conversationId
+        ? await this.httpClient.post<OrderPaymentDetail[]>(
           "/order/payment-details",
           {
             conversation_id: conversationId,
           }
         )
-      : await this.httpClient.get<OrderPaymentDetail[]>(
+        : await this.httpClient.get<OrderPaymentDetail[]>(
           `/order/${referenceId}/payment-details`
         );
 
-    if (!getOrderPaymentDetailsResponse.success)
-      throw new TapsilatError(
-        getOrderPaymentDetailsResponse.error?.message ||
+      if (!getOrderPaymentDetailsResponse.success)
+        throw new TapsilatError(
+          getOrderPaymentDetailsResponse.error?.message ||
           "Payment details API call failed",
-        getOrderPaymentDetailsResponse.error?.code ||
+          getOrderPaymentDetailsResponse.error?.code ||
           "PAYMENT_DETAILS_API_FAILED"
-      );
+        );
 
-    if (!getOrderPaymentDetailsResponse.data)
-      throw new TapsilatError(
-        "Payment details response data is missing",
-        "PAYMENT_DETAILS_DATA_MISSING"
-      );
+      if (!getOrderPaymentDetailsResponse.data)
+        throw new TapsilatError(
+          "Payment details response data is missing",
+          "PAYMENT_DETAILS_DATA_MISSING"
+        );
 
-    return getOrderPaymentDetailsResponse.data;
+      return getOrderPaymentDetailsResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order payment details");
+    }
   }
 
   // ORDER LOOKUP BY CONVERSATION ID
@@ -842,24 +852,28 @@ export class TapsilatSDK {
       );
     }
 
-    const getOrderByConversationIdResponse = await this.httpClient.get<Order>(
-      `/order/conversation/${conversationId}`
-    );
+    try {
+      const getOrderByConversationIdResponse = await this.httpClient.get<Order>(
+        `/order/conversation/${conversationId}`
+      );
 
-    if (!getOrderByConversationIdResponse.success)
-      throw new TapsilatError(
-        getOrderByConversationIdResponse.error?.message ||
+      if (!getOrderByConversationIdResponse.success)
+        throw new TapsilatError(
+          getOrderByConversationIdResponse.error?.message ||
           "Order retrieval by conversation ID failed",
-        getOrderByConversationIdResponse.error?.code || "ORDER_RETRIEVAL_FAILED"
-      );
+          getOrderByConversationIdResponse.error?.code || "ORDER_RETRIEVAL_FAILED"
+        );
 
-    if (!getOrderByConversationIdResponse.data)
-      throw new TapsilatError(
-        "Order response data is missing",
-        "ORDER_DATA_MISSING"
-      );
+      if (!getOrderByConversationIdResponse.data)
+        throw new TapsilatError(
+          "Order response data is missing",
+          "ORDER_DATA_MISSING"
+        );
 
-    return getOrderByConversationIdResponse.data;
+      return getOrderByConversationIdResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order retrieval by conversation ID");
+    }
   }
 
   // ORDER TRANSACTION HISTORY
@@ -885,24 +899,28 @@ export class TapsilatSDK {
         { provided: referenceId }
       );
     }
-    const getOrderTransactionsResponse = await this.httpClient.get<
-      OrderTransaction[]
-    >(`/order/${referenceId}/transactions`);
+    try {
+      const getOrderTransactionsResponse = await this.httpClient.get<
+        OrderTransaction[]
+      >(`/order/${referenceId}/transactions`);
 
-    if (!getOrderTransactionsResponse.success)
-      throw new TapsilatError(
-        getOrderTransactionsResponse.error?.message ||
+      if (!getOrderTransactionsResponse.success)
+        throw new TapsilatError(
+          getOrderTransactionsResponse.error?.message ||
           "Order transactions retrieval failed",
-        getOrderTransactionsResponse.error?.code ||
+          getOrderTransactionsResponse.error?.code ||
           "TRANSACTIONS_RETRIEVAL_FAILED"
-      );
-    if (!getOrderTransactionsResponse.data)
-      throw new TapsilatError(
-        "Order transactions response data is missing",
-        "TRANSACTIONS_DATA_MISSING"
-      );
+        );
+      if (!getOrderTransactionsResponse.data)
+        throw new TapsilatError(
+          "Order transactions response data is missing",
+          "TRANSACTIONS_DATA_MISSING"
+        );
 
-    return getOrderTransactionsResponse.data;
+      return getOrderTransactionsResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order transactions retrieval");
+    }
   }
 
   // ORDER SUBMERCHANT LISTING
@@ -922,26 +940,20 @@ export class TapsilatSDK {
   async getOrderSubmerchants(
     params: { page?: number; per_page?: number } = {}
   ): Promise<PaginatedResponse<OrderSubmerchant>> {
-    const getOrderSubmerchantsResponse = await this.httpClient.get<
-      PaginatedResponse<OrderSubmerchant>
-    >("/order/submerchants", {
-      params: params,
-    });
+    try {
+      const getOrderSubmerchantsResponse = await this.httpClient.get<
+        PaginatedResponse<OrderSubmerchant>
+      >("/order/submerchants", {
+        params: params,
+      });
 
-    if (!getOrderSubmerchantsResponse.success)
-      throw new TapsilatError(
-        getOrderSubmerchantsResponse.error?.message ||
-          "Order submerchants retrieval failed",
-        getOrderSubmerchantsResponse.error?.code ||
-          "SUBMERCHANTS_RETRIEVAL_FAILED"
+      return handleResponse(
+        getOrderSubmerchantsResponse,
+        "Order submerchants retrieval"
       );
-    if (!getOrderSubmerchantsResponse.data)
-      throw new TapsilatError(
-        "Order submerchants response data is missing",
-        "SUBMERCHANTS_DATA_MISSING"
-      );
-
-    return getOrderSubmerchantsResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order submerchants retrieval");
+    }
   }
 
   // ORDER CHECKOUT URL RETRIEVAL
@@ -1018,28 +1030,26 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API health check fails or returns invalid data
    */
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    // We use the direct /health endpoint which returns plain string "OK"
-    const healthCheckResponse = await this.httpClient.get<string>("/health");
+    try {
+      // We use the direct /health endpoint which returns plain string "OK"
+      const healthCheckResponse = await this.httpClient.get<string>("/health");
+      const healthData = handleResponse(healthCheckResponse, "Health check");
 
-    if (!healthCheckResponse.success) {
-      throw new TapsilatError(
-        healthCheckResponse.error?.message || "Health check failed",
-        healthCheckResponse.error?.code || "HEALTH_CHECK_FAILED"
-      );
+      // The API returns "OK" string, verify consistency
+      if (healthData !== "OK") {
+        throw new TapsilatError(
+          `Unexpected health check response: ${healthData}`,
+          "HEALTH_CHECK_INVALID_RESPONSE"
+        );
+      }
+
+      return {
+        status: "UP",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: unknown) {
+      return handleError(error, "health check");
     }
-
-    // The API returns "OK" string, verify consistency
-    if (healthCheckResponse.data !== "OK") {
-      throw new TapsilatError(
-        `Unexpected health check response: ${healthCheckResponse.data}`,
-        "HEALTH_CHECK_INVALID_RESPONSE"
-      );
-    }
-
-    return {
-      status: "UP",
-      timestamp: new Date().toISOString(),
-    };
   }
 
   // CONFIGURATION MANAGEMENT
@@ -1164,7 +1174,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(createTermResponse, "Payment term creation");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term creation");
     }
   }
@@ -1245,7 +1255,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(updateTermResponse, "Payment term update");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term update");
     }
   }
@@ -1284,7 +1294,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(deleteTermResponse, "Payment term deletion");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term deletion");
     }
   }
@@ -1339,7 +1349,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(refundTermResponse, "Payment term refund");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term refund");
     }
   }
@@ -1379,7 +1389,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(terminateTermResponse, "Payment term termination");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term termination");
     }
   }
@@ -1420,7 +1430,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(terminateOrderResponse, "Order termination");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "order termination");
     }
   }
@@ -1439,12 +1449,12 @@ export class TapsilatSDK {
       payload.conversation_id = conversationId;
     }
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const orderManualCallbackResponse = await this.httpClient.post<APIResponse<unknown>>(
         "/order/manual-callback",
         payload
       );
-      return handleResponse(response, "Order manual callback");
-    } catch (error) {
+      return handleResponse(orderManualCallbackResponse, "Order manual callback");
+    } catch (error: unknown) {
       return handleError(error, "order manual callback");
     }
   }
@@ -1464,26 +1474,26 @@ export class TapsilatSDK {
       );
     }
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const orderRelatedUpdateResponse = await this.httpClient.post<APIResponse<unknown>>(
         "/order/related-update",
         {
           reference_id: referenceId,
           related_reference_id: relatedReferenceId,
         }
       );
-      return handleResponse(response, "Order related update");
-    } catch (error) {
+      return handleResponse(orderRelatedUpdateResponse, "Order related update");
+    } catch (error: unknown) {
       return handleError(error, "order related update");
     }
   }
 
   async getOrganizationSettings(): Promise<OrganizationSettings> {
     try {
-      const response = await this.httpClient.get<OrganizationSettings>(
+      const organizationSettingsResponse = await this.httpClient.get<OrganizationSettings>(
         "/organization/settings"
       );
-      return handleResponse(response, "Get organization settings");
-    } catch (error) {
+      return handleResponse(organizationSettingsResponse, "Get organization settings");
+    } catch (error: unknown) {
       return handleError(error, "get organization settings");
     }
   }
@@ -1495,14 +1505,14 @@ export class TapsilatSDK {
       );
     }
     try {
-      const response = await this.httpClient.get<PaymentTermResponse>(
+      const orderTermResponse = await this.httpClient.get<PaymentTermResponse>(
         `/order/term`,
         {
           params: { term_reference_id: termReferenceId },
         }
       );
-      return handleResponse(response, "Get order term");
-    } catch (error) {
+      return handleResponse(orderTermResponse, "Get order term");
+    } catch (error: unknown) {
       return handleError(error, "get order term");
     }
   }
@@ -1514,9 +1524,9 @@ export class TapsilatSDK {
    */
   async addBasketItem(request: AddBasketItemRequest): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/order/basket-item", request);
-      return handleResponse(response, "Add basket item");
-    } catch (error) {
+      const addBasketItemResponse = await this.httpClient.post<APIResponse<unknown>>("/order/basket-item", request);
+      return handleResponse(addBasketItemResponse, "Add basket item");
+    } catch (error: unknown) {
       return handleError(error, "add basket item");
     }
   }
@@ -1526,9 +1536,9 @@ export class TapsilatSDK {
    */
   async removeBasketItem(request: RemoveBasketItemRequest): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.delete<APIResponse<unknown>>("/order/basket-item", request);
-      return handleResponse(response, "Remove basket item");
-    } catch (error) {
+      const removeBasketItemResponse = await this.httpClient.delete<APIResponse<unknown>>("/order/basket-item", request);
+      return handleResponse(removeBasketItemResponse, "Remove basket item");
+    } catch (error: unknown) {
       return handleError(error, "remove basket item");
     }
   }
@@ -1538,9 +1548,9 @@ export class TapsilatSDK {
    */
   async updateBasketItem(request: UpdateBasketItemRequest): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.patch<APIResponse<unknown>>("/order/basket-item", request);
-      return handleResponse(response, "Update basket item");
-    } catch (error) {
+      const updateBasketItemResponse = await this.httpClient.patch<APIResponse<unknown>>("/order/basket-item", request);
+      return handleResponse(updateBasketItemResponse, "Update basket item");
+    } catch (error: unknown) {
       return handleError(error, "update basket item");
     }
   }
@@ -1550,9 +1560,9 @@ export class TapsilatSDK {
    */
   async getOrganizationCallback(): Promise<APIResponse<CallbackURLDTO>> {
     try {
-      const response = await this.httpClient.get<APIResponse<CallbackURLDTO>>("/organization/callback");
-      return handleResponse(response, "Get organization callback");
-    } catch (error) {
+      const organizationCallbackResponse = await this.httpClient.get<APIResponse<CallbackURLDTO>>("/organization/callback");
+      return handleResponse(organizationCallbackResponse, "Get organization callback");
+    } catch (error: unknown) {
       return handleError(error, "get organization callback");
     }
   }
@@ -1562,9 +1572,9 @@ export class TapsilatSDK {
    */
   async updateOrganizationCallback(request: CallbackURLDTO): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.patch<APIResponse<unknown>>("/organization/callback", request);
-      return handleResponse(response, "Update organization callback");
-    } catch (error) {
+      const organizationCallbackResponse = await this.httpClient.patch<APIResponse<unknown>>("/organization/callback", request);
+      return handleResponse(organizationCallbackResponse, "Update organization callback");
+    } catch (error: unknown) {
       return handleError(error, "update organization callback");
     }
   }
@@ -1574,9 +1584,9 @@ export class TapsilatSDK {
    */
   async createOrganizationBusiness(request: OrgCreateBusinessRequest): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/business/create", request);
-      return handleResponse(response, "Create organization business");
-    } catch (error) {
+      const organizationBusinessResponse = await this.httpClient.post<APIResponse<unknown>>("/organization/business/create", request);
+      return handleResponse(organizationBusinessResponse, "Create organization business");
+    } catch (error: unknown) {
       return handleError(error, "create organization business");
     }
   }
@@ -1586,9 +1596,9 @@ export class TapsilatSDK {
    */
   async getOrganizationCurrencies(): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/currencies");
-      return handleResponse(response, "Get organization currencies");
-    } catch (error) {
+      const organizationCurrenciesResponse = await this.httpClient.get<APIResponse<unknown>>("/organization/currencies");
+      return handleResponse(organizationCurrenciesResponse, "Get organization currencies");
+    } catch (error: unknown) {
       return handleError(error, "get organization currencies");
     }
   }
@@ -1598,12 +1608,12 @@ export class TapsilatSDK {
    */
   async getOrganizationLimitUser(request: GetUserLimitRequest): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>(
+      const organizationLimitUserResponse = await this.httpClient.get<APIResponse<unknown>>(
         "/organization/limit/user",
         { params: request }
       );
-      return handleResponse(response, "Get organization user limit");
-    } catch (error) {
+      return handleResponse(organizationLimitUserResponse, "Get organization user limit");
+    } catch (error: unknown) {
       return handleError(error, "get organization user limit");
     }
   }
@@ -1613,9 +1623,9 @@ export class TapsilatSDK {
    */
   async setOrganizationLimitUser(request: SetLimitUserRequest): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/limit/user", request);
-      return handleResponse(response, "Set organization user limit");
-    } catch (error) {
+      const organizationLimitUserResponse = await this.httpClient.post<APIResponse<unknown>>("/organization/limit/user", request);
+      return handleResponse(organizationLimitUserResponse, "Set organization user limit");
+    } catch (error: unknown) {
       return handleError(error, "set organization user limit");
     }
   }
@@ -1625,9 +1635,9 @@ export class TapsilatSDK {
    */
   async getOrganizationLimits(): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/limits");
-      return handleResponse(response, "Get organization limits");
-    } catch (error) {
+      const organizationLimitsResponse = await this.httpClient.get<APIResponse<unknown>>("/organization/limits");
+      return handleResponse(organizationLimitsResponse, "Get organization limits");
+    } catch (error: unknown) {
       return handleError(error, "get organization limits");
     }
   }
@@ -1637,9 +1647,9 @@ export class TapsilatSDK {
    */
   async getOrganizationMeta(): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/meta");
-      return handleResponse(response, "Get organization meta");
-    } catch (error) {
+      const organizationMetaResponse = await this.httpClient.get<APIResponse<unknown>>("/organization/meta");
+      return handleResponse(organizationMetaResponse, "Get organization meta");
+    } catch (error: unknown) {
       return handleError(error, "get organization meta");
     }
   }
@@ -1649,9 +1659,9 @@ export class TapsilatSDK {
    */
   async getOrganizationScopes(): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/scopes");
-      return handleResponse(response, "Get organization scopes");
-    } catch (error) {
+      const organizationScopesResponse = await this.httpClient.get<APIResponse<unknown>>("/organization/scopes");
+      return handleResponse(organizationScopesResponse, "Get organization scopes");
+    } catch (error: unknown) {
       return handleError(error, "get organization scopes");
     }
   }
@@ -1661,9 +1671,9 @@ export class TapsilatSDK {
    */
   async getOrganizationSuborganizations(): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/suborganizations");
-      return handleResponse(response, "Get organization suborganizations");
-    } catch (error) {
+      const organizationSuborganizationsResponse = await this.httpClient.get<APIResponse<unknown>>("/organization/suborganizations");
+      return handleResponse(organizationSuborganizationsResponse, "Get organization suborganizations");
+    } catch (error: unknown) {
       return handleError(error, "get organization suborganizations");
     }
   }
@@ -1673,9 +1683,9 @@ export class TapsilatSDK {
    */
   async createOrganizationUser(request: OrgCreateUserReq): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/create", request);
-      return handleResponse(response, "Create organization user");
-    } catch (error) {
+      const organizationUserResponse = await this.httpClient.post<APIResponse<unknown>>("/organization/user/create", request);
+      return handleResponse(organizationUserResponse, "Create organization user");
+    } catch (error: unknown) {
       return handleError(error, "create organization user");
     }
   }
@@ -1685,9 +1695,9 @@ export class TapsilatSDK {
    */
   async verifyOrganizationUser(request: OrgUserVerifyReq): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify", request);
-      return handleResponse(response, "Verify organization user");
-    } catch (error) {
+      const organizationUserVerifyResponse = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify", request);
+      return handleResponse(organizationUserVerifyResponse, "Verify organization user");
+    } catch (error: unknown) {
       return handleError(error, "verify organization user");
     }
   }
@@ -1697,9 +1707,9 @@ export class TapsilatSDK {
    */
   async verifyOrganizationUserMobile(request: OrgUserMobileVerifyReq): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify-mobile", request);
-      return handleResponse(response, "Verify organization user mobile");
-    } catch (error) {
+      const organizationUserMobileVerifyResponse = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify-mobile", request);
+      return handleResponse(organizationUserMobileVerifyResponse, "Verify organization user mobile");
+    } catch (error: unknown) {
       return handleError(error, "verify organization user mobile");
     }
   }
@@ -1709,9 +1719,9 @@ export class TapsilatSDK {
    */
   async listOrganizationVpos(request: GetVposRequest): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/list-vpos", request);
-      return handleResponse(response, "List organization VPOs");
-    } catch (error) {
+      const organizationVposResponse = await this.httpClient.post<APIResponse<unknown>>("/organization/list-vpos", request);
+      return handleResponse(organizationVposResponse, "List organization VPOs");
+    } catch (error: unknown) {
       return handleError(error, "list organization VPOs");
     }
   }
@@ -1720,12 +1730,12 @@ export class TapsilatSDK {
     request: SubscriptionCreateRequest
   ): Promise<SubscriptionCreateResponse> {
     try {
-      const response = await this.httpClient.post<SubscriptionCreateResponse>(
+      const subcriptionCreateResponse = await this.httpClient.post<SubscriptionCreateResponse>(
         "/subscription/create",
         request
       );
-      return handleResponse(response, "Create subscription");
-    } catch (error) {
+      return handleResponse(subcriptionCreateResponse, "Create subscription");
+    } catch (error: unknown) {
       return handleError(error, "create subscription");
     }
   }
@@ -1734,11 +1744,11 @@ export class TapsilatSDK {
     request: SubscriptionGetRequest
   ): Promise<SubscriptionDetail> {
     try {
-      const response = await this.httpClient.post<SubscriptionDetail>(
+      const subscriptionDetailResponse = await this.httpClient.post<SubscriptionDetail>(
         "/subscription",
         request
       );
-      const data = handleResponse(response, "Get subscription");
+      const data = handleResponse(subscriptionDetailResponse, "Get subscription");
 
       if (data.orders) {
         data.orders.forEach((order) => {
@@ -1749,7 +1759,7 @@ export class TapsilatSDK {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "get subscription");
     }
   }
@@ -1758,11 +1768,12 @@ export class TapsilatSDK {
     params: { page?: number; per_page?: number } = {}
   ): Promise<PaginatedResponse<SubscriptionDetail>> {
     try {
-      const response = await this.httpClient.get<
+      const listSubscriptionsResponse = await this.httpClient.get<
         PaginatedResponse<SubscriptionDetail>
       >("/subscription/list", { params });
-      return handleResponse(response, "List subscriptions");
-    } catch (error) {
+      
+      return handleResponse(listSubscriptionsResponse, "List subscriptions");
+    } catch (error: unknown) {
       return handleError(error, "list subscriptions");
     }
   }
@@ -1771,12 +1782,12 @@ export class TapsilatSDK {
     request: SubscriptionCancelRequest
   ): Promise<APIResponse<unknown>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const subscriptionCancelResponse = await this.httpClient.post<APIResponse<unknown>>(
         "/subscription/cancel",
         request
       );
-      return handleResponse(response, "Cancel subscription");
-    } catch (error) {
+      return handleResponse(subscriptionCancelResponse, "Cancel subscription");
+    } catch (error: unknown) {
       return handleError(error, "cancel subscription");
     }
   }
@@ -1785,11 +1796,11 @@ export class TapsilatSDK {
     request: SubscriptionRedirectRequest
   ): Promise<SubscriptionRedirectResponse> {
     try {
-      const response = await this.httpClient.post<SubscriptionRedirectResponse>(
+      const subscriptionRedirectResponse = await this.httpClient.post<SubscriptionRedirectResponse>(
         "/subscription/redirect",
         request
       );
-      const data = handleResponse(response, "Redirect subscription");
+      const data = handleResponse(subscriptionRedirectResponse, "Redirect subscription");
 
       if (data.url) {
         // Extract subscription ID from the signed URL to create a clean link
@@ -1804,7 +1815,7 @@ export class TapsilatSDK {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "redirect subscription");
     }
   }
