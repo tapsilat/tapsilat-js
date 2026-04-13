@@ -497,7 +497,7 @@ describe("TapsilatSDK", () => {
       const result = await sdk.orderManualCallback(referenceId, conversationId);
 
       expect(mockHttpClient.post).toHaveBeenCalledWith(
-        "/order/manual-callback",
+        "/order/callback",
         {
           reference_id: referenceId,
           conversation_id: conversationId,
@@ -510,15 +510,15 @@ describe("TapsilatSDK", () => {
       const referenceId = "ref_123";
       const relatedReferenceId = "rel_ref_123";
       const mockResponse = { success: true, data: { success: true } };
-      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+      mockHttpClient.patch.mockResolvedValueOnce(mockResponse);
 
       const result = await sdk.orderRelatedUpdate(
         referenceId,
         relatedReferenceId
       );
 
-      expect(mockHttpClient.post).toHaveBeenCalledWith(
-        "/order/related-update",
+      expect(mockHttpClient.patch).toHaveBeenCalledWith(
+        "/order/releated",
         {
           reference_id: referenceId,
           related_reference_id: relatedReferenceId,

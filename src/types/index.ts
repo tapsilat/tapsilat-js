@@ -752,6 +752,26 @@ export interface BasketItemPayerDTO {
 
 /**
  * @category API DTOs
+ * @summary Payment record for a basket item
+ * @description Payment details attached to a specific basket item
+ * @interface BasketItemPaymentDTO
+ */
+export interface BasketItemPaymentDTO {
+  amount?: number;
+  card_brand?: string;
+  id?: string;
+  masked_bin?: string;
+  paid_date?: string;
+  refundable_amount?: number;
+  refunded?: boolean;
+  refunded_amount?: number;
+  refunded_date?: string;
+  status?: number;
+  type?: string;
+}
+
+/**
+ * @category API DTOs
  * @summary Individual item in an order basket
  * @description Details about a product or service being purchased including price and quantity
  * @interface BasketItemDTO
@@ -764,15 +784,20 @@ export interface BasketItemDTO {
   coupon_discount?: number;
   data?: string;
   id?: string;
+  item_payments?: BasketItemPaymentDTO[];
   item_type?: string;
   mcc?: string;
   name?: string;
   paid_amount?: number;
+  paidable_amount?: number;
   payer?: BasketItemPayerDTO;
   price?: number;
   quantity?: number;
   quantity_float?: number;
   quantity_unit?: string;
+  refundable_amount?: number;
+  refunded_amount?: number;
+  status?: number;
   sub_merchant_key?: string;
   sub_merchant_price?: string;
 }
@@ -1102,6 +1127,32 @@ export interface PaymentTermResponse {
   data?: string;
 }
 
+/**
+ * @category Payment Terms
+ * @summary Protobuf timestamp payload
+ * @description Timestamp structure used by term APIs (`seconds` + `nanos`)
+ * @interface TimestampDTO
+ */
+export interface TimestampDTO {
+  nanos?: number;
+  seconds?: number;
+}
+
+/**
+ * @category Payment Terms
+ * @summary Response payload for order term retrieval
+ * @description Swagger-aligned response schema for GET /order/term
+ * @interface GetOrderTermResponse
+ */
+export interface GetOrderTermResponse {
+  amount?: number;
+  due_date?: TimestampDTO;
+  paid_date?: TimestampDTO;
+  required?: boolean;
+  status?: string;
+  term_sequence?: number;
+}
+
 export interface OrderPaymentTermActionResponse {
   code?: number;
   message?: string;
@@ -1300,6 +1351,12 @@ export interface SubscriptionListItem {
   title?: string;
 }
 
+export interface ListSubscriptionsRequest {
+  page?: number;
+  per_page?: number;
+  [key: string]: unknown;
+}
+
 export interface ListSubscriptionsResponse {
   page?: number;
   per_page?: number;
@@ -1356,6 +1413,12 @@ export interface OrderSubmerchant {
   status?: string;
   submerchant_key?: string;
   submerchant_type?: string;
+  [key: string]: unknown;
+}
+
+export interface GetOrderSubmerchantsRequest {
+  page?: number;
+  per_page?: number;
   [key: string]: unknown;
 }
 
@@ -1478,6 +1541,9 @@ export interface CallbackURLDTO {
 export enum BusinessType {
   INDIVIDUAL = 0,
   CORPORATE = 1,
+  NON_PROFIT = 2,
+  GOVERNMENT = 3,
+  UNKNOWN = 4,
 }
 
 /**

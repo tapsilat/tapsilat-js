@@ -29,6 +29,7 @@ import {
   OrderPaymentTermUpdateDTO,
   OrderTermRefundRequest,
   PaymentTermResponse,
+  GetOrderTermResponse,
   PaymentTermDeleteRequest,
   PaymentTermRefundResponse,
   PaymentTermTerminateRequest,
@@ -39,12 +40,14 @@ import {
   SubscriptionCancelRequest,
   SubscriptionCreateRequest,
   SubscriptionRedirectRequest,
+  ListSubscriptionsRequest,
   SubscriptionDetail,
   ListSubscriptionsResponse,
   SubscriptionCreateResponse,
   SubscriptionRedirectResponse,
   OrganizationSettings,
   GetOrderTransactionsResponse,
+  GetOrderSubmerchantsRequest,
   GetOrderSubmerchantsResponse,
   OrderAccountingRequest,
   OrderAccountingResponse,
@@ -967,7 +970,7 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API returns an error response
    */
   async getOrderSubmerchants(
-    params: { page?: number; per_page?: number } = {}
+    params: GetOrderSubmerchantsRequest = {}
   ): Promise<GetOrderSubmerchantsResponse> {
     try {
       const getOrderSubmerchantsResponse = await this.httpClient.get<
@@ -1479,7 +1482,7 @@ export class TapsilatSDK {
     }
     try {
       const orderManualCallbackResponse = await this.httpClient.post<OrderManualCallbackResponse>(
-        "/order/manual-callback",
+        "/order/callback",
         payload
       );
       return handleResponse(orderManualCallbackResponse, "Order manual callback");
@@ -1507,8 +1510,8 @@ export class TapsilatSDK {
         reference_id: referenceId,
         related_reference_id: relatedReferenceId,
       };
-      const orderRelatedUpdateResponse = await this.httpClient.post<OrderRelatedUpdateResponse>(
-        "/order/related-update",
+      const orderRelatedUpdateResponse = await this.httpClient.patch<OrderRelatedUpdateResponse>(
+        "/order/releated",
         payload
       );
       return handleResponse(orderRelatedUpdateResponse, "Order related update");
@@ -1528,14 +1531,14 @@ export class TapsilatSDK {
     }
   }
 
-  async getOrderTerm(termReferenceId: string): Promise<PaymentTermResponse> {
+  async getOrderTerm(termReferenceId: string): Promise<GetOrderTermResponse> {
     if (!isNonEmptyString(termReferenceId)) {
       throw new TapsilatValidationError(
         "Term Reference ID is required and must be a non-empty string"
       );
     }
     try {
-      const orderTermResponse = await this.httpClient.get<PaymentTermResponse>(
+      const orderTermResponse = await this.httpClient.get<GetOrderTermResponse>(
         `/order/term`,
         {
           params: { term_reference_id: termReferenceId },
@@ -1823,7 +1826,7 @@ export class TapsilatSDK {
   }
 
   async listSubscriptions(
-    params: { page?: number; per_page?: number } = {}
+    params: ListSubscriptionsRequest = {}
   ): Promise<ListSubscriptionsResponse> {
     try {
       const listSubscriptionsResponse = await this.httpClient.get<
