@@ -572,7 +572,8 @@ export interface CancelOrderResponse {
 export interface OrderRefundRequest {
   reference_id: string;
   amount: number;
-  // Python SDK'da reason yok, gerekirse eklenebilir.
+  order_item_id?: string;
+  order_item_payment_id?: string;
 }
 
 /**
@@ -1017,6 +1018,7 @@ export interface PaymentTermResponse {
  * @interface PaymentTermDeleteRequest
  */
 export interface PaymentTermDeleteRequest {
+  order_id?: string;
   term_reference_id: string;
 }
 
@@ -1109,6 +1111,11 @@ export interface SubscriptionGetRequest {
 export interface SubscriptionCancelRequest {
   external_reference_id?: string;
   reference_id?: string;
+}
+
+export interface CancelSubscriptionResponse {
+  code?: number;
+  message?: string;
 }
 
 export interface SubscriptionBilling {
@@ -1271,6 +1278,42 @@ export interface UpdateBasketItemRequest {
   basket_item: BasketItemDTO;
 }
 
+export interface AddBasketItemResponse {
+  code?: number;
+  message?: string;
+}
+
+export interface RemoveBasketItemResponse {
+  code?: number;
+  message?: string;
+}
+
+export interface UpdateBasketItemResponse {
+  code?: number;
+  message?: string;
+}
+
+export interface OrderManualCallbackRequest {
+  conversation_id?: string;
+  reference_id: string;
+}
+
+export interface OrderManualCallbackResponse {
+  code?: number;
+  message?: string;
+}
+
+export interface OrderRelatedUpdateRequest {
+  reference_id: string;
+  related_reference_id: string;
+}
+
+export interface OrderRelatedUpdateResponse {
+  code?: number;
+  is_success?: boolean;
+  message?: string;
+}
+
 /**
  * @category Organization
  * @summary Webhook callback URL configuration
@@ -1314,6 +1357,45 @@ export interface OrgCreateBusinessRequest {
   zip_code: string;
 }
 
+export interface OrgCreateBusinessResponse {
+  code?: number;
+  message?: string;
+}
+
+export interface OrganizationResponse {
+  message?: string;
+}
+
+export interface OrganizationCurrency {
+  code?: string;
+  currency_unit?: string;
+  id?: string;
+  name?: string;
+  symbol?: string;
+}
+
+export interface GetOrganizationCurrenciesResponse {
+  currencies?: OrganizationCurrency[];
+}
+
+export interface UserLimit {
+  currency?: string;
+  id?: string;
+  max_daily_transaction_amount?: number;
+  max_daily_transaction_count?: number;
+  max_expense_amount?: number;
+  max_income_amount?: number;
+  max_monthly_transaction_amount?: number;
+  max_monthly_transaction_count?: number;
+  max_topup_amount?: number;
+  max_wallet_balance?: number;
+  max_withdrawal_amount?: number;
+}
+
+export interface GetUserLimitResponse {
+  user_limits?: UserLimit[];
+}
+
 /**
  * @category Organization
  * @summary Request for user limit information
@@ -1336,6 +1418,53 @@ export interface SetLimitUserRequest {
   user_id: string;
 }
 
+export interface SetLimitUserResponse {
+  code?: number;
+  message?: string;
+}
+
+export interface OrganizationLimit extends UserLimit {
+  name?: string;
+}
+
+export interface GetOrganizationLimitsResponse {
+  limits?: OrganizationLimit[];
+}
+
+export interface GetMetaResponse {
+  data?: string;
+}
+
+export interface OrganizationScope {
+  create?: boolean;
+  delete?: boolean;
+  entity?: string;
+  read?: boolean;
+  update?: boolean;
+}
+
+export interface GetOrganizationScopesResponse {
+  scopes?: OrganizationScope[];
+}
+
+export interface GetSuborganizationsRequest {
+  page?: number;
+  per_page?: number;
+}
+
+export interface OrganizationSuborganization {
+  id?: string;
+  name?: string;
+}
+
+export interface GetSubOrganizationListResponse {
+  page?: number;
+  per_page?: number;
+  rows?: OrganizationSuborganization[];
+  total?: number;
+  total_pages?: number;
+}
+
 /**
  * @category Organization
  * @summary Request for VPOS list
@@ -1347,13 +1476,22 @@ export interface GetVposRequest {
   [key: string]: unknown;
 }
 
+export interface OrganizationVpos {
+  id?: string;
+  name?: string;
+}
+
+export interface GetVposResponse {
+  organization_vpos?: OrganizationVpos[];
+}
+
 /**
  * @category Organization
  * @summary Request to create an organization user
  * @description Comprehensive data for creating a new user within an organization
- * @interface OrgCreateUserReq
+ * @interface OrgCreateUserRequest
  */
-export interface OrgCreateUserReq {
+export interface OrgCreateUserRequest {
   conversation_id: string;
   email: string;
   first_name: string;
@@ -1364,24 +1502,40 @@ export interface OrgCreateUserReq {
   reference_id: string;
 }
 
+export interface OrgCreateUserResponse {
+  code?: number;
+  message?: string;
+  user_id?: string;
+}
+
 /**
  * @category Organization
  * @summary Request to verify a user
  * @description Data required to verify a user's account
- * @interface OrgUserVerifyReq
+ * @interface OrgUserVerifyRequest
  */
-export interface OrgUserVerifyReq {
+export interface OrgUserVerifyRequest {
   user_id: string;
+}
+
+export interface OrgUserVerifyResponse {
+  code?: number;
+  message?: string;
 }
 
 /**
  * @category Organization
  * @summary Request to verify user's mobile number
  * @description Data required to initiate or complete mobile number verification
- * @interface OrgUserMobileVerifyReq
+ * @interface OrgUserMobileVerifyRequest
  */
-export interface OrgUserMobileVerifyReq {
+export interface OrgUserMobileVerifyRequest {
   user_id: string;
+}
+
+export interface OrgUserMobileVerifyResponse {
+  code?: number;
+  message?: string;
 }
 
 /**
