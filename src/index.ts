@@ -55,6 +55,8 @@ export type {
   SubmerchantDTO,
   OrderCreateDTO,
   RefundOrderDTO,
+  RefundAllOrderDTO,
+  OrderPaymentDetailDTO,
   OrderPaymentTermCreateDTO,
   OrderPaymentTermUpdateDTO,
   OrderTermRefundRequest,

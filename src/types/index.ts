@@ -153,7 +153,7 @@ export interface Address {
  * @interface BillingAddress
  */
 export interface BillingAddress extends Address {
-  billing_type: "PERSONAL" | "CORPORATE";
+  billing_type: "PERSONAL" | "BUSINESS" | "CORPORATE";
   citizenship?: string;
   neighbourhood?: string;
   street1?: string;
@@ -198,6 +198,10 @@ export interface BasketItem {
  * @typedef {string} PaymentOption
  */
 export type PaymentOption =
+  | "credit_card"
+  | "bank_transfer"
+  | "cash"
+  | "debit_card"
   | "PAY_WITH_WALLET"
   | "PAY_WITH_CARD"
   | "PAY_WITH_LOAN"
@@ -420,7 +424,11 @@ export interface OrderCreateRequest {
  * @interface OrderCreateResponse
  */
 export interface OrderCreateResponse {
-  order_id: string;
+  code?: number;
+  id?: string;
+  message?: string;
+  organization_id?: string;
+  order_id?: string;
   reference_id: string;
   checkout_url?: string;
   conversation_id?: string;
@@ -583,12 +591,14 @@ export interface OrderRefundRequest {
  * @interface OrderRefundResponse
  */
 export interface OrderRefundResponse {
-  refundId: string;
-  referenceId: string;
-  status: string; // e.g., 'succeeded', 'pending', 'failed'
-  amount: number;
-  currency: Currency;
-  createdAt: string;
+  is_success?: boolean;
+  message?: string;
+  refundId?: string;
+  referenceId?: string;
+  status?: string; // e.g., 'succeeded', 'pending', 'failed'
+  amount?: number;
+  currency?: Currency;
+  createdAt?: string;
 }
 
 /**
@@ -641,6 +651,64 @@ export interface OrderPaymentDetail {
     lastFourDigits: string;
     cardAssociation: string;
   };
+}
+
+export interface OrderPaymentDetailInfoResponse {
+  id?: string;
+  paid_date?: string;
+  paid_date_timestamp?: number;
+  reference_id?: string;
+  refunded_amount?: number;
+  status?: string;
+}
+
+export interface OrderPaymentDetailOrderPaymentStatusResponse {
+  acquirere_response?: string;
+  code?: string;
+  expiry_month?: string;
+  expiry_year?: string;
+  is_error?: boolean;
+  masked_pan?: string;
+  message?: string;
+}
+
+export interface OrderPaymentDetailsResponse {
+  auth_code?: string;
+  batch_no?: string;
+  card_holder_name?: string;
+  card_number?: string;
+  is_three_ds?: boolean;
+  mdstatus?: string;
+  order_id?: string;
+  payment_id?: string;
+  payment_transaction_id?: string;
+  reference_id?: string;
+  rrn?: string;
+}
+
+export interface OrderPaymentDetailRuleResponse {
+  id?: string;
+  name?: string;
+}
+
+export interface OrderPaymentDetailVposResponse {
+  acquirer?: string;
+  bank_code?: string;
+  commission_rate?: string;
+  id?: string;
+  name?: string;
+}
+
+export interface GetOrderPaymentDetailsResponse {
+  conversation_id?: string;
+  id?: string;
+  order?: OrderPaymentDetailInfoResponse;
+  order_payment_status?: OrderPaymentDetailOrderPaymentStatusResponse;
+  organization_id?: string;
+  paymentDetails?: OrderPaymentDetailsResponse;
+  rule?: OrderPaymentDetailRuleResponse;
+  vpos?: OrderPaymentDetailVposResponse;
+  vposResponse?: string;
 }
 
 /**
@@ -806,10 +874,12 @@ export interface OrderPFSubMerchantDTO {
   id?: string;
   mcc?: string;
   name?: string;
+  national_id?: string;
   org_id?: string;
   postal_code?: string;
   submerchant_nin?: string;
   submerchant_url?: string;
+  switch_id?: string;
   terminal_no?: string;
 }
 
@@ -929,6 +999,27 @@ export interface RefundOrderDTO {
 }
 
 /**
+ * @category Refunds
+ * @summary Data structure for requesting a full refund
+ * @description Contains the order reference required to fully refund an order
+ * @interface RefundAllOrderDTO
+ */
+export interface RefundAllOrderDTO {
+  reference_id: string;
+}
+
+/**
+ * @category Payment Processing
+ * @summary Data structure for order payment detail query
+ * @description Request payload for POST /order/payment-details
+ * @interface OrderPaymentDetailDTO
+ */
+export interface OrderPaymentDetailDTO {
+  conversation_id?: string;
+  reference_id?: string;
+}
+
+/**
  * @category Payment Terms
  * @summary Data for creating a payment term
  * @description Structure for creating a new payment term for an existing order
@@ -1011,6 +1102,11 @@ export interface PaymentTermResponse {
   data?: string;
 }
 
+export interface OrderPaymentTermActionResponse {
+  code?: number;
+  message?: string;
+}
+
 /**
  * @category Payment Terms
  * @summary Request data for deleting a payment term
@@ -1029,11 +1125,14 @@ export interface PaymentTermDeleteRequest {
  * @interface PaymentTermRefundResponse
  */
 export interface PaymentTermRefundResponse {
-  refund_id: string;
-  term_reference_id: string;
-  amount: number;
-  status: string;
-  created_at: string;
+  code?: number;
+  is_success?: boolean;
+  message?: string;
+  refund_id?: string;
+  term_reference_id?: string;
+  amount?: number;
+  status?: string;
+  created_at?: string;
   refund_reference_id?: string;
 }
 
@@ -1066,9 +1165,11 @@ export interface OrderTerminateRequest {
  * @interface OrderTerminateResponse
  */
 export interface OrderTerminateResponse {
-  reference_id: string;
-  status: string;
-  terminated_at: string;
+  code?: number;
+  message?: string;
+  reference_id?: string;
+  status?: string;
+  terminated_at?: string;
   reason?: string;
 }
 
@@ -1187,6 +1288,26 @@ export interface SubscriptionDetail {
   title?: string;
 }
 
+export interface SubscriptionListItem {
+  amount?: string;
+  currency?: string;
+  external_reference_id?: string;
+  is_active?: boolean;
+  payment_date?: number;
+  payment_status?: string;
+  period?: number;
+  reference_id?: string;
+  title?: string;
+}
+
+export interface ListSubscriptionsResponse {
+  page?: number;
+  per_page?: number;
+  rows?: SubscriptionListItem[];
+  total?: number;
+  total_pages?: number;
+}
+
 export interface SubscriptionCreateResponse {
   code?: number;
   message?: string;
@@ -1210,18 +1331,40 @@ export interface OrganizationSettings {
 }
 
 export interface OrderTransaction {
-  id: string;
-  date: string;
-  amount: number;
-  type: string;
-  status: string;
+  amount?: string;
+  amount_float?: number;
+  currency?: string;
+  date?: string;
+  id?: string;
+  receiver?: string;
+  reference_id?: string;
+  sender?: string;
+  status?: string;
   [key: string]: unknown;
 }
 
+export interface GetOrderTransactionsResponse {
+  orderTX?: OrderTransaction[];
+}
+
 export interface OrderSubmerchant {
-  id: string;
-  name: string;
+  acquirer?: string;
+  email?: string;
+  id?: string;
+  labels?: string;
+  name?: string;
+  status?: string;
+  submerchant_key?: string;
+  submerchant_type?: string;
   [key: string]: unknown;
+}
+
+export interface GetOrderSubmerchantsResponse {
+  page?: number;
+  per_page?: number;
+  row?: OrderSubmerchant[];
+  total?: number;
+  total_pages?: number;
 }
 
 /**
@@ -1508,6 +1651,9 @@ export interface OrgCreateUserResponse {
   user_id?: string;
 }
 
+export type OrgCreateUserReq = OrgCreateUserRequest;
+export type OrgCreateUserRes = OrgCreateUserResponse;
+
 /**
  * @category Organization
  * @summary Request to verify a user
@@ -1523,6 +1669,9 @@ export interface OrgUserVerifyResponse {
   message?: string;
 }
 
+export type OrgUserVerifyReq = OrgUserVerifyRequest;
+export type OrgUserVerifyRes = OrgUserVerifyResponse;
+
 /**
  * @category Organization
  * @summary Request to verify user's mobile number
@@ -1537,6 +1686,9 @@ export interface OrgUserMobileVerifyResponse {
   code?: number;
   message?: string;
 }
+
+export type OrgUserMobileVerifyReq = OrgUserMobileVerifyRequest;
+export type OrgUserMobileVerifyRes = OrgUserMobileVerifyResponse;
 
 /**
  * @category Order Management

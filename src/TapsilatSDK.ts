@@ -10,8 +10,6 @@ import {
 } from "./utils/validators";
 import {
   TapsilatConfig,
-  PaginatedResponse,
-  Order,
   GetOrderResponse,
   GetOrdersRequest,
   GetOrdersResponse,
@@ -19,9 +17,11 @@ import {
   CancelOrderResponse,
   OrderRefundRequest,
   OrderRefundResponse,
+  RefundAllOrderDTO,
   OrderStatusResponse,
   GetSystemOrderStatusesResponse,
-  OrderPaymentDetail,
+  GetOrderPaymentDetailsResponse,
+  OrderPaymentDetailDTO,
   OrderCreateRequest,
   OrderCreateResponse,
   OrderCreateDTO,
@@ -34,16 +34,18 @@ import {
   PaymentTermTerminateRequest,
   OrderTerminateRequest,
   OrderTerminateResponse,
+  OrderPaymentTermActionResponse,
   SubscriptionGetRequest,
   SubscriptionCancelRequest,
   SubscriptionCreateRequest,
   SubscriptionRedirectRequest,
   SubscriptionDetail,
+  ListSubscriptionsResponse,
   SubscriptionCreateResponse,
   SubscriptionRedirectResponse,
   OrganizationSettings,
-  OrderTransaction,
-  OrderSubmerchant,
+  GetOrderTransactionsResponse,
+  GetOrderSubmerchantsResponse,
   OrderAccountingRequest,
   OrderAccountingResponse,
   OrderPostAuthRequest,
@@ -263,10 +265,10 @@ export class TapsilatSDK {
    * @param {string} [orderRequest.payment_success_url] - URL to redirect after successful payment
    * @param {string} [orderRequest.payment_failure_url] - URL to redirect after failed payment
    * @param {number[]} [orderRequest.enabled_installments] - Allowed installment counts
-   * @param {Record<string, unknown>} [orderRequest.metadata] - Additional custom data
+   * @param {OrderMetadata[]} [orderRequest.metadata] - Additional custom key/value data
    *
    * @returns {Promise<OrderCreateResponse>} Promise resolving to order creation response
-   * @returns {string} OrderCreateResponse.order_id - Internal order identifier
+   * @returns {string} [OrderCreateResponse.id] - Internal order identifier
    * @returns {string} OrderCreateResponse.reference_id - Unique order reference for tracking
    * @returns {string} [OrderCreateResponse.checkout_url] - Payment page URL for customer
    * @returns {string} [OrderCreateResponse.conversation_id] - Echo of provided conversation ID
@@ -768,10 +770,14 @@ export class TapsilatSDK {
    */
   async refundAllOrder(referenceId: string): Promise<OrderRefundResponse> {
     try {
+      const refundAllPayload: RefundAllOrderDTO = {
+        reference_id: referenceId,
+      };
       const refundAllOrderResponse =
-        await this.httpClient.post<OrderRefundResponse>("/order/refund-all", {
-          reference_id: referenceId,
-        });
+        await this.httpClient.post<OrderRefundResponse>(
+          "/order/refund-all",
+          refundAllPayload
+        );
 
       if (!refundAllOrderResponse.success) {
         throw new TapsilatError(
@@ -805,14 +811,14 @@ export class TapsilatSDK {
    *
    * @param referenceId - The unique identifier of the order.
    * @param conversationId - Optional conversation ID for more specific querying.
-   * @returns Promise resolving to a list of payment details.
+   * @returns Promise resolving to the order payment detail response payload.
    * @throws {TapsilatValidationError} When referenceId is invalid
    * @throws {TapsilatError} When API returns an error response or payment details are missing
    */
   async getOrderPaymentDetails(
     referenceId: string,
     conversationId?: string
-  ): Promise<OrderPaymentDetail[]> {
+  ): Promise<GetOrderPaymentDetailsResponse> {
     if (!isNonEmptyString(referenceId))
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string"
@@ -820,13 +826,14 @@ export class TapsilatSDK {
 
     try {
       const getOrderPaymentDetailsResponse = conversationId
-        ? await this.httpClient.post<OrderPaymentDetail[]>(
+        ? await this.httpClient.post<GetOrderPaymentDetailsResponse>(
           "/order/payment-details",
-          {
+          <OrderPaymentDetailDTO>{
             conversation_id: conversationId,
+            reference_id: referenceId,
           }
         )
-        : await this.httpClient.get<OrderPaymentDetail[]>(
+        : await this.httpClient.get<GetOrderPaymentDetailsResponse>(
           `/order/${referenceId}/payment-details`
         );
 
@@ -865,7 +872,7 @@ export class TapsilatSDK {
    * @throws {TapsilatValidationError} When conversationId is invalid
    * @throws {TapsilatError} When API returns an error response
    */
-  async getOrderByConversationId(conversationId: string): Promise<Order> {
+  async getOrderByConversationId(conversationId: string): Promise<GetOrderResponse> {
     // Validate conversationId
     if (!isNonEmptyString(conversationId)) {
       throw new TapsilatValidationError(
@@ -875,7 +882,7 @@ export class TapsilatSDK {
     }
 
     try {
-      const getOrderByConversationIdResponse = await this.httpClient.get<Order>(
+      const getOrderByConversationIdResponse = await this.httpClient.get<GetOrderResponse>(
         `/order/conversation/${conversationId}`
       );
 
@@ -913,7 +920,7 @@ export class TapsilatSDK {
    * @throws {TapsilatValidationError} When referenceId is invalid
    * @throws {TapsilatError} When API returns an error response
    */
-  async getOrderTransactions(referenceId: string): Promise<OrderTransaction[]> {
+  async getOrderTransactions(referenceId: string): Promise<GetOrderTransactionsResponse> {
     // Validate referenceId
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
@@ -923,7 +930,7 @@ export class TapsilatSDK {
     }
     try {
       const getOrderTransactionsResponse = await this.httpClient.get<
-        OrderTransaction[]
+        GetOrderTransactionsResponse
       >(`/order/${referenceId}/transactions`);
 
       if (!getOrderTransactionsResponse.success)
@@ -961,10 +968,10 @@ export class TapsilatSDK {
    */
   async getOrderSubmerchants(
     params: { page?: number; per_page?: number } = {}
-  ): Promise<PaginatedResponse<OrderSubmerchant>> {
+  ): Promise<GetOrderSubmerchantsResponse> {
     try {
       const getOrderSubmerchantsResponse = await this.httpClient.get<
-        PaginatedResponse<OrderSubmerchant>
+        GetOrderSubmerchantsResponse
       >("/order/submerchants", {
         params: params,
       });
@@ -1133,7 +1140,7 @@ export class TapsilatSDK {
    */
   async createOrderTerm(
     termData: OrderPaymentTermCreateDTO
-  ): Promise<PaymentTermResponse> {
+  ): Promise<OrderPaymentTermActionResponse> {
     // Validate required fields
     if (!isNonEmptyString(termData.order_id)) {
       throw new TapsilatValidationError(
@@ -1190,7 +1197,7 @@ export class TapsilatSDK {
 
     try {
       const createTermResponse =
-        await this.httpClient.post<PaymentTermResponse>(
+        await this.httpClient.post<OrderPaymentTermActionResponse>(
           "/order/term",
           termData
         );
@@ -1225,7 +1232,7 @@ export class TapsilatSDK {
    */
   async updateOrderTerm(
     updateData: OrderPaymentTermUpdateDTO
-  ): Promise<PaymentTermResponse> {
+  ): Promise<OrderPaymentTermActionResponse> {
     // Validate required fields
     if (!isNonEmptyString(updateData.term_reference_id)) {
       throw new TapsilatValidationError(
@@ -1271,7 +1278,7 @@ export class TapsilatSDK {
 
     try {
       const updateTermResponse =
-        await this.httpClient.patch<PaymentTermResponse>(
+        await this.httpClient.patch<OrderPaymentTermActionResponse>(
           "/order/term",
           updateData
         );
@@ -1299,7 +1306,7 @@ export class TapsilatSDK {
    */
   async deleteOrderTerm(
     deleteData: PaymentTermDeleteRequest
-  ): Promise<PaymentTermResponse> {
+  ): Promise<OrderPaymentTermActionResponse> {
     // Validate required fields
     if (!isNonEmptyString(deleteData.term_reference_id)) {
       throw new TapsilatValidationError(
@@ -1310,7 +1317,7 @@ export class TapsilatSDK {
 
     try {
       const deleteTermResponse =
-        await this.httpClient.delete<PaymentTermResponse>(
+        await this.httpClient.delete<OrderPaymentTermActionResponse>(
           "/order/term",
           deleteData
         );
@@ -1817,10 +1824,10 @@ export class TapsilatSDK {
 
   async listSubscriptions(
     params: { page?: number; per_page?: number } = {}
-  ): Promise<PaginatedResponse<SubscriptionDetail>> {
+  ): Promise<ListSubscriptionsResponse> {
     try {
       const listSubscriptionsResponse = await this.httpClient.get<
-        PaginatedResponse<SubscriptionDetail>
+        ListSubscriptionsResponse
       >("/subscription/list", { params });
       
       return handleResponse(listSubscriptionsResponse, "List subscriptions");
