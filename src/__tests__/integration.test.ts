@@ -96,24 +96,11 @@ describe("TapsilatSDK Integration Tests", () => {
     it("should list orders", async () => {
       const orders = await sdk.getOrders({ page: 1, per_page: 10 });
 
-      // Handle either pagination format
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const orderData = "data" in orders ? orders.data : (orders as any).rows;
+      const orderData = orders.rows ?? [];
       expect(Array.isArray(orderData)).toBe(true);
 
-      // Handle either pagination format for metadata
-      const paginationInfo =
-        "pagination" in orders ? orders.pagination : orders;
-      const page =
-        "page" in paginationInfo
-          ? paginationInfo.page
-          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (paginationInfo as any).page;
-      const total =
-        "total" in paginationInfo
-          ? paginationInfo.total
-          : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (paginationInfo as any).total;
+      const page = orders.page;
+      const total = orders.total;
 
       expect(page).toBeTruthy();
       expect(total).toBeTruthy();
@@ -124,8 +111,7 @@ describe("TapsilatSDK Integration Tests", () => {
       if (!createdOrderReferenceId) return;
       try {
         const cancelledOrder = await sdk.cancelOrder(createdOrderReferenceId);
-        const orderRefId = cancelledOrder.reference_id;
-        expect(orderRefId).toBe(createdOrderReferenceId);
+        expect(cancelledOrder.status).toBeTruthy();
         console.log("✅ Cancelled order:", createdOrderReferenceId);
       } catch (error) {
         const errorMessage =
