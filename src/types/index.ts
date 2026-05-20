@@ -137,11 +137,11 @@ export interface Customer {
  * @interface Address
  */
 export interface Address {
-  address?: string;
-  city?: string;
-  contact_name?: string;
-  country?: string;
-  zip_code?: string;
+  address: string;
+  city: string;
+  contact_name: string;
+  country: string;
+  zip_code: string;
   district?: string;
   contact_phone?: string;
 }
@@ -157,6 +157,10 @@ export interface BillingAddress extends Address {
   vat_number?: string;
   tax_office?: string;
   title?: string;
+  neighbourhood?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
 }
 
 /**
@@ -166,16 +170,19 @@ export interface BillingAddress extends Address {
  * @interface BasketItem
  */
 export interface BasketItem {
-  id?: string;
-  name?: string;
-  category1?: string;
+  id: string;
+  name: string;
+  category1: string;
   category2?: string;
-  item_type?: string;
-  price?: number;
-  quantity?: number;
+  item_type: string;
+  price: number;
+  quantity: number;
   coupon_discount?: number;
   data?: string;
   quantity_unit?: string;
+  mcc?: string;
+  commission_amount?: number;
+  paid_amount?: number;
 }
 
 /**
@@ -347,6 +354,8 @@ export interface Buyer {
   ip?: string;
   registration_date?: string;
   last_login_date?: string;
+  title?: string;
+  birth_date?: string;
 }
 
 // ORDER CREATE REQUEST
@@ -363,26 +372,43 @@ export interface OrderMetadata {
   value: string;
 }
 
+export interface OrderConsent {
+  title: string;
+  url: string;
+}
+
 export interface OrderCreateRequest {
   amount: number;
   tax_amount?: number;
   locale: Locale;
   three_d_force?: boolean;
   currency: Currency;
-  shipping_address?: Address;
-  basket_items?: BasketItem[];
-  billing_address?: BillingAddress;
-  buyer: Buyer;
-  consents?: OrderConsent[];
+  shipping_address?: Address | ShippingAddressDTO;
+  basket_items?: BasketItem[] | BasketItemDTO[];
+  billing_address?: BillingAddress | BillingAddressDTO;
+  buyer: Buyer | BuyerDTO;
   conversation_id?: string;
   partial_payment?: boolean;
   payment_methods?: boolean;
-  payment_options?: PaymentOption[];
+  payment_options?: string[] | PaymentOption[];
   payment_success_url?: string;
   payment_failure_url?: string;
   enabled_installments?: number[];
-  metadata?: OrderMetadata[];
+  metadata?: OrderMetadata[] | MetadataDTO[];
+  consents?: OrderConsent[];
+  payment_mode?: string;
+  redirect_success_url?: string;
+  checkout_design?: CheckoutDesignDTO;
+  sub_merchants?: SubmerchantDTO[];
   sub_organization?: SubOrganizationDTO;
+  payment_terms?: PaymentTermDTO[] | OrderPaymentTermCreateDTO[];
+  pf_sub_merchant?: OrderPFSubMerchantDTO;
+  external_reference_id?: string;
+  basket_id?: string;
+  payment_group?: string;
+  order_vpos_id?: string;
+  fee?: number;
+  installment?: string;
 }
 
 // ORDER CREATE RESPONSE
@@ -395,12 +421,12 @@ export interface OrderCreateRequest {
  * @interface OrderCreateResponse
  */
 export interface OrderCreateResponse {
-  order_id: string;
+  id: string;
   reference_id: string;
+  message: string;
+  code: number;
+  organization_id: string;
   checkout_url?: string;
-  conversation_id?: string;
-  status?: string;
-  qr_code_url?: string;
 }
 
 /**
@@ -410,21 +436,44 @@ export interface OrderCreateResponse {
  * @interface Order
  */
 export interface Order extends OrderCreateResponse {
-  amount: number | string; // API returns string, but we might want to parse it
+  amount: number | string;
   currency: Currency;
-  buyer?: Buyer;
+  buyer?: Buyer | BuyerDTO;
   description?: string;
-  createdAt?: string; // ISO 8601 date string
-  updatedAt?: string; // ISO 8601 date string
-  metadata?: Record<string, unknown>;
-  // Additional fields from API response
-  id?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  metadata?: Record<string, unknown> | MetadataDTO[];
   name?: string;
   email?: string;
   total?: string;
   checkout_url?: string;
   organization?: string;
   unpaid_amount?: number;
+  basket_items?: BasketItemDTO[] | BasketItem[];
+  billing_address?: OrderBillingDTO | BillingAddress;
+  checkout_design?: OrderCheckoutDesignDTO | CheckoutDesignDTO;
+  conversation_id?: string;
+  created_at?: string;
+  external_reference_id?: string;
+  locale?: string;
+  paid_amount?: string | number;
+  payment_failure_url?: string;
+  payment_options?: string[];
+  payment_success_url?: string;
+  payment_terms?: OrderPaymentTermDTO[] | PaymentTermDTO[];
+  redirect_failure_url?: string;
+  redirect_success_url?: string;
+  refunded_amount?: string | number;
+  shipping_address?: OrderShippingDTO | Address;
+  status?: number | string;
+  status_enum?: string;
+  order_card?: {
+    save_card?: boolean;
+    eula?: string;
+    alias?: string;
+    operation?: string;
+  };
+  consents?: OrderConsent[];
 }
 
 /**
@@ -544,6 +593,7 @@ export interface BasketItemDTO {
   paid_amount?: number;
   payer?: BasketItemPayerDTO;
   price?: number;
+  mcc?: string;
   quantity?: number;
   quantity_float?: number;
   quantity_unit?: string;
@@ -642,12 +692,11 @@ export interface OrderPFSubMerchantDTO {
   country?: string;
   country_iso_code?: string;
   id?: string;
-  mcc?: string;
-  name?: string;
-  org_id?: string;
+  national_id?: string;
   postal_code?: string;
   submerchant_nin?: string;
   submerchant_url?: string;
+  switch_id?: string;
   terminal_no?: string;
 }
 
@@ -705,49 +754,46 @@ export interface SubmerchantDTO {
 }
 
 /**
- * @category Order Management
- * @summary Order consent information
- * @description Title and URL for legal consents required during order creation
- * @interface OrderConsent
- */
-export interface OrderConsent {
-  title?: string;
-  url?: string;
-}
-
-/**
  * @category API DTOs
  * @summary Comprehensive order creation request
  * @description Full API request structure for creating an order with all possible options
  * @interface OrderCreateDTO
  */
 export interface OrderCreateDTO {
-  amount: number;
-  currency: Currency;
-  locale: Locale;
-  buyer: BuyerDTO;
+  amount?: number;
   basket_items?: BasketItemDTO[];
   billing_address?: BillingAddressDTO;
+  buyer?: BuyerDTO;
   checkout_design?: CheckoutDesignDTO;
   consents?: OrderConsent[];
   conversation_id?: string;
+  currency?: string;
   enabled_installments?: number[];
   external_reference_id?: string;
+  locale?: string;
   metadata?: MetadataDTO[];
-  order_cards?: OrderCardDTO;
+  order_cards?: OrderCardDTO[] | OrderCardDTO;
   paid_amount?: number;
   partial_payment?: boolean;
   payment_failure_url?: string;
   payment_methods?: boolean;
+  payment_mode?: string;
   payment_options?: string[];
   payment_success_url?: string;
   payment_terms?: PaymentTermDTO[];
   pf_sub_merchant?: OrderPFSubMerchantDTO;
+  redirect_failure_url?: string;
+  redirect_success_url?: string;
   shipping_address?: ShippingAddressDTO;
   sub_organization?: SubOrganizationDTO;
   submerchants?: SubmerchantDTO[];
   tax_amount?: number;
   three_d_force?: boolean;
+  basket_id?: string;
+  payment_group?: string;
+  order_vpos_id?: string;
+  fee?: number;
+  installment?: string;
 }
 
 /**
@@ -982,12 +1028,6 @@ export interface SubscriptionCreateRequest {
   success_url?: string;
   title?: string;
   user?: SubscriptionUser;
-  price_option?: SubscriptionPriceOption;
-}
-
-export interface SubscriptionPriceOption {
-  count: number;
-  price: number;
 }
 
 export interface SubscriptionRedirectRequest {
@@ -1062,6 +1102,88 @@ export interface OrderSubmerchant {
 export interface OrderAccountingRequest {
   order_reference_id: string;
 }
+
+/**
+ * @category Order Management
+ * @summary Request for order post-authorization
+ * @description Data required to process post-authorization for an order
+ * @interface OrderPostAuthRequest
+ */
+export interface OrderPostAuthRequest {
+  amount: number;
+  reference_id: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Response for order accounting operation
+ */
+export interface OrderAccountingResponse {
+  code?: number;
+  message?: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Response for order post-authorization
+ */
+export interface OrderPostAuthResponse {
+  code?: number;
+  is_success?: boolean;
+  message?: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Response for order cancellation
+ */
+export interface OrderCancelResponse {
+  is_success?: boolean;
+  message?: string;
+  status?: string;
+}
+
+/**
+ * @category Order Management
+ * @summary System order statuses
+ */
+export interface OrderStatusCategory {
+  code?: string;
+  message?: string;
+}
+
+export interface SystemOrderStatusesResponse {
+  rows?: OrderStatusCategory[];
+}
+
+/**
+ * @category Order Management
+ * @summary Order related reference response
+ */
+export interface OrderRelatedReferenceResponse {
+  code?: number;
+  is_success?: boolean;
+  message?: string;
+}
+
+/**
+ * @category Order Management
+ * @summary Order manual callback response
+ */
+export interface OrderManualCallbackResponse {
+  code?: number;
+  message?: string;
+}
+
+/**
+ * @category Subscription
+ * @summary Cancel subscription response
+ */
+export interface SubscriptionCancelResponse {
+  code?: number;
+  message?: string;
+}
+
 
 /**
  * @category Order Management
@@ -1209,13 +1331,109 @@ export interface OrgUserMobileVerifyReq {
   user_id: string;
 }
 
+
+
+
 /**
- * @category Order Management
- * @summary Request for order post-authorization
- * @description Data required to process post-authorization for an order
- * @interface OrderPostAuthRequest
+ * Generic basic API response
  */
-export interface OrderPostAuthRequest {
-  amount: number;
+export interface GenericResponse {
+  code?: number;
+  message?: string;
+  is_success?: boolean;
+}
+
+export interface OrganizationCurrenciesResponse {
+  currencies: any[];
+}
+export interface UserLimitResponse {
+  limits: any[];
+}
+export interface OrganizationLimitsResponse {
+  limits: any[];
+}
+export interface VposResponse {
+  organization_vpos: any[];
+}
+export interface MetaResponse {
+  data: string;
+}
+export interface OrganizationScopesResponse {
+  scopes: any[];
+}
+export interface SubOrganizationListResponse {
+  page?: number;
+  per_page?: number;
+  total?: number;
+  total_pages?: number;
+  rows?: any[];
+}
+export interface OrgCreateUserResponse {
+  code?: number;
+  message?: string;
+  user_id?: string;
+}
+
+export interface OrderBillingDTO {
+  address?: string;
+  billing_type?: string;
+  citizenship?: string;
+  city?: string;
+  contact_name?: string;
+  contact_phone?: string;
+  country?: string;
+  district?: string;
+  tax_office?: string;
+  title?: string;
+  vat_number?: string;
+  zip_code?: string;
+}
+
+export interface OrderCheckoutDesignDTO {
+  input_background_color?: string;
+  input_text_color?: string;
+  label_text_color?: string;
+  left_background_color?: string;
+  logo?: string;
+  order_detail_html?: string;
+  placeholder_color?: string;
+  right_background_color?: string;
+  text_color?: string;
+}
+
+export interface OrderPaymentTermDTO {
+  amount?: number;
+  data?: string;
+  due_date?: string;
+  hash_id?: string;
+  id?: string;
+  paid_date?: string;
+  payments?: any[];
+  required?: boolean;
+  status?: string;
+  term_reference_id?: string;
+  term_sequence?: number;
+}
+
+export interface OrderShippingDTO {
+  address?: string;
+  city?: string;
+  contact_name?: string;
+  country?: string;
+  shipping_date?: string;
+  tracking_code?: string;
+  zip_code?: string;
+}
+
+export interface UpdatePaymentOptionsRequest {
   reference_id: string;
+  payment_options: string[];
+}
+
+export interface SplitOrderItemPaymentRequest {
+  reference_id: string;
+  basket_item_id: string;
+  sub_merchant_price?: number;
+  sub_merchant_key?: string;
+  commission_amount?: number;
 }

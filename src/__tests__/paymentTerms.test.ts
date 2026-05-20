@@ -154,17 +154,7 @@ describe("TapsilatSDK Payment Terms", () => {
     });
   });
 
-  describe("terminateOrderTerm", () => {
-    it("should validate term reference ID", async () => {
-      const invalidData: PaymentTermTerminateRequest = {
-        term_reference_id: "",
-      };
 
-      await expect(sdk.terminateOrderTerm(invalidData)).rejects.toThrow(
-        "Term reference ID is required and must be a non-empty string"
-      );
-    });
-  });
 
   describe("terminateOrder", () => {
     it("should validate reference ID", async () => {

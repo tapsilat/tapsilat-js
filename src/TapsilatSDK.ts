@@ -74,6 +74,7 @@ import { verifyHmacSignature } from "./utils/verify";
  * - Configurable retry mechanism
  * - Full compliance with Tapsilat API specifications
  */
+import { GenericResponse, OrganizationCurrenciesResponse, UserLimitResponse, OrganizationLimitsResponse, VposResponse, MetaResponse, OrganizationScopesResponse, SubOrganizationListResponse, OrgCreateUserResponse, UpdatePaymentOptionsRequest, SplitOrderItemPaymentRequest } from './types';
 export class TapsilatSDK {
   private readonly httpClient: HttpClient;
   private readonly configManager: ConfigManager;
@@ -145,8 +146,11 @@ export class TapsilatSDK {
       deleteTerm: (request: PaymentTermDeleteRequest) => this.deleteOrderTerm(request),
       refundTerm: (request: OrderTermRefundRequest) => this.refundOrderTerm(request),
       getTerm: (termReferenceId: string) => this.getOrderTerm(termReferenceId),
-      terminateTerm: (request: PaymentTermTerminateRequest) => this.terminateOrderTerm(request),
       terminate: (request: OrderTerminateRequest) => this.terminateOrder(request),
+      updatePaymentOptions: (request: UpdatePaymentOptionsRequest) => this.updatePaymentOptions(request),
+      splitOrderItemPayment: (request: SplitOrderItemPaymentRequest) => this.splitOrderItemPayment(request),
+      orderCallback: (referenceId: string) => this.orderCallback(referenceId),
+      vposQuery: (referenceId: string) => this.orderVposQuery(referenceId),
     };
   }
 
@@ -182,6 +186,9 @@ export class TapsilatSDK {
       meta: () => this.getOrganizationMeta(),
       scopes: () => this.getOrganizationScopes(),
       suborganizations: () => this.getOrganizationSuborganizations(),
+      suborganizationDetails: (id: string) => this.getOrganizationSuborganizationDetails(id),
+      suborganizationSubmerchants: (id: string) => this.getOrganizationSuborganizationSubmerchants(id),
+      currencyPresets: () => this.getOrganizationCurrencyPresets(),
       createUser: (request: OrgCreateUserReq) => this.createOrganizationUser(request),
       verifyUser: (request: OrgUserVerifyReq) => this.verifyOrganizationUser(request),
       verifyUserMobile: (request: OrgUserMobileVerifyReq) => this.verifyOrganizationUserMobile(request),
@@ -196,6 +203,24 @@ export class TapsilatSDK {
   get webhooks(): any {
     return {
       verify: (payload: string, signature: string, secret: string) => this.verifyWebhook(payload, signature, secret),
+    };
+  }
+
+  /**
+   * Access to system operations
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get system(): any {
+    return {
+      orderStatuses: () => this.getSystemOrderStatuses(),
+      basketItemTypes: () => this.getSystemBasketItemTypes(),
+      errorCodes: () => this.getSystemErrorCodes(),
+      paymentTermStatuses: () => this.getSystemPaymentTermStatuses(),
+      productTypes: () => this.getSystemProductTypes(),
+      shortcutTypes: () => this.getSystemShortcutTypes(),
+      transactionPaymentTypes: () => this.getSystemTransactionPaymentTypes(),
+      transactionPurposes: () => this.getSystemTransactionPurposes(),
+      transactionStatuses: () => this.getSystemTransactionStatuses(),
     };
   }
 
@@ -356,13 +381,13 @@ export class TapsilatSDK {
    * @description Handles accounting operations for a specific order using its reference ID.
    *
    * @param {OrderAccountingRequest} request - Accounting request details
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to the accounting response
+   * @returns {Promise<APIResponse<GenericResponse>>} Promise resolving to the accounting response
    * @throws {TapsilatValidationError} When input validation fails
    * @throws {TapsilatError} When API returns an error response
    */
   async orderAccounting(
     request: OrderAccountingRequest
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<APIResponse<GenericResponse>> {
     if (!isNonEmptyString(request.order_reference_id)) {
       throw new TapsilatValidationError(
         "Order reference ID is required and must be a non-empty string",
@@ -371,7 +396,7 @@ export class TapsilatSDK {
     }
 
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>(
         "/order/accounting",
         request
       );
@@ -391,13 +416,13 @@ export class TapsilatSDK {
    * @description Handles post-authorization operations for a specific order.
    *
    * @param {OrderPostAuthRequest} request - Post-authorization request details
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to the post-auth response
+   * @returns {Promise<APIResponse<GenericResponse>>} Promise resolving to the post-auth response
    * @throws {TapsilatValidationError} When input validation fails
    * @throws {TapsilatError} When API returns an error response
    */
   async orderPostAuth(
     request: OrderPostAuthRequest
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<APIResponse<GenericResponse>> {
     if (!isNonEmptyString(request.reference_id)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string",
@@ -411,7 +436,7 @@ export class TapsilatSDK {
     }
 
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>(
         "/order/postauth",
         request
       );
@@ -430,17 +455,89 @@ export class TapsilatSDK {
    * @summary Retrieve system order statuses
    * @description Gets a list of all possible order statuses in the system.
    *
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to system order statuses
+   * @returns {Promise<APIResponse<GenericResponse>>} Promise resolving to system order statuses
    * @throws {TapsilatError} When API returns an error response
    */
-  async getSystemOrderStatuses(): Promise<APIResponse<unknown>> {
+  async getSystemOrderStatuses(): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>(
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>(
         "/system/order-statuses"
       );
       return handleResponse(response, "Get system order statuses");
     } catch (error) {
       return handleError(error, "get system order statuses");
+    }
+  }
+
+  async getSystemBasketItemTypes(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/system/basket-item-types");
+      return handleResponse(response, "Get system basket item types");
+    } catch (error) {
+      return handleError(error, "get system basket item types");
+    }
+  }
+
+  async getSystemErrorCodes(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/system/error-codes");
+      return handleResponse(response, "Get system error codes");
+    } catch (error) {
+      return handleError(error, "get system error codes");
+    }
+  }
+
+  async getSystemPaymentTermStatuses(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/system/payment-term-statuses");
+      return handleResponse(response, "Get system payment term statuses");
+    } catch (error) {
+      return handleError(error, "get system payment term statuses");
+    }
+  }
+
+  async getSystemProductTypes(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/system/product-types");
+      return handleResponse(response, "Get system product types");
+    } catch (error) {
+      return handleError(error, "get system product types");
+    }
+  }
+
+  async getSystemShortcutTypes(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/system/shortcut-types");
+      return handleResponse(response, "Get system shortcut types");
+    } catch (error) {
+      return handleError(error, "get system shortcut types");
+    }
+  }
+
+  async getSystemTransactionPaymentTypes(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/system/transaction-payment-types");
+      return handleResponse(response, "Get system transaction payment types");
+    } catch (error) {
+      return handleError(error, "get system transaction payment types");
+    }
+  }
+
+  async getSystemTransactionPurposes(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/system/transaction-purposes");
+      return handleResponse(response, "Get system transaction purposes");
+    } catch (error) {
+      return handleError(error, "get system transaction purposes");
+    }
+  }
+
+  async getSystemTransactionStatuses(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/system/transaction-statuses");
+      return handleResponse(response, "Get system transaction statuses");
+    } catch (error) {
+      return handleError(error, "get system transaction statuses");
     }
   }
 
@@ -1328,46 +1425,6 @@ export class TapsilatSDK {
   }
 
   /**
-   * Terminates a payment term
-   *
-   * @summary Terminate payment term
-   * @description
-   * Terminates an active payment term, preventing further payments.
-   * This is useful for canceling installment plans or payment schedules.
-   *
-   * @param {PaymentTermTerminateRequest} terminateData - Payment term termination data
-   * @param {string} terminateData.term_reference_id - Reference ID of the term to terminate
-   * @param {string} [terminateData.reason] - Optional reason for termination
-   *
-   * @returns {Promise<PaymentTermResponse>} Promise resolving to terminated term details
-   * @throws {TapsilatValidationError} When input validation fails
-   * @throws {TapsilatError} When API returns an error response
-   */
-  async terminateOrderTerm(
-    terminateData: PaymentTermTerminateRequest
-  ): Promise<PaymentTermResponse> {
-    // Validate required fields
-    if (!isNonEmptyString(terminateData.term_reference_id)) {
-      throw new TapsilatValidationError(
-        "Term reference ID is required and must be a non-empty string",
-        { provided: terminateData.term_reference_id }
-      );
-    }
-
-    try {
-      const terminateTermResponse =
-        await this.httpClient.post<PaymentTermResponse>(
-          "/order/term/terminate",
-          terminateData
-        );
-
-      return handleResponse(terminateTermResponse, "Payment term termination");
-    } catch (error) {
-      return handleError(error, "payment term termination");
-    }
-  }
-
-  /**
    * Terminates an entire order
    *
    * @summary Terminate order
@@ -1411,7 +1468,7 @@ export class TapsilatSDK {
   async orderManualCallback(
     referenceId: string,
     conversationId?: string
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<APIResponse<GenericResponse>> {
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string"
@@ -1422,7 +1479,7 @@ export class TapsilatSDK {
       payload.conversation_id = conversationId;
     }
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>(
         "/order/manual-callback",
         payload
       );
@@ -1435,7 +1492,7 @@ export class TapsilatSDK {
   async orderRelatedUpdate(
     referenceId: string,
     relatedReferenceId: string
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<APIResponse<GenericResponse>> {
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string"
@@ -1447,7 +1504,7 @@ export class TapsilatSDK {
       );
     }
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>(
         "/order/related-update",
         {
           reference_id: referenceId,
@@ -1495,9 +1552,9 @@ export class TapsilatSDK {
   /**
    * Add a new item to an existing order basket
    */
-  async addBasketItem(request: AddBasketItemRequest): Promise<APIResponse<unknown>> {
+  async addBasketItem(request: AddBasketItemRequest): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/order/basket-item", request);
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>("/order/basket-item", request);
       return handleResponse(response, "Add basket item");
     } catch (error) {
       return handleError(error, "add basket item");
@@ -1507,9 +1564,9 @@ export class TapsilatSDK {
   /**
    * Remove an item from an existing order basket
    */
-  async removeBasketItem(request: RemoveBasketItemRequest): Promise<APIResponse<unknown>> {
+  async removeBasketItem(request: RemoveBasketItemRequest): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.delete<APIResponse<unknown>>("/order/basket-item", request);
+      const response = await this.httpClient.delete<APIResponse<GenericResponse>>("/order/basket-item", request);
       return handleResponse(response, "Remove basket item");
     } catch (error) {
       return handleError(error, "remove basket item");
@@ -1519,9 +1576,9 @@ export class TapsilatSDK {
   /**
    * Update an existing item in an order basket
    */
-  async updateBasketItem(request: UpdateBasketItemRequest): Promise<APIResponse<unknown>> {
+  async updateBasketItem(request: UpdateBasketItemRequest): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.patch<APIResponse<unknown>>("/order/basket-item", request);
+      const response = await this.httpClient.patch<APIResponse<GenericResponse>>("/order/basket-item", request);
       return handleResponse(response, "Update basket item");
     } catch (error) {
       return handleError(error, "update basket item");
@@ -1543,9 +1600,9 @@ export class TapsilatSDK {
   /**
    * Update organization callback (webhook) settings
    */
-  async updateOrganizationCallback(request: CallbackURLDTO): Promise<APIResponse<unknown>> {
+  async updateOrganizationCallback(request: CallbackURLDTO): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.patch<APIResponse<unknown>>("/organization/callback", request);
+      const response = await this.httpClient.patch<APIResponse<GenericResponse>>("/organization/callback", request);
       return handleResponse(response, "Update organization callback");
     } catch (error) {
       return handleError(error, "update organization callback");
@@ -1555,9 +1612,9 @@ export class TapsilatSDK {
   /**
    * Create a new business entity within the organization
    */
-  async createOrganizationBusiness(request: OrgCreateBusinessRequest): Promise<APIResponse<unknown>> {
+  async createOrganizationBusiness(request: OrgCreateBusinessRequest): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/business/create", request);
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>("/organization/business/create", request);
       return handleResponse(response, "Create organization business");
     } catch (error) {
       return handleError(error, "create organization business");
@@ -1567,9 +1624,9 @@ export class TapsilatSDK {
   /**
    * Retrieve supported currencies for the organization
    */
-  async getOrganizationCurrencies(): Promise<APIResponse<unknown>> {
+  async getOrganizationCurrencies(): Promise<APIResponse<OrganizationCurrenciesResponse>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/currencies");
+      const response = await this.httpClient.get<APIResponse<OrganizationCurrenciesResponse>>("/organization/currencies");
       return handleResponse(response, "Get organization currencies");
     } catch (error) {
       return handleError(error, "get organization currencies");
@@ -1579,9 +1636,9 @@ export class TapsilatSDK {
   /**
    * Retrieve limit information for a specific organization user
    */
-  async getOrganizationLimitUser(request: GetUserLimitRequest): Promise<APIResponse<unknown>> {
+  async getOrganizationLimitUser(request: GetUserLimitRequest): Promise<APIResponse<UserLimitResponse>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>(
+      const response = await this.httpClient.get<APIResponse<UserLimitResponse>>(
         "/organization/limit/user",
         { params: request }
       );
@@ -1594,9 +1651,9 @@ export class TapsilatSDK {
   /**
    * Set limit for a specific organization user
    */
-  async setOrganizationLimitUser(request: SetLimitUserRequest): Promise<APIResponse<unknown>> {
+  async setOrganizationLimitUser(request: SetLimitUserRequest): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/limit/user", request);
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>("/organization/limit/user", request);
       return handleResponse(response, "Set organization user limit");
     } catch (error) {
       return handleError(error, "set organization user limit");
@@ -1606,9 +1663,9 @@ export class TapsilatSDK {
   /**
    * Retrieve organization overall limits
    */
-  async getOrganizationLimits(): Promise<APIResponse<unknown>> {
+  async getOrganizationLimits(): Promise<APIResponse<OrganizationLimitsResponse>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/limits");
+      const response = await this.httpClient.get<APIResponse<OrganizationLimitsResponse>>("/organization/limits");
       return handleResponse(response, "Get organization limits");
     } catch (error) {
       return handleError(error, "get organization limits");
@@ -1618,9 +1675,9 @@ export class TapsilatSDK {
   /**
    * Retrieve meta information for the organization
    */
-  async getOrganizationMeta(): Promise<APIResponse<unknown>> {
+  async getOrganizationMeta(): Promise<APIResponse<MetaResponse>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/meta");
+      const response = await this.httpClient.get<APIResponse<MetaResponse>>("/organization/meta");
       return handleResponse(response, "Get organization meta");
     } catch (error) {
       return handleError(error, "get organization meta");
@@ -1630,9 +1687,9 @@ export class TapsilatSDK {
   /**
    * Retrieve supported scopes for the organization
    */
-  async getOrganizationScopes(): Promise<APIResponse<unknown>> {
+  async getOrganizationScopes(): Promise<APIResponse<OrganizationScopesResponse>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/scopes");
+      const response = await this.httpClient.get<APIResponse<OrganizationScopesResponse>>("/organization/scopes");
       return handleResponse(response, "Get organization scopes");
     } catch (error) {
       return handleError(error, "get organization scopes");
@@ -1642,21 +1699,48 @@ export class TapsilatSDK {
   /**
    * Retrieve list of sub-organizations
    */
-  async getOrganizationSuborganizations(): Promise<APIResponse<unknown>> {
+  async getOrganizationSuborganizations(): Promise<APIResponse<SubOrganizationListResponse>> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/suborganizations");
+      const response = await this.httpClient.get<APIResponse<SubOrganizationListResponse>>("/organization/suborganizations");
       return handleResponse(response, "Get organization suborganizations");
     } catch (error) {
       return handleError(error, "get organization suborganizations");
     }
   }
 
+  async getOrganizationSuborganizationDetails(id: string): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>(`/organization/suborganizations/${id}`);
+      return handleResponse(response, "Get organization suborganization details");
+    } catch (error) {
+      return handleError(error, "get organization suborganization details");
+    }
+  }
+
+  async getOrganizationSuborganizationSubmerchants(id: string): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>(`/organization/suborganizations/${id}/submerchant`);
+      return handleResponse(response, "Get organization suborganization submerchants");
+    } catch (error) {
+      return handleError(error, "get organization suborganization submerchants");
+    }
+  }
+
+  async getOrganizationCurrencyPresets(): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>("/organization/currency-presets");
+      return handleResponse(response, "Get organization currency presets");
+    } catch (error) {
+      return handleError(error, "get organization currency presets");
+    }
+  }
+
   /**
    * Create a new user within the organization
    */
-  async createOrganizationUser(request: OrgCreateUserReq): Promise<APIResponse<unknown>> {
+  async createOrganizationUser(request: OrgCreateUserReq): Promise<APIResponse<OrgCreateUserResponse>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/create", request);
+      const response = await this.httpClient.post<APIResponse<OrgCreateUserResponse>>("/organization/user/create", request);
       return handleResponse(response, "Create organization user");
     } catch (error) {
       return handleError(error, "create organization user");
@@ -1666,9 +1750,9 @@ export class TapsilatSDK {
   /**
    * Verify an organization user
    */
-  async verifyOrganizationUser(request: OrgUserVerifyReq): Promise<APIResponse<unknown>> {
+  async verifyOrganizationUser(request: OrgUserVerifyReq): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify", request);
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>("/organization/user/verify", request);
       return handleResponse(response, "Verify organization user");
     } catch (error) {
       return handleError(error, "verify organization user");
@@ -1678,9 +1762,9 @@ export class TapsilatSDK {
   /**
    * Verify an organization user via mobile
    */
-  async verifyOrganizationUserMobile(request: OrgUserMobileVerifyReq): Promise<APIResponse<unknown>> {
+  async verifyOrganizationUserMobile(request: OrgUserMobileVerifyReq): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify-mobile", request);
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>("/organization/user/verify-mobile", request);
       return handleResponse(response, "Verify organization user mobile");
     } catch (error) {
       return handleError(error, "verify organization user mobile");
@@ -1690,9 +1774,9 @@ export class TapsilatSDK {
   /**
    * List virtual POS terminals for the organization
    */
-  async listOrganizationVpos(request: GetVposRequest): Promise<APIResponse<unknown>> {
+  async listOrganizationVpos(request: GetVposRequest): Promise<APIResponse<VposResponse>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/list-vpos", request);
+      const response = await this.httpClient.post<APIResponse<VposResponse>>("/organization/list-vpos", request);
       return handleResponse(response, "List organization VPOs");
     } catch (error) {
       return handleError(error, "list organization VPOs");
@@ -1752,9 +1836,9 @@ export class TapsilatSDK {
 
   async cancelSubscription(
     request: SubscriptionCancelRequest
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<APIResponse<GenericResponse>> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>(
         "/subscription/cancel",
         request
       );
@@ -1791,4 +1875,42 @@ export class TapsilatSDK {
       return handleError(error, "redirect subscription");
     }
   }
+
+  async updatePaymentOptions(request: UpdatePaymentOptionsRequest): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.patch<APIResponse<GenericResponse>>("/order/payment-options", request);
+      return handleResponse(response, "Update payment options");
+    } catch (error) {
+      return handleError(error, "update payment options");
+    }
+  }
+
+  async splitOrderItemPayment(request: SplitOrderItemPaymentRequest): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.post<APIResponse<GenericResponse>>("/order/split", request);
+      return handleResponse(response, "Split order item payment");
+    } catch (error) {
+      return handleError(error, "split order item payment");
+    }
+  }
+
+  async orderCallback(referenceId: string): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>(`/orders/${referenceId}/callback`);
+      return handleResponse(response, "Order callback");
+    } catch (error) {
+      return handleError(error, "order callback");
+    }
+  }
+
+  async orderVposQuery(referenceId: string): Promise<APIResponse<GenericResponse>> {
+    try {
+      const response = await this.httpClient.get<APIResponse<GenericResponse>>(`/orders/${referenceId}/vpos-query`);
+      return handleResponse(response, "Order vpos query");
+    } catch (error) {
+      return handleError(error, "order vpos query");
+    }
+  }
+
+
 }

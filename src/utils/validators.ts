@@ -473,7 +473,6 @@ export function validatePaginationParams(params: {
 export function validateGsmNumber(gsmNumber: string | number): GsmValidationResult {
   const originalNumber = String(gsmNumber);
   
-  // Basic validation
   if (!originalNumber || typeof originalNumber !== 'string') {
     return {
       isValid: false,
@@ -482,45 +481,30 @@ export function validateGsmNumber(gsmNumber: string | number): GsmValidationResu
     };
   }
 
-  // Clean the number - remove all non-digit characters
-  let cleanedNumber = originalNumber.replace(/[^\d]/g, '');
-  
-  // Handle different formats
-  if (cleanedNumber.startsWith('90')) {
-    // International format +90 or 90
-    cleanedNumber = cleanedNumber.substring(2);
-  } else if (cleanedNumber.startsWith('0')) {
-    // National format 0
-    cleanedNumber = cleanedNumber.substring(1);
-  }
-  
-  // Validate Turkish mobile number pattern
-  // Turkish mobile numbers start with 5 and are 10 digits total
-  const turkishMobilePattern = /^5[0-9]{9}$/;
-  
-  if (!turkishMobilePattern.test(cleanedNumber)) {
+  // Remove common spacing symbols
+  const cleanPhone = originalNumber.replace(/[\s\-()]/g, '');
+
+  // Check if it's purely digits (allowing a leading '+')
+  if (!/^\+?\d+$/.test(cleanPhone)) {
     return {
       isValid: false,
-      error: "Invalid Turkish GSM number format. Must be 10 digits starting with 5",
+      error: "Invalid phone number format",
       originalNumber
     };
   }
 
-  // Additional validation for known Turkish mobile operators
-  const operatorPrefixes = ['50', '51', '52', '53', '54', '55', '56', '57', '58', '59'];
-  const prefix = cleanedNumber.substring(0, 2);
-  
-  if (!operatorPrefixes.includes(prefix)) {
+  // Basic length verification
+  if (cleanPhone.replace('+', '').length < 5) {
     return {
       isValid: false,
-      error: "Invalid Turkish mobile operator prefix",
+      error: "Phone number is too short",
       originalNumber
     };
   }
 
   return {
     isValid: true,
-    cleanedNumber: `+90${cleanedNumber}`,
+    cleanedNumber: cleanPhone,
     originalNumber
   };
 }

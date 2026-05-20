@@ -420,19 +420,7 @@ describe("TapsilatSDK", () => {
   });
 
   describe("New Features", () => {
-    it("should terminate order term", async () => {
-      const request = { term_reference_id: "term_ref_123", reason: "reason" };
-      const mockResponse = { success: true, data: { success: true } };
-      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
 
-      const result = await sdk.terminateOrderTerm(request);
-
-      expect(mockHttpClient.post).toHaveBeenCalledWith(
-        "/order/term/terminate",
-        request
-      );
-      expect(result).toEqual(mockResponse.data);
-    });
 
     it("should trigger manual callback", async () => {
       const referenceId = "ref_123";

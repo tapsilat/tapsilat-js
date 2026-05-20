@@ -2,7 +2,7 @@ import { validateGsmNumber, validateInstallments } from "../utils/validators";
 
 describe("Extended Validators", () => {
   describe("validateGsmNumber", () => {
-    it("should validate Turkish GSM numbers correctly", () => {
+    it("should validate numbers correctly without enforcing a locale", () => {
       // Valid formats
       expect(validateGsmNumber("+90 555 123 45 67")).toEqual({
         isValid: true,
@@ -12,98 +12,50 @@ describe("Extended Validators", () => {
 
       expect(validateGsmNumber("0555 123 45 67")).toEqual({
         isValid: true,
-        cleanedNumber: "+905551234567",
+        cleanedNumber: "05551234567",
         originalNumber: "0555 123 45 67",
       });
 
       expect(validateGsmNumber("555 123 45 67")).toEqual({
         isValid: true,
-        cleanedNumber: "+905551234567",
+        cleanedNumber: "5551234567",
         originalNumber: "555 123 45 67",
       });
 
-      expect(validateGsmNumber("5551234567")).toEqual({
+      expect(validateGsmNumber("+1 415 555 2671")).toEqual({
         isValid: true,
-        cleanedNumber: "+905551234567",
-        originalNumber: "5551234567",
-      });
-
-      expect(validateGsmNumber("90 555 123 45 67")).toEqual({
-        isValid: true,
-        cleanedNumber: "+905551234567",
-        originalNumber: "90 555 123 45 67",
+        cleanedNumber: "+14155552671",
+        originalNumber: "+1 415 555 2671",
       });
     });
 
     it("should handle various formatting", () => {
       expect(validateGsmNumber("(555) 123-45-67")).toEqual({
         isValid: true,
-        cleanedNumber: "+905551234567",
+        cleanedNumber: "5551234567",
         originalNumber: "(555) 123-45-67",
       });
 
       expect(validateGsmNumber("555.123.45.67")).toEqual({
-        isValid: true,
-        cleanedNumber: "+905551234567",
-        originalNumber: "555.123.45.67",
-      });
-    });
-
-    it("should validate operator prefixes", () => {
-      // Valid operator prefixes
-      const validPrefixes = [
-        "50",
-        "51",
-        "52",
-        "53",
-        "54",
-        "55",
-        "56",
-        "57",
-        "58",
-        "59",
-      ];
-
-      validPrefixes.forEach((prefix) => {
-        expect(validateGsmNumber(`${prefix}12345678`)).toEqual({
-          isValid: true,
-          cleanedNumber: `+90${prefix}12345678`,
-          originalNumber: `${prefix}12345678`,
-        });
-      });
-
-      // Invalid operator prefix
-      expect(validateGsmNumber("4951234567")).toEqual({
         isValid: false,
-        error:
-          "Invalid Turkish GSM number format. Must be 10 digits starting with 5",
-        originalNumber: "4951234567",
+        error: "Invalid phone number format",
+        originalNumber: "555.123.45.67",
       });
     });
 
     it("should reject invalid numbers", () => {
       // Too short
-      expect(validateGsmNumber("555123")).toEqual({
+      expect(validateGsmNumber("123")).toEqual({
         isValid: false,
-        error:
-          "Invalid Turkish GSM number format. Must be 10 digits starting with 5",
-        originalNumber: "555123",
+        error: "Phone number is too short",
+        originalNumber: "123",
       });
 
-      // Too long
-      expect(validateGsmNumber("55512345678")).toEqual({
+      // Containing invalid alphabetic sequences
+      expect(validateGsmNumber("abc1234567")).toEqual({
         isValid: false,
-        error:
-          "Invalid Turkish GSM number format. Must be 10 digits starting with 5",
-        originalNumber: "55512345678",
-      });
-
-      // Doesn't start with 5
-      expect(validateGsmNumber("4551234567")).toEqual({
-        isValid: false,
-        error:
-          "Invalid Turkish GSM number format. Must be 10 digits starting with 5",
-        originalNumber: "4551234567",
+        error: "Invalid phone number format",
+        originalNumber: "abc1234567",
       });
 
       // Empty string
@@ -117,7 +69,7 @@ describe("Extended Validators", () => {
     it("should handle number input", () => {
       expect(validateGsmNumber(5551234567)).toEqual({
         isValid: true,
-        cleanedNumber: "+905551234567",
+        cleanedNumber: "5551234567",
         originalNumber: "5551234567",
       });
     });
