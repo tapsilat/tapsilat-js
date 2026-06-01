@@ -1,8 +1,13 @@
 import { TapsilatSDK } from "../TapsilatSDK";
 import {
   OrderCreateRequest,
+  GetOrderResponse,
+  GetOrdersResponse,
+  CancelOrderResponse,
   OrderAccountingRequest,
   OrderPostAuthRequest,
+  OrderPostAuthResponse,
+  GetSystemOrderStatusesResponse,
   SubscriptionRedirectRequest,
 } from "../types/index";
 import { HttpClient } from "../http/HttpClient";
@@ -90,9 +95,8 @@ describe("TapsilatSDK", () => {
       const mockResponse = {
         success: true,
         data: {
-          reference_id: "order-123",
           status: "COMPLETED",
-          lastUpdatedAt: "2024-01-15T10:30:00Z",
+          error_code: "",
         },
       };
 
@@ -108,19 +112,22 @@ describe("TapsilatSDK", () => {
     });
 
     it("should get order details successfully", async () => {
+      const mockData: GetOrderResponse = {
+        reference_id: "order-123",
+        amount: "150.75",
+        currency: "TRY",
+        status: 9,
+        status_enum: "Completed",
+        buyer: {
+          name: "John",
+          surname: "Doe",
+          email: "john-doe@example.com",
+        },
+      };
+
       const mockResponse = {
         success: true,
-        data: {
-          reference_id: "order-123",
-          amount: 150.75,
-          currency: "TRY",
-          status: "COMPLETED",
-          buyer: {
-            name: "John",
-            surname: "Doe",
-            email: "john-doe@example.com",
-          },
-        },
+        data: mockData,
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
@@ -128,35 +135,35 @@ describe("TapsilatSDK", () => {
       const order = await sdk.getOrder("order-123");
 
       expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123");
-      expect(order).toEqual(mockResponse.data);
+      expect(order).toEqual(mockData);
       expect(order.reference_id).toBe("order-123");
     });
 
     it("should list orders successfully", async () => {
+      const mockData: GetOrdersResponse = {
+        page: 1,
+        per_page: 10,
+        total: 2,
+        total_pages: 1,
+        rows: [
+          {
+            reference_id: "order-123",
+            total: "150.75",
+            status: 9,
+            checkout_url: "https://example.com/checkout/order-123",
+          },
+          {
+            reference_id: "order-456",
+            total: "299.99",
+            status: 2,
+            checkout_url: "https://example.com/checkout/order-456",
+          },
+        ],
+      };
+
       const mockResponse = {
         success: true,
-        data: {
-          data: [
-            {
-              reference_id: "order-123",
-              amount: 150.75,
-              currency: "TRY",
-              status: "COMPLETED",
-            },
-            {
-              reference_id: "order-456",
-              amount: 299.99,
-              currency: "TRY",
-              status: "PENDING",
-            },
-          ],
-          pagination: {
-            page: 1,
-            limit: 10,
-            total: 2,
-            pages: 1,
-          },
-        },
+        data: mockData,
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
@@ -166,17 +173,20 @@ describe("TapsilatSDK", () => {
       expect(mockHttpClient.get).toHaveBeenCalledWith("/order/list", {
         params: { page: 1, per_page: 10 },
       });
-      expect(orders).toEqual(mockResponse.data);
-      expect(orders.data).toHaveLength(2);
+      expect(orders).toEqual(mockData);
+      expect(orders.rows).toHaveLength(2);
     });
 
     it("should cancel order successfully", async () => {
+      const mockData: CancelOrderResponse = {
+        is_success: true,
+        message: "Order cancelled successfully",
+        status: "CANCELLED",
+      };
+
       const mockResponse = {
         success: true,
-        data: {
-          reference_id: "order-123",
-          status: "CANCELLED",
-        },
+        data: mockData,
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
@@ -186,7 +196,7 @@ describe("TapsilatSDK", () => {
       expect(mockHttpClient.post).toHaveBeenCalledWith("/order/cancel", {
         reference_id: "order-123",
       });
-      expect(cancelledOrder).toEqual(mockResponse.data);
+      expect(cancelledOrder).toEqual(mockData);
       expect(cancelledOrder.status).toBe("CANCELLED");
     });
 
@@ -227,7 +237,7 @@ describe("TapsilatSDK", () => {
 
       const mockResponse = {
         success: true,
-        data: { success: true },
+        data: { code: 200, message: "OK" },
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
@@ -247,9 +257,15 @@ describe("TapsilatSDK", () => {
         amount: 100.0,
       };
 
+      const mockData: OrderPostAuthResponse = {
+        code: 200,
+        is_success: true,
+        message: "OK",
+      };
+
       const mockResponse = {
         success: true,
-        data: { success: true },
+        data: mockData,
       };
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
@@ -260,13 +276,21 @@ describe("TapsilatSDK", () => {
         "/order/postauth",
         request
       );
-      expect(result).toEqual(mockResponse.data);
+      expect(result).toEqual(mockData);
     });
 
     it("should retrieve system order statuses successfully", async () => {
+      const mockData: GetSystemOrderStatusesResponse = {
+        rows: [
+          { code: 1, message: "CREATED" },
+          { code: 2, message: "FAILED" },
+          { code: 3, message: "COMPLETED" },
+        ],
+      };
+
       const mockResponse = {
         success: true,
-        data: ["CREATED", "FAILED", "COMPLETED"],
+        data: mockData,
       };
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
@@ -274,7 +298,7 @@ describe("TapsilatSDK", () => {
       const result = await sdk.getSystemOrderStatuses();
 
       expect(mockHttpClient.get).toHaveBeenCalledWith("/system/order-statuses");
-      expect(result).toEqual(mockResponse.data);
+      expect(result).toEqual(mockData);
     });
   });
 
@@ -354,6 +378,36 @@ describe("TapsilatSDK", () => {
       await expect(sdk.orderPostAuth(request)).rejects.toThrow(
         "Amount must be a positive number"
       );
+    });
+
+    it("should validate order listing page as integer", async () => {
+      await expect(
+        sdk.getOrders({ page: 1.5, per_page: 10 })
+      ).rejects.toThrow("Page number must be an integer");
+    });
+
+    it("should validate order listing per_page as positive", async () => {
+      await expect(
+        sdk.getOrders({ page: 1, per_page: 0 })
+      ).rejects.toThrow("Items per page must be greater than 0");
+    });
+
+    it("should validate order listing status as integer", async () => {
+      await expect(
+        sdk.getOrders({ status: 2.5 })
+      ).rejects.toThrow("Status must be an integer");
+    });
+
+    it("should validate cancel order reference id", async () => {
+      await expect(
+        sdk.cancelOrder("")
+      ).rejects.toThrow("Order referenceId is required");
+    });
+
+    it("should validate order status reference id", async () => {
+      await expect(
+        sdk.getOrderStatus("")
+      ).rejects.toThrow("Order referenceId is required");
     });
   });
 
@@ -443,7 +497,7 @@ describe("TapsilatSDK", () => {
       const result = await sdk.orderManualCallback(referenceId, conversationId);
 
       expect(mockHttpClient.post).toHaveBeenCalledWith(
-        "/order/manual-callback",
+        "/order/callback",
         {
           reference_id: referenceId,
           conversation_id: conversationId,
@@ -456,15 +510,15 @@ describe("TapsilatSDK", () => {
       const referenceId = "ref_123";
       const relatedReferenceId = "rel_ref_123";
       const mockResponse = { success: true, data: { success: true } };
-      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+      mockHttpClient.patch.mockResolvedValueOnce(mockResponse);
 
       const result = await sdk.orderRelatedUpdate(
         referenceId,
         relatedReferenceId
       );
 
-      expect(mockHttpClient.post).toHaveBeenCalledWith(
-        "/order/related-update",
+      expect(mockHttpClient.patch).toHaveBeenCalledWith(
+        "/order/releated",
         {
           reference_id: referenceId,
           related_reference_id: relatedReferenceId,
