@@ -31,12 +31,7 @@ export interface TapsilatConfig {
  * @description Defines all available payment options that customers can use during checkout
  * @typedef {string} PaymentMethod
  */
-export type PaymentMethod =
-  | "credit_card"
-  | "debit_card"
-  | "bank_transfer"
-  | "digital_wallet"
-  | "crypto";
+export type PaymentMethod = "credit_card" | "debit_card" | "bank_transfer" | "digital_wallet" | "crypto";
 
 // PAYMENT STATUS
 // Summary: Possible states of a payment throughout its lifecycle
@@ -47,13 +42,7 @@ export type PaymentMethod =
  * @description Defines all states a payment can be in from creation to completion or failure
  * @typedef {string} PaymentStatus
  */
-export type PaymentStatus =
-  | "pending"
-  | "processing"
-  | "completed"
-  | "failed"
-  | "cancelled"
-  | "refunded";
+export type PaymentStatus = "pending" | "processing" | "completed" | "failed" | "cancelled" | "refunded";
 
 // CURRENCY TYPES
 // Summary: Supported currency codes for transactions
@@ -1777,4 +1766,114 @@ export interface OrderPostAuthResponse {
   code?: number;
   is_success?: boolean;
   message?: string;
+}
+
+export interface OrderPaymentOptionsUpdateDTO {
+  payment_options: string[];
+  reference_id: string;
+}
+
+export interface SplitOrderItemPaymentDTO {
+  amount: number;
+  order_id: string;
+  order_item_payment_id: string;
+}
+
+export interface OrderCallbackResponse {
+  [key: string]: unknown;
+}
+
+export interface OrderVposQueryResponse {
+  [key: string]: unknown;
+}
+
+export interface OrganizationCurrencyPreset {
+  id?: string;
+  name?: string;
+  code?: string;
+  [key: string]: unknown;
+}
+
+export interface GetOrganizationCurrencyPresetsResponse {
+  presets?: OrganizationCurrencyPreset[];
+}
+
+export interface GetSuborganizationDetailsResponse {
+  [key: string]: unknown;
+}
+
+export interface GetSuborganizationSubmerchantsResponse {
+  [key: string]: unknown;
+}
+
+export interface SystemBasketItemType {
+  code?: string | number;
+  message?: string;
+}
+
+export interface GetSystemBasketItemTypesResponse {
+  rows?: SystemBasketItemType[];
+}
+
+export interface SystemErrorCode {
+  code?: string | number;
+  message?: string;
+}
+
+export interface GetSystemErrorCodesResponse {
+  rows?: SystemErrorCode[];
+}
+
+export interface SystemPaymentTermStatus {
+  code?: string | number;
+  message?: string;
+}
+
+export interface GetSystemPaymentTermStatusesResponse {
+  rows?: SystemPaymentTermStatus[];
+}
+
+export interface SystemProductType {
+  code?: string | number;
+  message?: string;
+}
+
+export interface GetSystemProductTypesResponse {
+  rows?: SystemProductType[];
+}
+
+export interface SystemShortcutType {
+  code?: string | number;
+  message?: string;
+}
+
+export interface GetSystemShortcutTypesResponse {
+  rows?: SystemShortcutType[];
+}
+
+export interface SystemTransactionPaymentType {
+  code?: string | number;
+  message?: string;
+}
+
+export interface GetSystemTransactionPaymentTypesResponse {
+  rows?: SystemTransactionPaymentType[];
+}
+
+export interface SystemTransactionPurpose {
+  code?: string | number;
+  message?: string;
+}
+
+export interface GetSystemTransactionPurposesResponse {
+  rows?: SystemTransactionPurpose[];
+}
+
+export interface SystemTransactionStatus {
+  code?: string | number;
+  message?: string;
+}
+
+export interface GetSystemTransactionStatusesResponse {
+  rows?: SystemTransactionStatus[];
 }
