@@ -86,6 +86,21 @@ import {
   OrgUserMobileVerifyRequest,
   OrgUserMobileVerifyResponse,
   CancelSubscriptionResponse,
+  OrderPaymentOptionsUpdateDTO,
+  SplitOrderItemPaymentDTO,
+  OrderCallbackResponse,
+  OrderVposQueryResponse,
+  GetOrganizationCurrencyPresetsResponse,
+  GetSuborganizationDetailsResponse,
+  GetSuborganizationSubmerchantsResponse,
+  GetSystemBasketItemTypesResponse,
+  GetSystemErrorCodesResponse,
+  GetSystemPaymentTermStatusesResponse,
+  GetSystemProductTypesResponse,
+  GetSystemShortcutTypesResponse,
+  GetSystemTransactionPaymentTypesResponse,
+  GetSystemTransactionPurposesResponse,
+  GetSystemTransactionStatusesResponse,
 } from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
@@ -160,7 +175,12 @@ export class TapsilatSDK {
       status: (referenceId: string) => this.getOrderStatus(referenceId),
       refund: (request: OrderRefundRequest) => this.refundOrder(request),
       refundAll: (referenceId: string) => this.refundAllOrder(referenceId),
-      paymentDetails: (referenceId: string, conversationId?: string) => this.getOrderPaymentDetails(referenceId, conversationId),
+      paymentDetails: (request: OrderPaymentDetailDTO) => this.getOrderPaymentDetails(request),
+      paymentDetailsById: (referenceId: string) => this.getOrderPaymentDetailsById(referenceId),
+      callback: (id: string) => this.orderCallback(id),
+      updatePaymentOptions: (request: OrderPaymentOptionsUpdateDTO) => this.updatePaymentOptions(request),
+      splitItemPayment: (request: SplitOrderItemPaymentDTO) => this.splitOrderItemPayment(request),
+      vposQuery: (id: string) => this.orderVposQuery(id),
       byConversationId: (conversationId: string) => this.getOrderByConversationId(conversationId),
       transactions: (referenceId: string) => this.getOrderTransactions(referenceId),
       submerchants: (
@@ -221,6 +241,27 @@ export class TapsilatSDK {
       verifyUser: (request: OrgUserVerifyRequest) => this.verifyOrganizationUser(request),
       verifyUserMobile: (request: OrgUserMobileVerifyRequest) => this.verifyOrganizationUserMobile(request),
       listVpos: (request: GetVposRequest) => this.listOrganizationVpos(request),
+      currencyPresets: () => this.getOrganizationCurrencyPresets(),
+      suborganizationDetails: (id: string) => this.getOrganizationSuborganizationDetails(id),
+      suborganizationSubmerchants: (id: string) => this.getOrganizationSuborganizationSubmerchants(id),
+    };
+  }
+
+  /**
+   * Access to system operations
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get system(): any {
+    return {
+      orderStatuses: () => this.getSystemOrderStatuses(),
+      basketItemTypes: () => this.getSystemBasketItemTypes(),
+      errorCodes: () => this.getSystemErrorCodes(),
+      paymentTermStatuses: () => this.getSystemPaymentTermStatuses(),
+      productTypes: () => this.getSystemProductTypes(),
+      shortcutTypes: () => this.getSystemShortcutTypes(),
+      transactionPaymentTypes: () => this.getSystemTransactionPaymentTypes(),
+      transactionPurposes: () => this.getSystemTransactionPurposes(),
+      transactionStatuses: () => this.getSystemTransactionStatuses(),
     };
   }
 
@@ -476,6 +517,110 @@ export class TapsilatSDK {
       return handleResponse(getSystemOrderStatusesResponse, "Get system order statuses");
     } catch (error: unknown) {
       return handleError(error, "get system order statuses");
+    }
+  }
+
+  /**
+   * Retrieves system basket item types.
+   * Based on `get_system_basket_item_types` from Python SDK.
+   */
+  async getSystemBasketItemTypes(): Promise<GetSystemBasketItemTypesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemBasketItemTypesResponse>("/system/basket-item-types");
+      return handleResponse(response, "Get system basket item types");
+    } catch (error: unknown) {
+      return handleError(error, "get system basket item types");
+    }
+  }
+
+  /**
+   * Retrieves system error codes.
+   * Based on `get_system_error_codes` from Python SDK.
+   */
+  async getSystemErrorCodes(): Promise<GetSystemErrorCodesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemErrorCodesResponse>("/system/error-codes");
+      return handleResponse(response, "Get system error codes");
+    } catch (error: unknown) {
+      return handleError(error, "get system error codes");
+    }
+  }
+
+  /**
+   * Retrieves system payment term statuses.
+   * Based on `get_system_payment_term_statuses` from Python SDK.
+   */
+  async getSystemPaymentTermStatuses(): Promise<GetSystemPaymentTermStatusesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemPaymentTermStatusesResponse>("/system/payment-term-statuses");
+      return handleResponse(response, "Get system payment term statuses");
+    } catch (error: unknown) {
+      return handleError(error, "get system payment term statuses");
+    }
+  }
+
+  /**
+   * Retrieves system product types.
+   * Based on `get_system_product_types` from Python SDK.
+   */
+  async getSystemProductTypes(): Promise<GetSystemProductTypesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemProductTypesResponse>("/system/product-types");
+      return handleResponse(response, "Get system product types");
+    } catch (error: unknown) {
+      return handleError(error, "get system product types");
+    }
+  }
+
+  /**
+   * Retrieves system shortcut types.
+   * Based on `get_system_shortcut_types` from Python SDK.
+   */
+  async getSystemShortcutTypes(): Promise<GetSystemShortcutTypesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemShortcutTypesResponse>("/system/shortcut-types");
+      return handleResponse(response, "Get system shortcut types");
+    } catch (error: unknown) {
+      return handleError(error, "get system shortcut types");
+    }
+  }
+
+  /**
+   * Retrieves system transaction payment types.
+   * Based on `get_system_transaction_payment_types` from Python SDK.
+   */
+  async getSystemTransactionPaymentTypes(): Promise<GetSystemTransactionPaymentTypesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemTransactionPaymentTypesResponse>("/system/transaction-payment-types");
+      return handleResponse(response, "Get system transaction payment types");
+    } catch (error: unknown) {
+      return handleError(error, "get system transaction payment types");
+    }
+  }
+
+  /**
+   * Retrieves system transaction purposes.
+   * Based on `get_system_transaction_purposes` from Python SDK.
+   */
+  async getSystemTransactionPurposes(): Promise<GetSystemTransactionPurposesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemTransactionPurposesResponse>("/system/transaction-purposes");
+      return handleResponse(response, "Get system transaction purposes");
+    } catch (error: unknown) {
+      return handleError(error, "get system transaction purposes");
+    }
+  }
+
+  /**
+   * Retrieves system transaction statuses.
+   * Based on `get_system_transaction_statuses` from Python SDK.
+   */
+  async getSystemTransactionStatuses(): Promise<GetSystemTransactionStatusesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemTransactionStatusesResponse>("/system/transaction-statuses");
+      return handleResponse(response, "Get system transaction statuses");
+    } catch (error: unknown) {
+      return handleError(error, "get system transaction statuses");
     }
   }
 
@@ -806,21 +951,29 @@ export class TapsilatSDK {
   // Summary: Retrieve detailed payment transaction information for an order
   // Description: Gets payment method, amount, status, and card info for order transactions
   /**
-   * Retrieves the payment details for an order.
+   * Retrieves the payment details for an order via POST request.
    * Based on `get_order_payment_details` from the Python SDK.
-   *
-   * @summary Retrieve detailed payment transaction information for an order
-   * @description Gets payment method, amount, status, and card info for order transactions.
-   *
-   * @param referenceId - The unique identifier of the order.
-   * @param conversationId - Optional conversation ID for more specific querying.
-   * @returns Promise resolving to the order payment detail response payload.
-   * @throws {TapsilatValidationError} When referenceId is invalid
-   * @throws {TapsilatError} When API returns an error response or payment details are missing
    */
   async getOrderPaymentDetails(
-    referenceId: string,
-    conversationId?: string
+    request: OrderPaymentDetailDTO
+  ): Promise<GetOrderPaymentDetailsResponse> {
+    try {
+      const getOrderPaymentDetailsResponse = await this.httpClient.post<GetOrderPaymentDetailsResponse>(
+        "/order/payment-details",
+        request
+      );
+      return handleResponse(getOrderPaymentDetailsResponse, "Order payment details");
+    } catch (error: unknown) {
+      return handleError(error, "order payment details");
+    }
+  }
+
+  /**
+   * Retrieves the payment details for an order by ID.
+   * Based on `get_order_payment_details_by_id` from the Python SDK.
+   */
+  async getOrderPaymentDetailsById(
+    referenceId: string
   ): Promise<GetOrderPaymentDetailsResponse> {
     if (!isNonEmptyString(referenceId))
       throw new TapsilatValidationError(
@@ -828,35 +981,92 @@ export class TapsilatSDK {
       );
 
     try {
-      const getOrderPaymentDetailsResponse = conversationId
-        ? await this.httpClient.post<GetOrderPaymentDetailsResponse>(
-          "/order/payment-details",
-          <OrderPaymentDetailDTO>{
-            conversation_id: conversationId,
-            reference_id: referenceId,
-          }
-        )
-        : await this.httpClient.get<GetOrderPaymentDetailsResponse>(
-          `/order/${referenceId}/payment-details`
-        );
-
-      if (!getOrderPaymentDetailsResponse.success)
-        throw new TapsilatError(
-          getOrderPaymentDetailsResponse.error?.message ||
-          "Payment details API call failed",
-          getOrderPaymentDetailsResponse.error?.code ||
-          "PAYMENT_DETAILS_API_FAILED"
-        );
-
-      if (!getOrderPaymentDetailsResponse.data)
-        throw new TapsilatError(
-          "Payment details response data is missing",
-          "PAYMENT_DETAILS_DATA_MISSING"
-        );
-
-      return getOrderPaymentDetailsResponse.data;
+      const getOrderPaymentDetailsResponse = await this.httpClient.get<GetOrderPaymentDetailsResponse>(
+        `/order/${referenceId}/payment-details`
+      );
+      return handleResponse(getOrderPaymentDetailsResponse, "Order payment details by id");
     } catch (error: unknown) {
-      return handleError(error, "order payment details");
+      return handleError(error, "order payment details by id");
+    }
+  }
+
+  /**
+   * Retrieves the order callback via GET request.
+   * Based on `order_callback` from the Python SDK.
+   */
+  async orderCallback(
+    id: string
+  ): Promise<OrderCallbackResponse> {
+    if (!isNonEmptyString(id))
+      throw new TapsilatValidationError(
+        "ID is required and must be a non-empty string"
+      );
+
+    try {
+      const response = await this.httpClient.get<OrderCallbackResponse>(
+        `/orders/${id}/callback`
+      );
+      return handleResponse(response, "Order callback");
+    } catch (error: unknown) {
+      return handleError(error, "order callback");
+    }
+  }
+
+  /**
+   * Updates payment options for an order.
+   * Based on `update_payment_options` from the Python SDK.
+   */
+  async updatePaymentOptions(
+    request: OrderPaymentOptionsUpdateDTO
+  ): Promise<OrderRelatedUpdateResponse> {
+    try {
+      const response = await this.httpClient.patch<OrderRelatedUpdateResponse>(
+        "/order/payment-options",
+        request
+      );
+      return handleResponse(response, "Update payment options");
+    } catch (error: unknown) {
+      return handleError(error, "update payment options");
+    }
+  }
+
+  /**
+   * Splits order item payment.
+   * Based on `split_order_item_payment` from the Python SDK.
+   */
+  async splitOrderItemPayment(
+    request: SplitOrderItemPaymentDTO
+  ): Promise<OrderRelatedUpdateResponse> {
+    try {
+      const response = await this.httpClient.post<OrderRelatedUpdateResponse>(
+        "/order/split",
+        request
+      );
+      return handleResponse(response, "Split order item payment");
+    } catch (error: unknown) {
+      return handleError(error, "split order item payment");
+    }
+  }
+
+  /**
+   * Queries vpos for an order.
+   * Based on `order_vpos_query` from the Python SDK.
+   */
+  async orderVposQuery(
+    id: string
+  ): Promise<OrderVposQueryResponse> {
+    if (!isNonEmptyString(id))
+      throw new TapsilatValidationError(
+        "ID is required and must be a non-empty string"
+      );
+
+    try {
+      const response = await this.httpClient.get<OrderVposQueryResponse>(
+        `/orders/${id}/vpos-query`
+      );
+      return handleResponse(response, "Order vpos query");
+    } catch (error: unknown) {
+      return handleError(error, "order vpos query");
     }
   }
 
@@ -1633,6 +1843,57 @@ export class TapsilatSDK {
       return handleResponse(organizationCurrenciesResponse, "Get organization currencies");
     } catch (error: unknown) {
       return handleError(error, "get organization currencies");
+    }
+  }
+
+  /**
+   * Retrieves organization currency presets.
+   * Based on `get_organization_currency_presets` from Python SDK.
+   */
+  async getOrganizationCurrencyPresets(): Promise<GetOrganizationCurrencyPresetsResponse> {
+    try {
+      const response = await this.httpClient.get<GetOrganizationCurrencyPresetsResponse>(
+        "/organization/currency-presets"
+      );
+      return handleResponse(response, "Get organization currency presets");
+    } catch (error: unknown) {
+      return handleError(error, "get organization currency presets");
+    }
+  }
+
+  /**
+   * Retrieves organization suborganization details.
+   * Based on `get_organization_suborganization_details` from Python SDK.
+   */
+  async getOrganizationSuborganizationDetails(id: string): Promise<GetSuborganizationDetailsResponse> {
+    if (!isNonEmptyString(id))
+      throw new TapsilatValidationError("ID is required and must be a non-empty string");
+
+    try {
+      const response = await this.httpClient.get<GetSuborganizationDetailsResponse>(
+        `/organization/suborganizations/${id}`
+      );
+      return handleResponse(response, "Get suborganization details");
+    } catch (error: unknown) {
+      return handleError(error, "get suborganization details");
+    }
+  }
+
+  /**
+   * Retrieves organization suborganization submerchants.
+   * Based on `get_organization_suborganization_submerchants` from Python SDK.
+   */
+  async getOrganizationSuborganizationSubmerchants(id: string): Promise<GetSuborganizationSubmerchantsResponse> {
+    if (!isNonEmptyString(id))
+      throw new TapsilatValidationError("ID is required and must be a non-empty string");
+
+    try {
+      const response = await this.httpClient.get<GetSuborganizationSubmerchantsResponse>(
+        `/organization/suborganizations/${id}/submerchant`
+      );
+      return handleResponse(response, "Get suborganization submerchants");
+    } catch (error: unknown) {
+      return handleError(error, "get suborganization submerchants");
     }
   }
 

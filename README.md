@@ -107,6 +107,8 @@ This JavaScript SDK provides full feature parity with Tapsilat's Python and .NET
 |-----------------|------------|--------|------|
 | Order Management | Yes | Yes | Yes |
 | Payment Terms | Yes | Yes | Yes |
+| System Utilities | Yes | Yes | Yes |
+| Organization | Yes | Yes | Yes |
 | GSM Validation | Yes | Yes | Yes |
 | Installment Validation | Yes | Yes | Yes |
 | Webhook Verification | Yes | No | No |
@@ -426,6 +428,31 @@ if (!invalid.isValid) {
 ```typescript
 const settings = await tapsilat.getOrganizationSettings();
 console.log('Organization Settings:', settings);
+```
+
+#### Get Currency Presets
+```typescript
+const presets = await tapsilat.getOrganizationCurrencyPresets();
+console.log('Available currencies:', presets);
+```
+
+#### Get Suborganization Details
+```typescript
+const suborg = await tapsilat.getOrganizationSuborganizationDetails('suborg-id');
+console.log('Suborganization Name:', suborg.name);
+```
+
+### System Utilities
+
+#### Get System Endpoints
+```typescript
+// Fetch various system configurations
+const errorCodes = await tapsilat.getSystemErrorCodes();
+const productTypes = await tapsilat.getSystemProductTypes();
+const transactionStatuses = await tapsilat.getSystemTransactionStatuses();
+const basketItemTypes = await tapsilat.getSystemBasketItemTypes();
+
+console.log('Available Error Codes:', errorCodes.rows);
 ```
 
 ### Manual Operations
