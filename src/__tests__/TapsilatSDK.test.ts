@@ -636,5 +636,117 @@ describe("TapsilatSDK", () => {
       );
       expect(result).toEqual(mockResponse.data);
     });
+
+    it("should get order payment details by id", async () => {
+      const mockResponse = { success: true, data: { status: "COMPLETED" } };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getOrderPaymentDetailsById("ref_123");
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/order/ref_123/payment-details");
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should trigger order callback", async () => {
+      const mockResponse = { success: true, data: { success: true } };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.orderCallback("ref_123");
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/orders/ref_123/callback");
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should update payment options", async () => {
+      const mockResponse = { success: true, data: { success: true } };
+      mockHttpClient.patch.mockResolvedValueOnce(mockResponse);
+
+      const request = { reference_id: "ref_123", payment_options: ["3D"] };
+      const result = await sdk.updatePaymentOptions(request);
+
+      expect(mockHttpClient.patch).toHaveBeenCalledWith("/order/payment-options", request);
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should split order item payment", async () => {
+      const mockResponse = { success: true, data: { success: true } };
+      mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+      const request = { amount: 10, order_id: "order_123", order_item_payment_id: "item_1" };
+      const result = await sdk.splitOrderItemPayment(request);
+
+      expect(mockHttpClient.post).toHaveBeenCalledWith("/order/split", request);
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should vpos query order", async () => {
+      const mockResponse = { success: true, data: { status: "SUCCESS" } };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.orderVposQuery("ref_123");
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/orders/ref_123/vpos-query");
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should get organization currency presets", async () => {
+      const mockResponse = { success: true, data: [{ code: "TRY" }] };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getOrganizationCurrencyPresets();
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/currency-presets");
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should get suborganization details", async () => {
+      const mockResponse = { success: true, data: { name: "SubOrg" } };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getOrganizationSuborganizationDetails("sub_org_1");
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/suborganizations/sub_org_1");
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should get suborganization submerchants", async () => {
+      const mockResponse = { success: true, data: { data: [] } };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getOrganizationSuborganizationSubmerchants("sub_org_1");
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/suborganizations/sub_org_1/submerchant");
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should get system endpoints correctly", async () => {
+      const mockResponse = { success: true, data: { rows: [] } };
+      
+      mockHttpClient.get.mockResolvedValue(mockResponse);
+
+      await sdk.getSystemBasketItemTypes();
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/basket-item-types");
+
+      await sdk.getSystemErrorCodes();
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/error-codes");
+
+      await sdk.getSystemPaymentTermStatuses();
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/payment-term-statuses");
+
+      await sdk.getSystemProductTypes();
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/product-types");
+
+      await sdk.getSystemShortcutTypes();
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/shortcut-types");
+
+      await sdk.getSystemTransactionPaymentTypes();
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/transaction-payment-types");
+
+      await sdk.getSystemTransactionPurposes();
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/transaction-purposes");
+
+      await sdk.getSystemTransactionStatuses();
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/system/transaction-statuses");
+    });
   });
 });
