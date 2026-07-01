@@ -1947,7 +1947,7 @@ export class TapsilatSDK {
     }
     try {
       const organizationMetaResponse = await this.httpClient.get<GetMetaResponse>(
-        `/organization/meta/${name}`
+        `/organization/metas/${name}`
       );
       return handleResponse(organizationMetaResponse, "Get organization meta");
     } catch (error: unknown) {

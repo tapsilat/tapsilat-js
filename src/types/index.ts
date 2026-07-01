@@ -722,6 +722,9 @@ export interface BuyerDTO {
   registration_date?: string;
   title?: string;
   zip_code?: string;
+  income_type?: string;
+  education?: string;
+  occupation?: string;
 }
 
 /**
@@ -737,6 +740,11 @@ export interface BasketItemPayerDTO {
   title?: string;
   type?: string;
   vat?: string;
+  name?: string;
+  surname?: string;
+  identity_number?: string;
+  email?: string;
+  phone?: string;
 }
 
 /**
