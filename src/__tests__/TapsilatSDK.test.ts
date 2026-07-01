@@ -168,10 +168,10 @@ describe("TapsilatSDK", () => {
 
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
 
-      const orders = await sdk.getOrders({ page: 1, per_page: 10 });
+      const orders = await sdk.getOrders({ page: 1, per_page: 10, buyer_id: "buy_1", status: 1 });
 
       expect(mockHttpClient.get).toHaveBeenCalledWith("/order/list", {
-        params: { page: 1, per_page: 10 },
+        params: { page: 1, per_page: 10, buyer_id: "buy_1", status: 1 },
       });
       expect(orders).toEqual(mockData);
       expect(orders.rows).toHaveLength(2);
@@ -534,6 +534,16 @@ describe("TapsilatSDK", () => {
       const result = await sdk.getOrganizationSettings();
 
       expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/settings");
+      expect(result).toEqual(mockResponse.data);
+    });
+
+    it("should get organization meta", async () => {
+      const mockResponse = { success: true, data: { meta: "value" } };
+      mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+      const result = await sdk.getOrganizationMeta("my_meta");
+
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/metas/my_meta");
       expect(result).toEqual(mockResponse.data);
     });
 
