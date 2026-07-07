@@ -326,6 +326,51 @@ const terminatedOrder = await tapsilat.terminateOrder({
 console.log('Order terminated at:', terminatedOrder.terminated_at);
 ```
 
+### Submerchant Management
+
+#### Create Submerchant
+```typescript
+const submerchant = await tapsilat.submerchant.create({
+  name: "Test Submerchant",
+  email: "submerchant@example.com",
+  address: "Istanbul, Turkey",
+  city: "Istanbul",
+  country: "Turkey",
+  gsm_number: "5555555555",
+  iban: "TR123456789012345678901234",
+  identity_number: "11111111111",
+  contact_name: "Test",
+  contact_surname: "Sub",
+  sub_merchant_type: "PERSONAL",
+  tax_office: "Test Office",
+  zip_code: "34000"
+});
+console.log('Submerchant created:', submerchant.id);
+```
+
+#### List Submerchants
+```typescript
+const submerchants = await tapsilat.submerchant.list(1, 10);
+submerchants.data.forEach(sub => {
+  console.log(`Submerchant: ${sub.name}`);
+});
+```
+
+### Document Downloads
+
+#### Download Order PDF
+```typescript
+const pdfBlob = await tapsilat.orders.getPdf('order-reference-id');
+// For browsers, you can create an object URL to download the Blob:
+// const url = URL.createObjectURL(pdfBlob);
+// window.open(url);
+```
+
+#### Download Order Excel
+```typescript
+const excelBlob = await tapsilat.orders.getExcel('order-reference-id');
+```
+
 ### Subscription Management
 
 #### Create Subscription
