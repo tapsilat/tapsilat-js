@@ -1886,8 +1886,6 @@ export interface GetSystemTransactionStatusesResponse {
   rows?: SystemTransactionStatus[];
 }
 
-// --- NEW TYPES (Synced from Python SDK) ---
-
 // Order Payments
 export interface GetOrderPaymentsRequest {
   order_id: string;
@@ -1895,15 +1893,7 @@ export interface GetOrderPaymentsRequest {
 
 export interface GetOrderPaymentsResponse {
   // Add specific fields if available from API, otherwise loosely typed
-  [key: string]: any; 
-}
-
-// Order Refund Request (Reusing OrderRefundRequest but exporting a DTO if needed)
-export interface RefundOrderDTO {
-  amount: number;
-  reference_id: string;
-  order_item_id?: string;
-  order_item_payment_id?: string;
+  [key: string]: unknown;
 }
 
 // Order OIP
@@ -1916,7 +1906,7 @@ export interface OrderOIPDTO {
 }
 
 export interface OrderOIPResponse {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 // Submerchant DTOs
@@ -1938,14 +1928,14 @@ export interface SubmerchantCreateDTO {
   iban_name?: string;
 }
 
-export interface SubmerchantUpdateDTO extends Partial<SubmerchantCreateDTO> {}
+export type SubmerchantUpdateDTO = Partial<SubmerchantCreateDTO>;
 
 export interface GetSubmerchantResponse {
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface ListSubmerchantsResponse {
-  data?: any[];
+  data?: unknown[];
   total?: number;
   page?: number;
   per_page?: number;
@@ -1956,11 +1946,11 @@ export interface OrgUserTokenCreateReq {
   email: string;
   expire?: number;
   language?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
   title?: string;
   type?: string;
 }
 
 export interface OrgUserTokenCreateResponse {
-  [key: string]: any;
+  [key: string]: unknown;
 }

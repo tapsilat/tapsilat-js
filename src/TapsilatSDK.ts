@@ -2360,9 +2360,9 @@ export class TapsilatSDK {
    * @param id - Submerchant ID
    * @returns Promise resolving to suborganization details
    */
-  async getSuborganizationBySubmerchant(id: string): Promise<any> {
+  async getSuborganizationBySubmerchant(id: string): Promise<unknown> {
     try {
-      const response = await this.httpClient.get<any>(
+      const response = await this.httpClient.get<unknown>(
         `/submerchants/${id}/suborganization`
       );
       return handleResponse(response, "Get suborganization by submerchant");
@@ -2410,9 +2410,9 @@ export class TapsilatSDK {
    * @param id - Submerchant ID
    * @returns Promise resolving to deletion status
    */
-  async deleteSubmerchant(id: string): Promise<any> {
+  async deleteSubmerchant(id: string): Promise<unknown> {
     try {
-      const response = await this.httpClient.delete<any>(
+      const response = await this.httpClient.delete<unknown>(
         `/submerchants/${id}`
       );
       return handleResponse(response, "Delete submerchant");
@@ -2437,7 +2437,7 @@ export class TapsilatSDK {
    */
   async listSubmerchants(page?: number, perPage?: number): Promise<ListSubmerchantsResponse> {
     try {
-      const params: Record<string, any> = {};
+      const params: Record<string, unknown> = {};
       if (page) params.page = page;
       if (perPage) params.per_page = perPage;
 
