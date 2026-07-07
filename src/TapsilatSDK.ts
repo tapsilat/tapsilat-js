@@ -93,6 +93,17 @@ import {
   GetOrganizationCurrencyPresetsResponse,
   GetSuborganizationDetailsResponse,
   GetSuborganizationSubmerchantsResponse,
+  GetOrderPaymentsRequest,
+  GetOrderPaymentsResponse,
+  OrderOIPDTO,
+  OrderOIPResponse,
+  SubmerchantCreateDTO,
+  SubmerchantUpdateDTO,
+  GetSubmerchantResponse,
+  ListSubmerchantsResponse,
+  OrgUserTokenCreateReq,
+  OrgUserTokenCreateResponse,
+  RefundOrderDTO,
   GetSystemBasketItemTypesResponse,
   GetSystemErrorCodesResponse,
   GetSystemPaymentTermStatusesResponse,
@@ -201,6 +212,11 @@ export class TapsilatSDK {
       getTerm: (termReferenceId: string) => this.getOrderTerm(termReferenceId),
       terminateTerm: (request: PaymentTermTerminateRequest) => this.terminateOrderTerm(request),
       terminate: (request: OrderTerminateRequest) => this.terminateOrder(request),
+      getPayments: (request: GetOrderPaymentsRequest) => this.getOrderPayments(request),
+      getPdf: (id: string) => this.getOrderPdf(id),
+      getExcel: (id: string) => this.getOrderExcel(id),
+      createRefundRequest: (request: RefundOrderDTO) => this.createOrderRefundRequest(request),
+      addOip: (request: OrderOIPDTO) => this.addOrderOip(request),
     };
   }
 
@@ -244,6 +260,22 @@ export class TapsilatSDK {
       currencyPresets: () => this.getOrganizationCurrencyPresets(),
       suborganizationDetails: (id: string) => this.getOrganizationSuborganizationDetails(id),
       suborganizationSubmerchants: (id: string) => this.getOrganizationSuborganizationSubmerchants(id),
+      createUserToken: (request: OrgUserTokenCreateReq) => this.createOrganizationUserToken(request),
+    };
+  }
+
+  /**
+   * Access to submerchant operations
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get submerchant(): any {
+    return {
+      create: (request: SubmerchantCreateDTO) => this.createSubmerchant(request),
+      get: (id: string) => this.getSubmerchant(id),
+      getSuborganization: (id: string) => this.getSuborganizationBySubmerchant(id),
+      update: (id: string, request: SubmerchantUpdateDTO) => this.updateSubmerchant(id, request),
+      delete: (id: string) => this.deleteSubmerchant(id),
+      list: (page?: number, perPage?: number) => this.listSubmerchants(page, perPage),
     };
   }
 
@@ -2139,6 +2171,308 @@ export class TapsilatSDK {
       return data;
     } catch (error: unknown) {
       return handleError(error, "redirect subscription");
+    }
+  }
+
+  // ORDER PAYMENTS
+  // Summary: Get payments for an order
+  // Description: Retrieve a list of payments made for a specific order.
+  /**
+   * Gets payments for an order.
+   * Based on `get_order_payments` from the Python SDK.
+   *
+   * @summary Get order payments
+   * @description Retrieve a list of payments made for a specific order.
+   *
+   * @param request - Order payments request containing order_id
+   * @returns Promise resolving to order payments
+   */
+  async getOrderPayments(request: GetOrderPaymentsRequest): Promise<GetOrderPaymentsResponse> {
+    try {
+      const response = await this.httpClient.get<GetOrderPaymentsResponse>(
+        `/order/${request.order_id}/payment`
+      );
+      return handleResponse(response, "Get order payments");
+    } catch (error) {
+      return handleError(error, "get order payments");
+    }
+  }
+
+  // ORDER PDF
+  // Summary: Download order PDF
+  // Description: Download order as a PDF file.
+  /**
+   * Downloads order PDF.
+   * Based on `get_order_pdf` from the Python SDK.
+   *
+   * @summary Download order PDF
+   * @description Download order as a PDF file.
+   *
+   * @param id - Order reference ID
+   * @returns Promise resolving to a Blob representing the PDF
+   */
+  async getOrderPdf(id: string): Promise<Blob> {
+    const response = await this.httpClient.get<Blob>(
+      `/order/${id}/pdf`,
+      { responseType: 'blob' }
+    );
+    if (!response.success) {
+      handleError(response.error, "get order pdf");
+    }
+    return response.data as Blob;
+  }
+
+  // ORDER EXCEL
+  // Summary: Download order Excel
+  // Description: Download order as an Excel file.
+  /**
+   * Downloads order Excel.
+   * Based on `get_order_excel` from the Python SDK.
+   *
+   * @summary Download order Excel
+   * @description Download order as an Excel file.
+   *
+   * @param id - Order reference ID
+   * @returns Promise resolving to a Blob representing the Excel file
+   */
+  async getOrderExcel(id: string): Promise<Blob> {
+    const response = await this.httpClient.get<Blob>(
+      `/order/${id}/excel`,
+      { responseType: 'blob' }
+    );
+    if (!response.success) {
+      handleError(response.error, "get order excel");
+    }
+    return response.data as Blob;
+  }
+
+  // ORDER REFUND REQUEST
+  // Summary: Create order refund request
+  // Description: Request a refund for an order.
+  /**
+   * Creates an order refund request.
+   * Based on `create_order_refund_request` from the Python SDK.
+   *
+   * @summary Create order refund request
+   * @description Request a refund for an order.
+   *
+   * @param request - Order refund request payload
+   * @returns Promise resolving to refund response
+   */
+  async createOrderRefundRequest(request: RefundOrderDTO): Promise<OrderRefundResponse> {
+    try {
+      const { reference_id, ...data } = request;
+      const response = await this.httpClient.post<OrderRefundResponse>(
+        `/order/${reference_id}/refund/request`,
+        data as Record<string, unknown>
+      );
+      return handleResponse(response, "Create order refund request");
+    } catch (error) {
+      return handleError(error, "create order refund request");
+    }
+  }
+
+  // ADD ORDER OIP
+  // Summary: Add Order Item Payment
+  // Description: Adds an order item payment to a specific order.
+  /**
+   * Adds an order item payment.
+   * Based on `add_order_oip` from the Python SDK.
+   *
+   * @summary Add Order OIP
+   * @description Adds an order item payment to a specific order.
+   *
+   * @param request - Order OIP request payload containing order_id and other details
+   * @returns Promise resolving to OIP response
+   */
+  async addOrderOip(request: OrderOIPDTO): Promise<OrderOIPResponse> {
+    try {
+      const { order_id, ...data } = request;
+      const response = await this.httpClient.post<OrderOIPResponse>(
+        `/order/${order_id}/oip`,
+        data as Record<string, unknown>
+      );
+      return handleResponse(response, "Add order OIP");
+    } catch (error) {
+      return handleError(error, "add order oip");
+    }
+  }
+
+  // CREATE SUBMERCHANT
+  // Summary: Create a submerchant
+  // Description: Creates a new submerchant in the system.
+  /**
+   * Creates a submerchant.
+   * Based on `create_submerchant` from the Python SDK.
+   *
+   * @summary Create submerchant
+   * @description Creates a new submerchant.
+   *
+   * @param request - Submerchant creation payload
+   * @returns Promise resolving to the created submerchant details
+   */
+  async createSubmerchant(request: SubmerchantCreateDTO): Promise<GetSubmerchantResponse> {
+    try {
+      const response = await this.httpClient.post<GetSubmerchantResponse>(
+        `/submerchants`,
+        request as unknown as Record<string, unknown>
+      );
+      return handleResponse(response, "Create submerchant");
+    } catch (error) {
+      return handleError(error, "create submerchant");
+    }
+  }
+
+  // GET SUBMERCHANT
+  // Summary: Get submerchant details
+  // Description: Retrieves information about a specific submerchant by ID.
+  /**
+   * Gets a submerchant.
+   * Based on `get_submerchant` from the Python SDK.
+   *
+   * @summary Get submerchant
+   * @description Retrieves submerchant details.
+   *
+   * @param id - Submerchant ID
+   * @returns Promise resolving to submerchant details
+   */
+  async getSubmerchant(id: string): Promise<GetSubmerchantResponse> {
+    try {
+      const response = await this.httpClient.get<GetSubmerchantResponse>(
+        `/submerchants/${id}`
+      );
+      return handleResponse(response, "Get submerchant");
+    } catch (error) {
+      return handleError(error, "get submerchant");
+    }
+  }
+
+  // GET SUBORGANIZATION BY SUBMERCHANT
+  // Summary: Get suborganization by submerchant
+  // Description: Retrieves the suborganization details associated with a submerchant.
+  /**
+   * Gets suborganization by submerchant.
+   * Based on `get_suborganization_by_submerchant` from the Python SDK.
+   *
+   * @summary Get suborganization by submerchant
+   * @description Retrieves the suborganization details associated with a submerchant.
+   *
+   * @param id - Submerchant ID
+   * @returns Promise resolving to suborganization details
+   */
+  async getSuborganizationBySubmerchant(id: string): Promise<any> {
+    try {
+      const response = await this.httpClient.get<any>(
+        `/submerchants/${id}/suborganization`
+      );
+      return handleResponse(response, "Get suborganization by submerchant");
+    } catch (error) {
+      return handleError(error, "get suborganization by submerchant");
+    }
+  }
+
+  // UPDATE SUBMERCHANT
+  // Summary: Update submerchant
+  // Description: Updates an existing submerchant.
+  /**
+   * Updates a submerchant.
+   * Based on `update_submerchant` from the Python SDK.
+   *
+   * @summary Update submerchant
+   * @description Updates submerchant details.
+   *
+   * @param id - Submerchant ID
+   * @param request - Update payload
+   * @returns Promise resolving to updated submerchant details
+   */
+  async updateSubmerchant(id: string, request: SubmerchantUpdateDTO): Promise<GetSubmerchantResponse> {
+    try {
+      const response = await this.httpClient.put<GetSubmerchantResponse>(
+        `/submerchants/${id}`,
+        request as Record<string, unknown>
+      );
+      return handleResponse(response, "Update submerchant");
+    } catch (error) {
+      return handleError(error, "update submerchant");
+    }
+  }
+
+  // DELETE SUBMERCHANT
+  // Summary: Delete submerchant
+  // Description: Deletes a submerchant from the system.
+  /**
+   * Deletes a submerchant.
+   * Based on `delete_submerchant` from the Python SDK.
+   *
+   * @summary Delete submerchant
+   * @description Deletes a submerchant.
+   *
+   * @param id - Submerchant ID
+   * @returns Promise resolving to deletion status
+   */
+  async deleteSubmerchant(id: string): Promise<any> {
+    try {
+      const response = await this.httpClient.delete<any>(
+        `/submerchants/${id}`
+      );
+      return handleResponse(response, "Delete submerchant");
+    } catch (error) {
+      return handleError(error, "delete submerchant");
+    }
+  }
+
+  // LIST SUBMERCHANTS
+  // Summary: List submerchants
+  // Description: Retrieves a paginated list of submerchants.
+  /**
+   * Lists submerchants.
+   * Based on `list_submerchants` from the Python SDK.
+   *
+   * @summary List submerchants
+   * @description Retrieves a paginated list of submerchants.
+   *
+   * @param page - Page number
+   * @param perPage - Items per page
+   * @returns Promise resolving to list of submerchants
+   */
+  async listSubmerchants(page?: number, perPage?: number): Promise<ListSubmerchantsResponse> {
+    try {
+      const params: Record<string, any> = {};
+      if (page) params.page = page;
+      if (perPage) params.per_page = perPage;
+
+      const response = await this.httpClient.get<ListSubmerchantsResponse>(
+        `/submerchants`,
+        { params }
+      );
+      return handleResponse(response, "List submerchants");
+    } catch (error) {
+      return handleError(error, "list submerchants");
+    }
+  }
+
+  // CREATE ORGANIZATION USER TOKEN
+  // Summary: Create organization user token
+  // Description: Creates a token for an organization user.
+  /**
+   * Creates an organization user token.
+   * Based on `create_organization_user_token` from the Python SDK.
+   *
+   * @summary Create organization user token
+   * @description Creates a token for an organization user.
+   *
+   * @param request - Token creation payload
+   * @returns Promise resolving to the created token details
+   */
+  async createOrganizationUserToken(request: OrgUserTokenCreateReq): Promise<OrgUserTokenCreateResponse> {
+    try {
+      const response = await this.httpClient.post<OrgUserTokenCreateResponse>(
+        `/organization/user/token`,
+        request as unknown as Record<string, unknown>
+      );
+      return handleResponse(response, "Create organization user token");
+    } catch (error) {
+      return handleError(error, "create organization user token");
     }
   }
 }
