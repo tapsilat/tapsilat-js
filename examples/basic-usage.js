@@ -474,7 +474,7 @@ function printFeatureSummary() {
   console.log("  - Health monitoring");
   console.log("  - Configuration management");
   console.log("  - Automatic retry logic");
-  console.log("  - Comprehensive error handling");ß
+  console.log("  - Comprehensive error handling");
   
   console.log("\nReady for Production!");
   console.log("  Update your bearer token in the config");
