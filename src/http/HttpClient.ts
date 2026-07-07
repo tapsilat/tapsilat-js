@@ -24,6 +24,7 @@ export interface RequestConfig extends Omit<RequestInit, "method" | "body"> {
   baseURL?: string;
   maxRetries?: number;
   params?: Record<string, unknown>;
+  responseType?: "json" | "text" | "blob" | "arraybuffer";
 }
 
 /**
@@ -239,7 +240,8 @@ export class HttpClient {
         const response = await this.makeRequest<T>(
           interceptedUrl,
           interceptedOptions,
-          config?.timeout
+          config?.timeout,
+          config?.responseType
         );
 
         // Execute response interceptors
@@ -288,7 +290,8 @@ export class HttpClient {
   private async makeRequest<T>(
     url: string,
     options: RequestInit,
-    timeout?: number
+    timeout?: number,
+    responseType?: "json" | "text" | "blob" | "arraybuffer"
   ): Promise<APIResponse<T>> {
     const controller = new AbortController();
     const timeoutId = timeout
@@ -307,7 +310,7 @@ export class HttpClient {
         clearTimeout(timeoutId);
       }
 
-      return await this.processResponse<T>(response);
+      return await this.processResponse<T>(response, responseType);
     } catch (error) {
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -336,7 +339,8 @@ export class HttpClient {
    * @returns Processed API response
    */
   private async processResponse<T>(
-    response: Response
+    response: Response,
+    responseType?: "json" | "text" | "blob" | "arraybuffer"
   ): Promise<APIResponse<T>> {
     const contentType = response.headers.get("content-type");
     const isJson = contentType?.includes("application/json");
@@ -344,7 +348,13 @@ export class HttpClient {
     let responseData: unknown;
 
     try {
-      if (isJson) {
+      if (responseType === "blob") {
+        responseData = await response.blob();
+      } else if (responseType === "arraybuffer") {
+        responseData = await response.arrayBuffer();
+      } else if (responseType === "text") {
+        responseData = await response.text();
+      } else if (isJson || responseType === "json") {
         responseData = await response.json();
       } else {
         responseData = await response.text();

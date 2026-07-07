@@ -722,6 +722,9 @@ export interface BuyerDTO {
   registration_date?: string;
   title?: string;
   zip_code?: string;
+  income_type?: string;
+  education?: string;
+  occupation?: string;
 }
 
 /**
@@ -737,6 +740,11 @@ export interface BasketItemPayerDTO {
   title?: string;
   type?: string;
   vat?: string;
+  name?: string;
+  surname?: string;
+  identity_number?: string;
+  email?: string;
+  phone?: string;
 }
 
 /**
@@ -1876,4 +1884,83 @@ export interface SystemTransactionStatus {
 
 export interface GetSystemTransactionStatusesResponse {
   rows?: SystemTransactionStatus[];
+}
+
+// --- NEW TYPES (Synced from Python SDK) ---
+
+// Order Payments
+export interface GetOrderPaymentsRequest {
+  order_id: string;
+}
+
+export interface GetOrderPaymentsResponse {
+  // Add specific fields if available from API, otherwise loosely typed
+  [key: string]: any; 
+}
+
+// Order Refund Request (Reusing OrderRefundRequest but exporting a DTO if needed)
+export interface RefundOrderDTO {
+  amount: number;
+  reference_id: string;
+  order_item_id?: string;
+  order_item_payment_id?: string;
+}
+
+// Order OIP
+export interface OrderOIPDTO {
+  amount: number;
+  type: number;
+  basket_item_id?: string;
+  order_id?: string;
+  order_item_id?: string;
+}
+
+export interface OrderOIPResponse {
+  [key: string]: any;
+}
+
+// Submerchant DTOs
+export interface SubmerchantCreateDTO {
+  address: string;
+  city: string;
+  country: string;
+  email: string;
+  gsm_number: string;
+  iban: string;
+  identity_number: string;
+  name: string;
+  contact_name: string;
+  contact_surname: string;
+  sub_merchant_type: string;
+  tax_office: string;
+  zip_code: string;
+  district?: string;
+  iban_name?: string;
+}
+
+export interface SubmerchantUpdateDTO extends Partial<SubmerchantCreateDTO> {}
+
+export interface GetSubmerchantResponse {
+  [key: string]: any;
+}
+
+export interface ListSubmerchantsResponse {
+  data?: any[];
+  total?: number;
+  page?: number;
+  per_page?: number;
+}
+
+// Organization User Token
+export interface OrgUserTokenCreateReq {
+  email: string;
+  expire?: number;
+  language?: string;
+  metadata?: Record<string, any>;
+  title?: string;
+  type?: string;
+}
+
+export interface OrgUserTokenCreateResponse {
+  [key: string]: any;
 }

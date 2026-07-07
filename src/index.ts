@@ -134,6 +134,16 @@ export type {
   OrgUserVerifyReq,
   OrgUserMobileVerifyReq,
   CallbackURLDTO,
+  GetOrderPaymentsRequest,
+  GetOrderPaymentsResponse,
+  OrderOIPDTO,
+  OrderOIPResponse,
+  SubmerchantCreateDTO,
+  SubmerchantUpdateDTO,
+  GetSubmerchantResponse,
+  ListSubmerchantsResponse,
+  OrgUserTokenCreateReq,
+  OrgUserTokenCreateResponse,
 } from "./types/index";
 
 // Errors

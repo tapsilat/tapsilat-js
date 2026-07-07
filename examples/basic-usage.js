@@ -211,6 +211,54 @@ async function main() {
       console.log(`Advanced operations: ${error.message}`);
     }
 
+    // STEP 7.5: Additional Operationsb
+    // -----------------------------------------
+    console.log("\n=== Additional Synced Operations ===");
+    
+    try {
+      // Submerchant creation
+      const newSubmerchant = await tapsilat.submerchant.create({
+        name: "Test Submerchant",
+        email: "test@example.com",
+        address: "Test Address 123",
+        city: "Istanbul",
+        country: "Turkey",
+        gsm_number: "5555555555",
+        iban: "TR123456789012345678901234",
+        identity_number: "11111111111",
+        contact_name: "Test",
+        contact_surname: "User",
+        sub_merchant_type: "PERSONAL",
+        tax_office: "Test Office",
+        zip_code: "34000"
+      });
+      console.log(`Created submerchant: ${newSubmerchant.id}`);
+      
+      // Order PDF Download
+      const pdfBlob = await tapsilat.orders.getPdf(referenceId);
+      console.log(`Order PDF downloaded: ${pdfBlob.size} bytes`);
+      
+      // Order Excel Download
+      const excelBlob = await tapsilat.orders.getExcel(referenceId);
+      console.log(`Order Excel downloaded: ${excelBlob.size} bytes`);
+      
+      // Order Refund Request
+      const refundRequest = await tapsilat.orders.createRefundRequest({
+        reference_id: referenceId,
+        amount: 50.00
+      });
+      console.log(`Order refund request status: ${refundRequest.status}`);
+      
+      // Create Organization User Token
+      const userToken = await tapsilat.organization.createUserToken({
+        email: "user@example.com"
+      });
+      console.log(`Organization user token created successfully.`);
+    } catch (error) {
+      console.log(`Additional synced operations: ${error.message}`);
+    }
+
+
     // STEP 8: Health Check and Webhook Verification
     // -----------------------------------------
     console.log("\n=== SDK Health Check ===");
@@ -414,18 +462,19 @@ function printFeatureSummary() {
   console.log("  - Email format validation");
   console.log("  - Amount and currency validation");
   
+  console.log("\nNew Features:");
+  console.log("  - getPdf() / getExcel() - Download order documents");
+  console.log("  - submerchant CRUD - Full submerchant management");
+  console.log("  - createRefundRequest() - Request refunds");
+  console.log("  - organization.createUserToken() - Token generation");
+  
   console.log("\nTechnical Features:");
   console.log("  - Full TypeScript support");
   console.log("  - Webhook signature verification");
   console.log("  - Health monitoring");
   console.log("  - Configuration management");
   console.log("  - Automatic retry logic");
-  console.log("  - Comprehensive error handling");
-  
-  console.log("\nPython SDK Feature Parity:");
-  console.log("  - ALL Python SDK features implemented");
-  console.log("  - Additional JavaScript-specific features");
-  console.log("  - Better type safety with TypeScript");
+  console.log("  - Comprehensive error handling");ß
   
   console.log("\nReady for Production!");
   console.log("  Update your bearer token in the config");
