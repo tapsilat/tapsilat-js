@@ -242,7 +242,7 @@ describe("TapsilatSDK", () => {
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
 
-      const result = await sdk.orderAccounting(request);
+      const result = await sdk.orders.accounting(request);
 
       expect(mockHttpClient.post).toHaveBeenCalledWith(
         "/order/accounting",
@@ -270,7 +270,7 @@ describe("TapsilatSDK", () => {
 
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
 
-      const result = await sdk.orderPostAuth(request);
+      const result = await sdk.orders.postAuth(request);
 
       expect(mockHttpClient.post).toHaveBeenCalledWith(
         "/order/postauth",
@@ -353,7 +353,7 @@ describe("TapsilatSDK", () => {
         order_reference_id: "",
       } as OrderAccountingRequest;
 
-      await expect(sdk.orderAccounting(request)).rejects.toThrow(
+      await expect(sdk.orders.accounting(request)).rejects.toThrow(
         "Order reference ID is required"
       );
     });
@@ -364,7 +364,7 @@ describe("TapsilatSDK", () => {
         amount: 100.0,
       } as OrderPostAuthRequest;
 
-      await expect(sdk.orderPostAuth(request)).rejects.toThrow(
+      await expect(sdk.orders.postAuth(request)).rejects.toThrow(
         "Reference ID is required"
       );
     });
@@ -375,7 +375,7 @@ describe("TapsilatSDK", () => {
         amount: -100,
       } as OrderPostAuthRequest;
 
-      await expect(sdk.orderPostAuth(request)).rejects.toThrow(
+      await expect(sdk.orders.postAuth(request)).rejects.toThrow(
         "Amount must be a positive number"
       );
     });
@@ -494,7 +494,7 @@ describe("TapsilatSDK", () => {
       const mockResponse = { success: true, data: { success: true } };
       mockHttpClient.post.mockResolvedValueOnce(mockResponse);
 
-      const result = await sdk.orderManualCallback(referenceId, conversationId);
+      const result = await sdk.orders.manualCallback(referenceId, conversationId);
 
       expect(mockHttpClient.post).toHaveBeenCalledWith(
         "/order/callback",
@@ -512,7 +512,7 @@ describe("TapsilatSDK", () => {
       const mockResponse = { success: true, data: { success: true } };
       mockHttpClient.patch.mockResolvedValueOnce(mockResponse);
 
-      const result = await sdk.orderRelatedUpdate(
+      const result = await sdk.orders.relatedUpdate(
         referenceId,
         relatedReferenceId
       );
@@ -661,7 +661,7 @@ describe("TapsilatSDK", () => {
       const mockResponse = { success: true, data: { success: true } };
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
 
-      const result = await sdk.orderCallback("ref_123");
+      const result = await sdk.orders.callback("ref_123");
 
       expect(mockHttpClient.get).toHaveBeenCalledWith("/orders/ref_123/callback");
       expect(result).toEqual(mockResponse.data);
@@ -693,7 +693,7 @@ describe("TapsilatSDK", () => {
       const mockResponse = { success: true, data: { status: "SUCCESS" } };
       mockHttpClient.get.mockResolvedValueOnce(mockResponse);
 
-      const result = await sdk.orderVposQuery("ref_123");
+      const result = await sdk.orders.vposQuery("ref_123");
 
       expect(mockHttpClient.get).toHaveBeenCalledWith("/orders/ref_123/vpos-query");
       expect(result).toEqual(mockResponse.data);
@@ -759,4 +759,125 @@ describe("TapsilatSDK", () => {
       expect(mockHttpClient.get).toHaveBeenCalledWith("/system/transaction-statuses");
     });
   });
+
+  describe("New Synced Endpoints", () => {
+    describe("Order Domain", () => {
+      it("should get order payments", async () => {
+        const mockResponse = { success: true, data: { id: "payment-1" } };
+        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.orders.getPayments({ order_id: "order-123" });
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/payment");
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should download order pdf", async () => {
+        const mockBlob = new Blob(["pdf content"]);
+        mockHttpClient.get.mockResolvedValueOnce({ success: true, data: mockBlob });
+
+        const result = await sdk.orders.getPdf("order-123");
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/pdf", { responseType: "blob" });
+        expect(result).toBe(mockBlob);
+      });
+
+      it("should download order excel", async () => {
+        const mockBlob = new Blob(["excel content"]);
+        mockHttpClient.get.mockResolvedValueOnce({ success: true, data: mockBlob });
+
+        const result = await sdk.orders.getExcel("order-123");
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/excel", { responseType: "blob" });
+        expect(result).toBe(mockBlob);
+      });
+
+      it("should create refund request", async () => {
+        const mockResponse = { success: true, data: { status: "pending" } };
+        mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+        const request = { reference_id: "order-123", amount: 100 };
+        const result = await sdk.orders.createRefundRequest(request);
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/order/order-123/refund/request", { amount: 100 });
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should add order oip", async () => {
+        const mockResponse = { success: true, data: { status: "added" } };
+        mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+        const request = { order_id: "order-123", amount: 100, type: 1 };
+        const result = await sdk.orders.addOip(request);
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/order/order-123/oip", { amount: 100, type: 1 });
+        expect(result).toEqual(mockResponse.data);
+      });
+    });
+
+    describe("Organization Domain", () => {
+      it("should create user token", async () => {
+        const mockResponse = { success: true, data: { token: "abc" } };
+        mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+        const request = { email: "test@test.com" };
+        const result = await sdk.organization.createUserToken(request);
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/organization/user/token", request);
+        expect(result).toEqual(mockResponse.data);
+      });
+    });
+
+    describe("Submerchant Domain", () => {
+      it("should create submerchant", async () => {
+        const mockResponse = { success: true, data: { id: "sub-1" } };
+        mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+        const request = { name: "Test Submerchant", email: "sub@test.com", address: "test", city: "Istanbul", country: "Turkey", gsm_number: "5555555555", iban: "TR123", identity_number: "11111111111", contact_name: "Test", contact_surname: "Sub", sub_merchant_type: "PERSONAL", tax_office: "test", zip_code: "34000" };
+        const result = await sdk.submerchant.create(request);
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/submerchants", request);
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should get submerchant", async () => {
+        const mockResponse = { success: true, data: { id: "sub-1" } };
+        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.submerchant.get("sub-1");
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/submerchants/sub-1");
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should get suborganization by submerchant", async () => {
+        const mockResponse = { success: true, data: { suborg: "suborg-1" } };
+        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.submerchant.getSuborganization("sub-1");
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/submerchants/sub-1/suborganization");
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should update submerchant", async () => {
+        const mockResponse = { success: true, data: { id: "sub-1" } };
+        mockHttpClient.put.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.submerchant.update("sub-1", { name: "Updated" });
+        expect(mockHttpClient.put).toHaveBeenCalledWith("/submerchants/sub-1", { name: "Updated" });
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should delete submerchant", async () => {
+        const mockResponse = { success: true, data: { status: "deleted" } };
+        mockHttpClient.delete.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.submerchant.delete("sub-1");
+        expect(mockHttpClient.delete).toHaveBeenCalledWith("/submerchants/sub-1");
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should list submerchants", async () => {
+        const mockResponse = { success: true, data: [] };
+        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.submerchant.list(1, 10);
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/submerchants", { params: { page: 1, per_page: 10 } });
+        expect(result).toEqual(mockResponse.data);
+      });
+    });
+  });
+
 });
