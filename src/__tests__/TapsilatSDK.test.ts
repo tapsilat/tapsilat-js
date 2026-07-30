@@ -543,7 +543,7 @@ describe("TapsilatSDK", () => {
 
       const result = await sdk.getOrganizationMeta("my_meta");
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/metas/my_meta");
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/meta/my_meta");
       expect(result).toEqual(mockResponse.data);
     });
 
@@ -875,6 +875,62 @@ describe("TapsilatSDK", () => {
 
         const result = await sdk.submerchant.list(1, 10);
         expect(mockHttpClient.get).toHaveBeenCalledWith("/submerchants", { params: { page: 1, per_page: 10 } });
+        expect(result).toEqual(mockResponse.data);
+      });
+    });
+
+    describe("New Operations", () => {
+      it("should charge an order", async () => {
+        const mockResponse = { success: true, data: { status: "charged" } };
+        mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.orders.charge({ order_reference_id: "test_ref" });
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/order/charge", { order_reference_id: "test_ref" });
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should get all orders payments", async () => {
+        const mockResponse = { success: true, data: { payments: [] } };
+        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.orders.allPayments();
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/orders/payments");
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should create organization currency", async () => {
+        const mockResponse = { success: true, data: { currency: "USD" } };
+        mockHttpClient.post.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.organization.createCurrency({ currency_code: "USD" });
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/organization/currencies", { currency_code: "USD" });
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should get organization partners", async () => {
+        const mockResponse = { success: true, data: { partners: [] } };
+        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.organization.partners();
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/partners");
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should get organization limits by ID", async () => {
+        const mockResponse = { success: true, data: { limits: [] } };
+        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.organization.limitsById("org-123", { currency: "USD" });
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/org-123/limits?currency=USD");
+        expect(result).toEqual(mockResponse.data);
+      });
+
+      it("should get system config", async () => {
+        const mockResponse = { success: true, data: { config: {} } };
+        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+
+        const result = await sdk.system.config();
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/system/config");
         expect(result).toEqual(mockResponse.data);
       });
     });
