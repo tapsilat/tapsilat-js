@@ -112,6 +112,13 @@ import {
   GetSystemTransactionPaymentTypesResponse,
   GetSystemTransactionPurposesResponse,
   GetSystemTransactionStatusesResponse,
+  OrderChargeRequest,
+  OrderChargeResponse,
+  CreateOrganizationCurrencyPayload,
+  CreateOrganizationCurrencyResponse,
+  GetOrganizationPartnersResponse,
+  GetOrganizationLimitsByIdResponse,
+  GetSystemConfigResponse
 } from "./types/index";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
@@ -217,6 +224,8 @@ export class TapsilatSDK {
       getExcel: (id: string) => this.getOrderExcel(id),
       createRefundRequest: (request: RefundOrderDTO) => this.createOrderRefundRequest(request),
       addOip: (request: OrderOIPDTO) => this.addOrderOip(request),
+      charge: (request: OrderChargeRequest) => this.chargeOrder(request),
+      allPayments: () => this.getAllOrdersPayments(),
     };
   }
 
@@ -261,6 +270,9 @@ export class TapsilatSDK {
       suborganizationDetails: (id: string) => this.getOrganizationSuborganizationDetails(id),
       suborganizationSubmerchants: (id: string) => this.getOrganizationSuborganizationSubmerchants(id),
       createUserToken: (request: OrgUserTokenCreateReq) => this.createOrganizationUserToken(request),
+      createCurrency: (payload: CreateOrganizationCurrencyPayload) => this.createOrganizationCurrency(payload),
+      partners: () => this.getOrganizationPartners(),
+      limitsById: (id: string, params?: { currency?: string; operation?: string }) => this.getOrganizationLimitsById(id, params),
     };
   }
 
@@ -294,6 +306,7 @@ export class TapsilatSDK {
       transactionPaymentTypes: () => this.getSystemTransactionPaymentTypes(),
       transactionPurposes: () => this.getSystemTransactionPurposes(),
       transactionStatuses: () => this.getSystemTransactionStatuses(),
+      config: () => this.getSystemConfig(),
     };
   }
 
@@ -1979,7 +1992,7 @@ export class TapsilatSDK {
     }
     try {
       const organizationMetaResponse = await this.httpClient.get<GetMetaResponse>(
-        `/organization/metas/${name}`
+        `/organization/meta/${name}`
       );
       return handleResponse(organizationMetaResponse, "Get organization meta");
     } catch (error: unknown) {
@@ -2475,4 +2488,95 @@ export class TapsilatSDK {
       return handleError(error, "create organization user token");
     }
   }
+  /**
+   * Charge an order
+   */
+  async chargeOrder(request: OrderChargeRequest): Promise<OrderChargeResponse> {
+    try {
+      const response = await this.httpClient.post<OrderChargeResponse>(
+        `/order/charge`,
+        request
+      );
+      return handleResponse(response, "Charge order");
+    } catch (error: unknown) {
+      return handleError(error, "charge order");
+    }
+  }
+
+  /**
+   * Get payments for an order
+   */
+  async getAllOrdersPayments(): Promise<GetOrderPaymentsResponse> {
+    try {
+      const response = await this.httpClient.get<GetOrderPaymentsResponse>("/orders/payments");
+      return handleResponse(response, "Get all orders payments");
+    } catch (error: unknown) {
+      return handleError(error, "get all orders payments");
+    }
+  }
+
+  /**
+   * Create organization currency
+   */
+  async createOrganizationCurrency(payload: CreateOrganizationCurrencyPayload): Promise<CreateOrganizationCurrencyResponse> {
+    try {
+      const response = await this.httpClient.post<CreateOrganizationCurrencyResponse>(
+        "/organization/currencies",
+        payload
+      );
+      return handleResponse(response, "Create organization currency");
+    } catch (error: unknown) {
+      return handleError(error, "create organization currency");
+    }
+  }
+
+  /**
+   * Get organization partners
+   */
+  async getOrganizationPartners(): Promise<GetOrganizationPartnersResponse> {
+    try {
+      const response = await this.httpClient.get<GetOrganizationPartnersResponse>("/organization/partners");
+      return handleResponse(response, "Get organization partners");
+    } catch (error: unknown) {
+      return handleError(error, "get organization partners");
+    }
+  }
+
+  /**
+   * Get organization limits by ID
+   */
+  async getOrganizationLimitsById(
+    id: string,
+    params?: { currency?: string; operation?: string }
+  ): Promise<GetOrganizationLimitsByIdResponse> {
+    if (!isNonEmptyString(id)) {
+      throw new TapsilatValidationError("ID is required and must be a non-empty string");
+    }
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.currency) queryParams.append("currency", params.currency);
+      if (params?.operation) queryParams.append("operation", params.operation);
+      
+      const queryString = queryParams.toString();
+      const url = `/organization/${id}/limits${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await this.httpClient.get<GetOrganizationLimitsByIdResponse>(url);
+      return handleResponse(response, "Get organization limits by ID");
+    } catch (error: unknown) {
+      return handleError(error, "get organization limits by ID");
+    }
+  }
+
+  /**
+   * Get system config
+   */
+  async getSystemConfig(): Promise<GetSystemConfigResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemConfigResponse>("/system/config");
+      return handleResponse(response, "Get system config");
+    } catch (error: unknown) {
+      return handleError(error, "get system config");
+    }
+  }
+
 }
