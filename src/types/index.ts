@@ -831,6 +831,7 @@ export interface BillingAddressDTO {
  * @interface CheckoutDesignDTO
  */
 export interface CheckoutDesignDTO {
+  placeholder_color?: string;
   input_background_color?: string;
   input_text_color?: string;
   label_text_color?: string;
@@ -872,6 +873,9 @@ export interface OrderCardDTO {
  * @interface PaymentTermDTO
  */
 export interface PaymentTermDTO {
+  hash_id?: string;
+  id?: number;
+  payments?: any[];
   amount?: number;
   data?: string;
   due_date?: string;
@@ -1953,4 +1957,34 @@ export interface OrgUserTokenCreateReq {
 
 export interface OrgUserTokenCreateResponse {
   [key: string]: unknown;
+}
+
+export interface OrderChargeRequest {
+  order_reference_id: string;
+}
+
+export interface OrderChargeResponse {
+  [key: string]: any;
+}
+
+
+
+export interface CreateOrganizationCurrencyPayload {
+  currency_code: string;
+}
+
+export interface CreateOrganizationCurrencyResponse {
+  [key: string]: any;
+}
+
+export interface GetOrganizationPartnersResponse {
+  [key: string]: any;
+}
+
+export interface GetOrganizationLimitsByIdResponse {
+  [key: string]: any;
+}
+
+export interface GetSystemConfigResponse {
+  [key: string]: any;
 }
