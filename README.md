@@ -193,6 +193,20 @@ transactions.forEach(tx => {
 });
 ```
 
+#### Charge Order
+```typescript
+const chargeResult = await tapsilat.chargeOrder({
+  order_reference_id: 'order-reference-id'
+});
+console.log('Order charged:', chargeResult);
+```
+
+#### Get All Orders Payments
+```typescript
+const payments = await tapsilat.getAllOrdersPayments();
+console.log('Total payments found:', payments.length);
+```
+
 #### Get Checkout URL
 ```typescript
 const checkoutUrl = await tapsilat.getCheckoutUrl('order-reference-id');
@@ -481,6 +495,20 @@ const presets = await tapsilat.getOrganizationCurrencyPresets();
 console.log('Available currencies:', presets);
 ```
 
+#### Organization Management
+```typescript
+// Create Currency
+const newCurrency = await tapsilat.createOrganizationCurrency({
+  currency_code: 'EUR'
+});
+
+// Get Partners
+const partners = await tapsilat.getOrganizationPartners();
+
+// Get Limits
+const limits = await tapsilat.getOrganizationLimitsById('org-uuid', { currency: 'TRY' });
+```
+
 #### Get Suborganization Details
 ```typescript
 const suborg = await tapsilat.getOrganizationSuborganizationDetails('suborg-id');
@@ -492,6 +520,7 @@ console.log('Suborganization Name:', suborg.name);
 #### Get System Endpoints
 ```typescript
 // Fetch various system configurations
+const config = await tapsilat.getSystemConfig();
 const errorCodes = await tapsilat.getSystemErrorCodes();
 const productTypes = await tapsilat.getSystemProductTypes();
 const transactionStatuses = await tapsilat.getSystemTransactionStatuses();
