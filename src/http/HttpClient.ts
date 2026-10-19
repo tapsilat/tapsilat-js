@@ -106,7 +106,7 @@ export class HttpClient {
   ): Promise<APIResponse<T>>;
   async post<T = unknown>(
     url: string,
-    body: RequestBody,
+    body: RequestBody | undefined,
     config: RequestConfig
   ): Promise<APIResponse<T>>;
   async post<T = unknown>(
@@ -239,7 +239,7 @@ export class HttpClient {
         const response = await this.makeRequest<T>(
           interceptedUrl,
           interceptedOptions,
-          config?.timeout
+          config?.timeout ?? this.config.timeout
         );
 
         // Execute response interceptors
@@ -338,38 +338,87 @@ export class HttpClient {
   private async processResponse<T>(
     response: Response
   ): Promise<APIResponse<T>> {
-    const contentType = response.headers.get("content-type");
-    const isJson = contentType?.includes("application/json");
-
-    let responseData: unknown;
+    const contentType = response.headers.get("content-type") ?? "";
+    let rawBody: string;
 
     try {
-      if (isJson) {
-        responseData = await response.json();
-      } else {
-        responseData = await response.text();
-      }
+      rawBody = await response.text();
     } catch {
-      throw new TapsilatError("Failed to parse response body", "PARSE_ERROR");
+      throw new TapsilatError("Failed to read response body", "PARSE_ERROR");
+    }
+
+    const trimmed = rawBody.trim();
+    let responseData: unknown = undefined;
+    if (trimmed !== "") {
+      const looksLikeJson = trimmed.startsWith("{") || trimmed.startsWith("[");
+      if (contentType.includes("json") || looksLikeJson) {
+        try {
+          responseData = JSON.parse(trimmed);
+        } catch {
+          if (response.ok) {
+            throw new TapsilatError(
+              "Failed to parse response body",
+              "PARSE_ERROR"
+            );
+          }
+          responseData = rawBody;
+        }
+      } else {
+        responseData = rawBody;
+      }
     }
 
     // Handle successful responses
     if (response.ok) {
+      // A deployment serving the panel UI answers unknown routes with its HTML page and status 200
+      if (contentType.includes("text/html") || trimmed.startsWith("<")) {
+        return {
+          success: false,
+          status: response.status,
+          error: {
+            message: `Unexpected non-JSON response (Content-Type "${contentType}"); check that the endpoint URL and route are correct`,
+            code: "UNEXPECTED_RESPONSE",
+            statusCode: response.status,
+            rawBody,
+          },
+        };
+      }
       return {
         success: true,
+        status: response.status,
         data: responseData as T,
       };
     }
 
     // Handle error responses
     const error = this.createErrorFromResponse(response, responseData);
+    const body =
+      responseData && typeof responseData === "object"
+        ? (responseData as Record<string, unknown>)
+        : {};
+    const errors =
+      body.errors && typeof body.errors === "object" && !Array.isArray(body.errors)
+        ? (body.errors as Record<string, unknown>)
+        : undefined;
 
     return {
       success: false,
+      status: response.status,
       error: {
         message: error.message,
         code: error.code,
         details: error.details,
+        statusCode: response.status,
+        apiCode:
+          body.code !== undefined && body.code !== null
+            ? String(body.code)
+            : undefined,
+        apiStatus:
+          body.status !== undefined && body.status !== null
+            ? String(body.status)
+            : undefined,
+        errors,
+        rawBody,
       },
     };
   }
@@ -518,6 +567,31 @@ export class HttpClient {
    * @param params - Optional query parameters
    * @returns Complete request URL
    */
+  /**
+   * @category HTTP Client
+   * @summary Returns the configured base URL for another API version
+   * @description Replaces a trailing `/api/vN` path segment with `/api/{version}`, or appends `/api/{version}`
+   *
+   * @param version - API version such as "v2"
+   * @returns Base URL for that API version
+   */
+  versionedBaseURL(version: string): string {
+    const base = (this.config.baseURL || "https://panel.tapsilat.dev/api/v1").replace(/\/+$/, "");
+    const url = new URL(base);
+    const segments = url.pathname.replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+    if (
+      segments.length >= 2 &&
+      segments[segments.length - 2] === "api" &&
+      segments[segments.length - 1].startsWith("v")
+    ) {
+      segments[segments.length - 1] = version;
+    } else {
+      segments.push("api", version);
+    }
+    url.pathname = "/" + segments.join("/");
+    return url.toString().replace(/\/+$/, "");
+  }
+
   private buildUrl(
     url: string,
     customBaseURL?: string,

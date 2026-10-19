@@ -24,5 +24,11 @@ export const verifyHmacSignature = (
     .update(payload)
     .digest("hex");
 
-  return `sha256=${expectedSignature}` === signature;
+  const expected = Buffer.from(`sha256=${expectedSignature}`);
+  const provided = Buffer.from(signature ?? "");
+  // Compare in constant time so the signature cannot be guessed byte by byte
+  return (
+    expected.length === provided.length &&
+    crypto.timingSafeEqual(expected, provided)
+  );
 };

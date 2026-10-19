@@ -16,7 +16,7 @@ export const handleResponse = <T>(
   response: APIResponse<T>,
   errorContext: string
 ): T => {
-  if (!response.success || !response.data) {
+  if (!response.success || response.data === undefined || response.data === null) {
     // Convert API errors to domain-specific errors
     if (response.error) {
       throw TapsilatError.fromAPIError(response.error);
@@ -29,6 +29,27 @@ export const handleResponse = <T>(
   }
 
   return response.data;
+};
+
+/**
+ * Response handler for endpoints that may answer with an empty body
+ *
+ * @summary Process API responses whose success body can be empty
+ * @description Like handleResponse, but a successful empty body (for example HTTP 204) resolves to undefined
+ *
+ * @param response - The API response to process
+ * @param errorContext - Descriptive context for error messages
+ * @returns The data from a successful response, or undefined when the body was empty
+ * @throws {TapsilatError} On any response error
+ */
+export const handleOptionalResponse = <T>(
+  response: APIResponse<T>,
+  errorContext: string
+): T | undefined => {
+  if (response.success) {
+    return response.data ?? undefined;
+  }
+  return handleResponse(response, errorContext);
 };
 
 // ERROR HANDLING

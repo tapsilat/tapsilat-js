@@ -153,10 +153,15 @@ export interface Address {
  * @interface BillingAddress
  */
 export interface BillingAddress extends Address {
-  billing_type: "PERSONAL" | "CORPORATE";
+  billing_type: "PERSONAL" | "CORPORATE" | "BUSINESS";
+  citizenship?: string;
   vat_number?: string;
   tax_office?: string;
   title?: string;
+  neighbourhood?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
 }
 
 /**
@@ -173,9 +178,20 @@ export interface BasketItem {
   item_type?: string;
   price?: number;
   quantity?: number;
+  quantity_float?: number;
+  coupon?: string;
   coupon_discount?: number;
   data?: string;
   quantity_unit?: string;
+  paid_amount?: number;
+  commission_amount?: number;
+  sub_merchant_key?: string;
+  sub_merchant_price?: string;
+  payer?: BasketItemPayerDTO;
+  /** Merchant category code */
+  mcc?: string;
+  /** RFC3339 timestamp before which the item's marketplace payout is not released */
+  payout_release_at?: string;
 }
 
 /**
@@ -253,6 +269,16 @@ export interface APIError {
   code: string;
   message: string;
   details?: unknown;
+  /** HTTP status code of the failed response */
+  statusCode?: number;
+  /** `code` field from the response body, as a string */
+  apiCode?: string;
+  /** `status` field from the response body */
+  apiStatus?: string;
+  /** Per-field validation messages from the response body */
+  errors?: Record<string, unknown>;
+  /** Raw response body */
+  rawBody?: string;
 }
 
 // API RESPONSE
@@ -267,11 +293,7 @@ export interface APIError {
 export interface APIResponse<T> {
   success: boolean;
   data?: T;
-  error?: {
-    message: string;
-    code: string;
-    details?: unknown;
-  };
+  error?: APIError;
   status?: number;
   headers?: Record<string, string>;
 }
@@ -347,6 +369,12 @@ export interface Buyer {
   ip?: string;
   registration_date?: string;
   last_login_date?: string;
+  /** YYYY-MM-DD */
+  birth_date?: string;
+  title?: string;
+  income_type?: string;
+  education?: string;
+  occupation?: string;
 }
 
 // ORDER CREATE REQUEST
@@ -383,6 +411,19 @@ export interface OrderCreateRequest {
   enabled_installments?: number[];
   metadata?: OrderMetadata[];
   sub_organization?: SubOrganizationDTO;
+  redirect_success_url?: string;
+  redirect_failure_url?: string;
+  /** Payment terms; due_date and paid_date must be RFC3339 timestamps */
+  payment_terms?: PaymentTermDTO[];
+  pf_sub_merchant?: OrderPFSubMerchantDTO;
+  checkout_design?: CheckoutDesignDTO;
+  submerchants?: SubmerchantDTO[];
+  external_reference_id?: string;
+  paid_amount?: number;
+  /** "auth" (default) or "preauth" */
+  payment_mode?: string;
+  order_cards?: OrderCardDTO[];
+  order_vpos_id?: string;
 }
 
 // ORDER CREATE RESPONSE
@@ -508,6 +549,9 @@ export interface BuyerDTO {
   registration_date?: string;
   title?: string;
   zip_code?: string;
+  income_type?: string;
+  education?: string;
+  occupation?: string;
 }
 
 /**
@@ -523,6 +567,11 @@ export interface BasketItemPayerDTO {
   title?: string;
   type?: string;
   vat?: string;
+  name?: string;
+  surname?: string;
+  identity_number?: string;
+  email?: string;
+  phone?: string;
 }
 
 /**
@@ -549,6 +598,10 @@ export interface BasketItemDTO {
   quantity_unit?: string;
   sub_merchant_key?: string;
   sub_merchant_price?: string;
+  /** Merchant category code */
+  mcc?: string;
+  /** RFC3339 timestamp before which the item's marketplace payout is not released */
+  payout_release_at?: string;
 }
 
 /**
@@ -570,6 +623,10 @@ export interface BillingAddressDTO {
   title?: string;
   vat_number?: string;
   zip_code?: string;
+  neighbourhood?: string;
+  street1?: string;
+  street2?: string;
+  street3?: string;
 }
 
 /**
@@ -584,11 +641,22 @@ export interface CheckoutDesignDTO {
   label_text_color?: string;
   left_background_color?: string;
   logo?: string;
+  /** @deprecated Checkout no longer renders custom order detail HTML; the value is ignored. */
   order_detail_html?: string;
   pay_button_color?: string;
+  /** @deprecated Ignored by checkout. Use the order's redirect_success_url and redirect_failure_url. */
   redirect_url?: string;
   right_background_color?: string;
   text_color?: string;
+  pay_button_text_color?: string;
+  page_background_color?: string;
+  border_color?: string;
+  input_border_color?: string;
+  accent_color?: string;
+  text_muted_color?: string;
+  surface_muted_color?: string;
+  dark_mode_enabled?: boolean;
+  dark_colors?: Record<string, string>;
 }
 
 /**
@@ -619,6 +687,7 @@ export interface OrderCardDTO {
  * @description Details for installment or partial payments with due dates and status
  * @interface PaymentTermDTO
  */
+/** Payment term sent with order creation; due_date and paid_date must be RFC3339 timestamps */
 export interface PaymentTermDTO {
   amount?: number;
   data?: string;
@@ -649,6 +718,8 @@ export interface OrderPFSubMerchantDTO {
   submerchant_nin?: string;
   submerchant_url?: string;
   terminal_no?: string;
+  switch_id?: string;
+  national_id?: string;
 }
 
 /**
@@ -734,8 +805,13 @@ export interface OrderCreateDTO {
   enabled_installments?: number[];
   external_reference_id?: string;
   metadata?: MetadataDTO[];
-  order_cards?: OrderCardDTO;
+  order_cards?: OrderCardDTO[];
+  order_vpos_id?: string;
   paid_amount?: number;
+  /** "auth" (default) or "preauth" */
+  payment_mode?: string;
+  redirect_success_url?: string;
+  redirect_failure_url?: string;
   partial_payment?: boolean;
   payment_failure_url?: string;
   payment_methods?: boolean;
@@ -769,14 +845,16 @@ export interface RefundOrderDTO {
  * @description Structure for creating a new payment term for an existing order
  * @interface OrderPaymentTermCreateDTO
  */
+/** Adds a payment term to an existing order; dates use YYYY-MM-DD */
 export interface OrderPaymentTermCreateDTO {
+  /** The order's ID (order_id from order creation), not its reference ID */
   order_id: string;
-  term_reference_id: string;
+  term_reference_id?: string;
   amount: number;
   due_date: string;
-  term_sequence: number;
+  term_sequence?: number;
   required: boolean;
-  status: string;
+  status?: string;
   data?: string;
   paid_date?: string;
 }
@@ -804,9 +882,11 @@ export interface OrderPaymentTermUpdateDTO {
  * @interface OrderTermRefundRequest
  */
 export interface OrderTermRefundRequest {
+  /** The payment term's ID */
   term_id: string;
   amount: number;
-  reference_id?: string;
+  /** The order's reference ID; required by the server */
+  reference_id: string;
   term_payment_id?: string;
 }
 
@@ -853,6 +933,8 @@ export interface PaymentTermResponse {
  * @interface PaymentTermDeleteRequest
  */
 export interface PaymentTermDeleteRequest {
+  /** The order's ID, not its reference ID */
+  order_id: string;
   term_reference_id: string;
 }
 
@@ -983,6 +1065,9 @@ export interface SubscriptionCreateRequest {
   title?: string;
   user?: SubscriptionUser;
   price_option?: SubscriptionPriceOption;
+  /** day, week, month or year */
+  interval?: string;
+  interval_count?: number;
 }
 
 export interface SubscriptionPriceOption {
@@ -1014,6 +1099,10 @@ export interface SubscriptionDetail {
   payment_status?: string;
   period?: number;
   title?: string;
+  cycle?: number;
+  cycles_completed?: number;
+  interval?: string;
+  interval_count?: number;
 }
 
 export interface SubscriptionCreateResponse {
@@ -1036,6 +1125,9 @@ export interface OrganizationSettings {
   domain_address?: string;
   checkout_domain?: string;
   subscription_domain?: string;
+  has_kyc_kyx_template?: boolean;
+  has_kyb_kyx_template?: boolean;
+  is_money_transfer_partner?: boolean;
 }
 
 export interface OrderTransaction {
@@ -1219,3 +1311,5 @@ export interface OrderPostAuthRequest {
   amount: number;
   reference_id: string;
 }
+
+export * from "./panel";

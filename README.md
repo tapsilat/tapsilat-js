@@ -101,17 +101,7 @@ console.log("Order status:", status.status);
 
 ## SDK Compatibility
 
-This JavaScript SDK provides full feature parity with Tapsilat's Python and .NET SDKs:
-
-| Feature Category | JavaScript | Python | .NET | 
-|-----------------|------------|--------|------|
-| Order Management | Yes | Yes | Yes |
-| Payment Terms | Yes | Yes | Yes |
-| GSM Validation | Yes | Yes | Yes |
-| Installment Validation | Yes | Yes | Yes |
-| Webhook Verification | Yes | No | No |
-| TypeScript Support | Yes | No | Yes |
-| Health Monitoring | Yes | No | No |
+All Tapsilat SDKs (Go, JavaScript, Python, .NET, Kotlin, Rust, Swift and Zig) target the same panel REST API, so orders, payment terms, subscriptions, organization settings, submerchants, VPOS, card tokenization, card installments and the marketplace API behave the same in each. Webhook signature verification and the health check are additional helpers in this SDK.
 
 ---
 
@@ -264,14 +254,14 @@ app.post('/webhooks/tapsilat', async (req, res) => {
 
 #### Create Payment Term
 ```typescript
+// order_id is the order's ID (order_id from createOrder), not its reference ID
 const paymentTerm = await tapsilat.createOrderTerm({
-  order_id: 'order-reference-id',
+  order_id: createdOrder.order_id,
   term_reference_id: 'term-001',
   amount: 250.00,
-  due_date: '2024-12-31',
+  due_date: '2024-12-31', // YYYY-MM-DD
   term_sequence: 1,
   required: true,
-  status: 'pending',
   data: 'First installment'
 });
 console.log('Payment term created:', paymentTerm.term_reference_id);
@@ -279,11 +269,14 @@ console.log('Payment term created:', paymentTerm.term_reference_id);
 
 #### Update Payment Term
 ```typescript
+// The update replaces the term, so send every field rather than only the changed ones
 const updatedTerm = await tapsilat.updateOrderTerm({
   term_reference_id: 'term-001',
+  term_sequence: 1,
+  required: true,
   amount: 275.00,
   due_date: '2025-01-15',
-  status: 'updated'
+  status: 'pending'
 });
 console.log('Payment term updated:', updatedTerm.status);
 ```
@@ -291,6 +284,7 @@ console.log('Payment term updated:', updatedTerm.status);
 #### Delete Payment Term
 ```typescript
 const deletedTerm = await tapsilat.deleteOrderTerm({
+  order_id: createdOrder.order_id,
   term_reference_id: 'term-001'
 });
 console.log('Payment term deleted:', deletedTerm.term_reference_id);
@@ -299,14 +293,16 @@ console.log('Payment term deleted:', deletedTerm.term_reference_id);
 #### Refund Payment Term
 ```typescript
 const termRefund = await tapsilat.refundOrderTerm({
-  term_id: 'term-001',
-  amount: 100.00,
-  reference_id: 'refund-ref-123'
+  term_id: 'term-id',              // the term's ID
+  reference_id: 'order-reference-id', // the order's reference ID
+  amount: 100.00
 });
 console.log('Term refund processed:', termRefund.refund_id);
 ```
 
 #### Terminate Payment Term
+`terminateOrderTerm` is deprecated: the API has no payment term termination route. Delete the term with `deleteOrderTerm`, or end the whole order with `terminateOrder`.
+
 ```typescript
 const terminatedTerm = await tapsilat.terminateOrderTerm({
   term_reference_id: 'term-001',
@@ -447,6 +443,79 @@ const updateResult = await tapsilat.orderRelatedUpdate(
 );
 console.log('Related order updated:', updateResult.success);
 ```
+
+### Card Installments and Charging
+
+```typescript
+const options = await tapsilat.getCardInstallments({
+  bin: '54066200',
+  amount: 100,
+  currency: 'TRY',
+});
+// options.installments lists each installment count with its commission rate and monthly payment
+
+const table = await tapsilat.getInstallmentTable({ amount: 100, currency: 'TRY' });
+// table.groups lists installment rows per bank card program
+
+const charge = await tapsilat.chargeOrder({ order_reference_id: 'order-reference-id' });
+if (!charge.isSuccess) {
+  // The request succeeded but the charge did not; inspect charge.errorCode and charge.message
+}
+```
+
+### Submerchants, VPOS and Tokenization
+
+Grouped services cover the remaining management APIs. Currency fields accept a currency UUID or an organization unit such as `TRY`; the server resolves units.
+
+```typescript
+await tapsilat.submerchants.createSubmerchant({
+  locale: 'tr',
+  conversation_id: 'seller-1',
+  name: 'Example Ltd',
+  email: 'finance@example.test',
+  gsm_number: '905551112233',
+  sub_merchant_type: 'PRIVATE_COMPANY',
+  tax_number: '1234567890',
+  currency_id: 'TRY',
+});
+
+const posList = await tapsilat.vpos.listVpos({ page: 1, per_page: 20 });
+const card = await tapsilat.tokenization.tokenizeCard({
+  card_number: '4111111111111111',
+  holder_name: 'John Doe',
+  expiry_month: '12',
+  expiry_year: '30',
+  cvv: '123',
+  user_id: 'customer-1',
+});
+```
+
+`updateVpos` and `updateSubmerchant` replace the stored record: read it first and send every field back. For example, leaving out `failover` or `tls` stores `false`.
+
+### Marketplace
+
+`tapsilat.marketplace` uses the API version 2 routes, derived from your `baseURL`. Revisions are opaque strings: pass them back exactly as received.
+
+```typescript
+const payout = await tapsilat.marketplace.getMarketplacePayout(payoutId);
+if (payout.eligibility_status === 'eligible' && payout.release_status === 'awaiting_approval') {
+  await tapsilat.marketplace.approveMarketplacePayouts({ ids: [payout.id!] });
+}
+
+await tapsilat.marketplace.runMarketplacePayoutOperation(payoutId, {
+  kind: 'update_item',
+  idempotency_key: 'booking-123-allocation-change-1',
+  revision: payout.revision!,
+  seller_reference: seller.routing_reference,
+  net_amount: '60.25',
+});
+```
+
+Approval policies need a currency UUID; `createMarketplaceApprovalPolicy` and `updateMarketplaceApprovalPolicy` resolve units such as `TRY` for you, and `tapsilat.resolveCurrencyId('TRY')` exposes the same lookup.
+
+### Error Details
+
+Failed requests throw a `TapsilatError` (or a subclass). Besides `message` and `code`, it carries `statusCode`, the API's own `apiCode` and `apiStatus`, per-field validation `errors`, and the `rawBody`. Most "not found" errors arrive as HTTP 400, and rejected state changes (for example approving an ineligible payout) as HTTP 424. A successful status with an HTML body, which a deployment serving the panel UI returns for unknown routes, raises a `TapsilatError` with code `UNEXPECTED_RESPONSE`.
 
 ### Health Monitoring
 
