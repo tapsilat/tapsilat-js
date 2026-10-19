@@ -642,3 +642,46 @@ export function validateInstallments(
     };
   }
 }
+
+// GSM NUMBER CLEANING
+// Summary: Cleans a GSM number the same way the other Tapsilat SDKs do
+// Description: Strips spaces, dashes and parentheses, accepts digits with an optional leading +, and checks a minimum length per format
+/**
+ * Cleans and validates a GSM number for order creation
+ *
+ * @summary Clean a GSM number with the SDK-wide rules
+ * @description Removes spaces, dashes and parentheses, then checks that only digits and + remain and that the
+ * number is long enough for its format (international +, 00, national 0 or local). Any country is accepted.
+ *
+ * @param phone - Phone number as entered
+ * @returns The cleaned number, or an empty string when phone is empty
+ * @throws {TapsilatValidationError} When the number is malformed or too short
+ */
+export function cleanGsmNumber(phone: string): string {
+  if (!phone) {
+    return "";
+  }
+
+  const cleaned = phone.replace(/[\s\-()]/g, "");
+  if (!/^[+0-9]+$/.test(cleaned) || cleaned.replace(/\+/g, "") === "") {
+    throw new TapsilatValidationError(`Invalid phone number format: ${phone}`);
+  }
+
+  if (cleaned.startsWith("+")) {
+    if (cleaned.length < 8) {
+      throw new TapsilatValidationError(`International phone number too short: ${phone}`);
+    }
+  } else if (cleaned.startsWith("00")) {
+    if (cleaned.length < 9) {
+      throw new TapsilatValidationError(`International phone number (00 format) too short: ${phone}`);
+    }
+  } else if (cleaned.startsWith("0")) {
+    if (cleaned.length < 7) {
+      throw new TapsilatValidationError(`National phone number too short: ${phone}`);
+    }
+  } else if (cleaned.length < 6) {
+    throw new TapsilatValidationError(`Local phone number too short: ${phone}`);
+  }
+
+  return cleaned;
+}

@@ -14,6 +14,16 @@ import { APIError } from "../types/index";
 export class TapsilatError extends Error {
   public readonly code: string;
   public readonly details?: unknown;
+  /** HTTP status code, when the error came from an HTTP response */
+  public statusCode?: number;
+  /** `code` field from the API response body, as a string */
+  public apiCode?: string;
+  /** `status` field from the API response body */
+  public apiStatus?: string;
+  /** Per-field validation messages from the API response body */
+  public errors?: Record<string, unknown>;
+  /** Raw API response body */
+  public rawBody?: string;
 
   /**
    * @summary Creates a new TapsilatError instance
@@ -45,7 +55,17 @@ export class TapsilatError extends Error {
    * @returns New TapsilatError instance with properties from API error
    */
   static fromAPIError(apiError: APIError): TapsilatError {
-    return new TapsilatError(apiError.message, apiError.code, apiError.details);
+    const error = new TapsilatError(
+      apiError.message,
+      apiError.code,
+      apiError.details
+    );
+    error.statusCode = apiError.statusCode;
+    error.apiCode = apiError.apiCode;
+    error.apiStatus = apiError.apiStatus;
+    error.errors = apiError.errors;
+    error.rawBody = apiError.rawBody;
+    return error;
   }
 }
 
@@ -57,8 +77,6 @@ export class TapsilatError extends Error {
  * @extends TapsilatError
  */
 export class TapsilatNetworkError extends TapsilatError {
-  public readonly statusCode?: number;
-
   /**
    * @summary Creates a new network error instance
    * @description Initializes network error with message, code, status code and optional details

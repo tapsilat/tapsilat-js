@@ -4,6 +4,7 @@ export class HttpClient {
   public put = jest.fn();
   public delete = jest.fn();
   public patch = jest.fn();
+  public versionedBaseURL = jest.fn((version: string) => `https://test.api.com/api/${version}`);
 
   constructor() {
     this.post.mockImplementation(() => Promise.resolve({ success: true, data: {} }));

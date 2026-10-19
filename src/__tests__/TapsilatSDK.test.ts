@@ -543,7 +543,7 @@ describe("TapsilatSDK", () => {
 
       const result = await sdk.getOrganizationMeta("my_meta");
 
-      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/meta/my_meta");
+      expect(mockHttpClient.get).toHaveBeenCalledWith("/organization/metas/my_meta");
       expect(result).toEqual(mockResponse.data);
     });
 
@@ -763,11 +763,11 @@ describe("TapsilatSDK", () => {
   describe("New Synced Endpoints", () => {
     describe("Order Domain", () => {
       it("should get order payments", async () => {
-        const mockResponse = { success: true, data: { id: "payment-1" } };
-        mockHttpClient.get.mockResolvedValueOnce(mockResponse);
+        const mockResponse = { success: true, data: { payments: [{ id: "payment-1" }] } };
+        mockHttpClient.post.mockResolvedValueOnce(mockResponse);
 
         const result = await sdk.orders.getPayments({ order_id: "order-123" });
-        expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/payment");
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/order/payments", { order_id: "order-123" });
         expect(result).toEqual(mockResponse.data);
       });
 
@@ -776,7 +776,7 @@ describe("TapsilatSDK", () => {
         mockHttpClient.get.mockResolvedValueOnce({ success: true, data: mockBlob });
 
         const result = await sdk.orders.getPdf("order-123");
-        expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/pdf", { responseType: "blob" });
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/export/pdf", { responseType: "blob" });
         expect(result).toBe(mockBlob);
       });
 
@@ -785,7 +785,7 @@ describe("TapsilatSDK", () => {
         mockHttpClient.get.mockResolvedValueOnce({ success: true, data: mockBlob });
 
         const result = await sdk.orders.getExcel("order-123");
-        expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/excel", { responseType: "blob" });
+        expect(mockHttpClient.get).toHaveBeenCalledWith("/order/order-123/export/excel", { responseType: "blob" });
         expect(result).toBe(mockBlob);
       });
 
@@ -795,7 +795,7 @@ describe("TapsilatSDK", () => {
 
         const request = { reference_id: "order-123", amount: 100 };
         const result = await sdk.orders.createRefundRequest(request);
-        expect(mockHttpClient.post).toHaveBeenCalledWith("/order/order-123/refund/request", { amount: 100 });
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/order/refund-request", { reference_id: "order-123", amount: 100 });
         expect(result).toEqual(mockResponse.data);
       });
 
@@ -805,7 +805,7 @@ describe("TapsilatSDK", () => {
 
         const request = { order_id: "order-123", amount: 100, type: 1 };
         const result = await sdk.orders.addOip(request);
-        expect(mockHttpClient.post).toHaveBeenCalledWith("/order/order-123/oip", { amount: 100, type: 1 });
+        expect(mockHttpClient.post).toHaveBeenCalledWith("/order/oip", { order_id: "order-123", amount: 100, type: 1 });
         expect(result).toEqual(mockResponse.data);
       });
     });

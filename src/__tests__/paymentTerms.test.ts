@@ -114,8 +114,22 @@ describe("TapsilatSDK Payment Terms", () => {
   });
 
   describe("deleteOrderTerm", () => {
+    it("should validate order ID", async () => {
+      const invalidData: PaymentTermDeleteRequest = {
+        order_id: "",
+        term_reference_id: "term_456",
+      };
+
+      await expect(sdk.deleteOrderTerm(invalidData)).rejects.toThrow(
+        "Order ID is required and must be a non-empty string"
+      );
+    });
+
     it("should validate term reference ID", async () => {
-      const invalidData: PaymentTermDeleteRequest = { term_reference_id: "" };
+      const invalidData: PaymentTermDeleteRequest = {
+        order_id: "order_123",
+        term_reference_id: "",
+      };
 
       await expect(sdk.deleteOrderTerm(invalidData)).rejects.toThrow(
         "Term reference ID is required and must be a non-empty string"
@@ -126,8 +140,17 @@ describe("TapsilatSDK Payment Terms", () => {
   describe("refundOrderTerm", () => {
     const validRefundData: OrderTermRefundRequest = {
       term_id: "term_123",
+      reference_id: "order_ref_123",
       amount: 50.25,
     };
+
+    it("should validate order reference ID", async () => {
+      const invalidData = { ...validRefundData, reference_id: "" };
+
+      await expect(sdk.refundOrderTerm(invalidData)).rejects.toThrow(
+        "Order reference ID is required and must be a non-empty string"
+      );
+    });
 
     it("should validate term ID", async () => {
       const invalidData = { ...validRefundData, term_id: "" };

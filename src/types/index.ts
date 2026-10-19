@@ -142,7 +142,7 @@ export interface Address {
  * @interface BillingAddress
  */
 export interface BillingAddress extends Address {
-  billing_type: "PERSONAL" | "BUSINESS" | "CORPORATE";
+  billing_type: "PERSONAL" | "CORPORATE" | "BUSINESS";
   citizenship?: string;
   neighbourhood?: string;
   street1?: string;
@@ -178,6 +178,8 @@ export interface BasketItem {
   quantity_unit?: string;
   sub_merchant_key?: string;
   sub_merchant_price?: string;
+  /** RFC3339 timestamp before which the item's marketplace payout is not released */
+  payout_release_at?: string;
 }
 
 /**
@@ -259,6 +261,16 @@ export interface APIError {
   code: string;
   message: string;
   details?: unknown;
+  /** HTTP status code of the failed response */
+  statusCode?: number;
+  /** `code` field from the response body, as a string */
+  apiCode?: string;
+  /** `status` field from the response body */
+  apiStatus?: string;
+  /** Per-field validation messages from the response body */
+  errors?: Record<string, unknown>;
+  /** Raw response body */
+  rawBody?: string;
 }
 
 // API RESPONSE
@@ -273,11 +285,7 @@ export interface APIError {
 export interface APIResponse<T> {
   success: boolean;
   data?: T;
-  error?: {
-    message: string;
-    code: string;
-    details?: unknown;
-  };
+  error?: APIError;
   status?: number;
   headers?: Record<string, string>;
 }
@@ -355,6 +363,9 @@ export interface Buyer {
   ip?: string;
   registration_date?: string;
   last_login_date?: string;
+  income_type?: string;
+  education?: string;
+  occupation?: string;
 }
 
 // ORDER CREATE REQUEST
@@ -401,6 +412,7 @@ export interface OrderCreateRequest {
   metadata?: OrderMetadata[];
   sub_organization?: SubOrganizationDTO;
   submerchants?: SubmerchantDTO[];
+  order_vpos_id?: string;
 }
 
 // ORDER CREATE RESPONSE
@@ -496,8 +508,10 @@ export interface GetOrdersRequest {
   end_date?: string;
   organization_id?: string;
   related_reference_id?: string;
+  conversation_id?: string;
   buyer_id?: string;
-  status?: number;
+  /** Numeric order status */
+  status?: number | string;
 }
 
 /**
@@ -797,6 +811,8 @@ export interface BasketItemDTO {
   status?: number;
   sub_merchant_key?: string;
   sub_merchant_price?: string;
+  /** RFC3339 timestamp before which the item's marketplace payout is not released */
+  payout_release_at?: string;
 }
 
 /**
@@ -837,11 +853,22 @@ export interface CheckoutDesignDTO {
   label_text_color?: string;
   left_background_color?: string;
   logo?: string;
+  /** @deprecated Checkout no longer renders custom order detail HTML; the value is ignored. */
   order_detail_html?: string;
   pay_button_color?: string;
+  /** @deprecated Ignored by checkout. Use the order's redirect_success_url and redirect_failure_url. */
   redirect_url?: string;
   right_background_color?: string;
   text_color?: string;
+  pay_button_text_color?: string;
+  page_background_color?: string;
+  border_color?: string;
+  input_border_color?: string;
+  accent_color?: string;
+  text_muted_color?: string;
+  surface_muted_color?: string;
+  dark_mode_enabled?: boolean;
+  dark_colors?: Record<string, string>;
 }
 
 /**
@@ -872,6 +899,7 @@ export interface OrderCardDTO {
  * @description Details for installment or partial payments with due dates and status
  * @interface PaymentTermDTO
  */
+/** Payment term sent with order creation; due_date and paid_date must be RFC3339 timestamps */
 export interface PaymentTermDTO {
   hash_id?: string;
   id?: number;
@@ -993,17 +1021,19 @@ export interface OrderCreateDTO {
   external_reference_id?: string;
   metadata?: MetadataDTO[];
   order_cards?: OrderCardDTO[];
+  order_vpos_id?: string;
   paid_amount?: number;
+  /** "auth" (default) or "preauth" */
+  payment_mode?: string;
+  redirect_success_url?: string;
+  redirect_failure_url?: string;
   partial_payment?: boolean;
   payment_failure_url?: string;
-  payment_mode?: string;
   payment_methods?: boolean;
   payment_options?: string[];
   payment_success_url?: string;
   payment_terms?: PaymentTermDTO[];
   pf_sub_merchant?: OrderPFSubMerchantDTO;
-  redirect_failure_url?: string;
-  redirect_success_url?: string;
   shipping_address?: ShippingAddressDTO;
   sub_organization?: SubOrganizationDTO;
   submerchants?: SubmerchantDTO[];
@@ -1051,14 +1081,16 @@ export interface OrderPaymentDetailDTO {
  * @description Structure for creating a new payment term for an existing order
  * @interface OrderPaymentTermCreateDTO
  */
+/** Adds a payment term to an existing order; dates use YYYY-MM-DD */
 export interface OrderPaymentTermCreateDTO {
+  /** The order's ID (order_id from order creation), not its reference ID */
   order_id: string;
-  term_reference_id: string;
+  term_reference_id?: string;
   amount: number;
   due_date: string;
-  term_sequence: number;
+  term_sequence?: number;
   required: boolean;
-  status: string;
+  status?: string;
   data?: string;
   paid_date?: string;
 }
@@ -1086,9 +1118,11 @@ export interface OrderPaymentTermUpdateDTO {
  * @interface OrderTermRefundRequest
  */
 export interface OrderTermRefundRequest {
+  /** The payment term's ID */
   term_id: string;
   amount: number;
-  reference_id?: string;
+  /** The order's reference ID; required by the server */
+  reference_id: string;
   term_payment_id?: string;
 }
 
@@ -1166,6 +1200,7 @@ export interface OrderPaymentTermActionResponse {
  * @interface PaymentTermDeleteRequest
  */
 export interface PaymentTermDeleteRequest {
+  /** The order's ID, not its reference ID; the server requires it */
   order_id?: string;
   term_reference_id: string;
 }
@@ -1307,6 +1342,9 @@ export interface SubscriptionCreateRequest {
   title?: string;
   user?: SubscriptionUser;
   price_option?: SubscriptionPriceOption;
+  /** day, week, month or year */
+  interval?: string;
+  interval_count?: number;
 }
 
 export interface SubscriptionPriceOption {
@@ -1338,6 +1376,10 @@ export interface SubscriptionDetail {
   payment_status?: string;
   period?: number;
   title?: string;
+  cycle?: number;
+  cycles_completed?: number;
+  interval?: string;
+  interval_count?: number;
 }
 
 export interface SubscriptionListItem {
@@ -1386,6 +1428,9 @@ export interface OrganizationSettings {
   domain_address?: string;
   checkout_domain?: string;
   subscription_domain?: string;
+  has_kyc_kyx_template?: boolean;
+  has_kyb_kyx_template?: boolean;
+  is_money_transfer_partner?: boolean;
 }
 
 export interface OrderTransaction {
@@ -1401,6 +1446,7 @@ export interface OrderTransaction {
   [key: string]: unknown;
 }
 
+/** @deprecated The API returns the transactions as an array; `getOrderTransactions` returns `OrderTransaction[]`. */
 export interface GetOrderTransactionsResponse {
   orderTX?: OrderTransaction[];
 }
@@ -1768,6 +1814,15 @@ export interface OrderPostAuthRequest {
   reference_id: string;
 }
 
+export * from "./panel";
+
+import type {
+  OrderPaymentsRequest,
+  OrderPaymentsResponse,
+  OrgUserTokenCreateRequest,
+  OrganizationCurrencyPreset,
+} from "./panel";
+
 /**
  * @category Order Management
  * @summary Response for order post-authorization
@@ -1799,14 +1854,9 @@ export interface OrderVposQueryResponse {
   [key: string]: unknown;
 }
 
-export interface OrganizationCurrencyPreset {
-  id?: string;
-  name?: string;
-  code?: string;
-  [key: string]: unknown;
-}
-
 export interface GetOrganizationCurrencyPresetsResponse {
+  items?: OrganizationCurrencyPreset[];
+  /** @deprecated The API returns the presets in `items`. */
   presets?: OrganizationCurrencyPreset[];
 }
 
@@ -1891,14 +1941,10 @@ export interface GetSystemTransactionStatusesResponse {
 }
 
 // Order Payments
-export interface GetOrderPaymentsRequest {
-  order_id: string;
-}
+/** Selects the order whose payments to list; set at least one identifier. */
+export type GetOrderPaymentsRequest = OrderPaymentsRequest;
 
-export interface GetOrderPaymentsResponse {
-  // Add specific fields if available from API, otherwise loosely typed
-  [key: string]: unknown;
-}
+export type GetOrderPaymentsResponse = OrderPaymentsResponse;
 
 // Order OIP
 export interface OrderOIPDTO {
@@ -1946,35 +1992,19 @@ export interface ListSubmerchantsResponse {
 }
 
 // Organization User Token
-export interface OrgUserTokenCreateReq {
-  email: string;
-  expire?: number;
+export interface OrgUserTokenCreateReq extends OrgUserTokenCreateRequest {
+  /** @deprecated Not part of the API; the server ignores it. */
   language?: string;
+  /** @deprecated Not part of the API; the server ignores it. */
   metadata?: Record<string, unknown>;
+  /** @deprecated Not part of the API; the server ignores it. */
   title?: string;
+  /** @deprecated Not part of the API; the server ignores it. */
   type?: string;
 }
 
-export interface OrgUserTokenCreateResponse {
-  [key: string]: unknown;
-}
-
-export interface OrderChargeRequest {
-  order_reference_id: string;
-}
-
-export interface OrderChargeResponse {
-  [key: string]: any;
-}
-
-
-
 export interface CreateOrganizationCurrencyPayload {
   currency_code: string;
-}
-
-export interface CreateOrganizationCurrencyResponse {
-  [key: string]: any;
 }
 
 export interface GetOrganizationPartnersResponse {
