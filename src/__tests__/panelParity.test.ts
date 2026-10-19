@@ -141,13 +141,13 @@ describe("Panel contract parity", () => {
 
   describe("organization", () => {
     it("uses the panel routes for limits, metas and suborganizations", async () => {
-      await sdk.getOrganizationLimits("org/1");
+      await sdk.getOrganizationLimitsById("org/1");
       expect(http.get).toHaveBeenLastCalledWith("/organization/org%2F1/limits");
       await sdk.getOrganizationMeta("checkout");
       expect(http.get).toHaveBeenLastCalledWith("/organization/metas/checkout");
       await sdk.getOrganizationSuborganizations({ page: 2 });
       expect(http.get).toHaveBeenLastCalledWith("/organization/suborganizations", {
-        params: { page: 2, per_page: 10 },
+        params: { page: 2 },
       });
       await sdk.getSuborganizationDetail("so_1");
       expect(http.get).toHaveBeenLastCalledWith("/organization/suborganizations/so_1");

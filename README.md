@@ -181,6 +181,22 @@ transactions.forEach(tx => {
 });
 ```
 
+#### Charge Order
+```typescript
+const chargeResult = await tapsilat.chargeOrder({
+  order_reference_id: 'order-reference-id'
+});
+console.log('Order charged:', chargeResult);
+```
+
+#### Get Order Payments
+`getAllOrdersPayments` is deprecated: the API has no route for it. List one order's payments with `getOrderPayments` and an order ID, reference ID or conversation ID.
+
+```typescript
+const payments = await tapsilat.getOrderPayments({ order_reference_id: 'order-reference-id' });
+console.log('Merchant net amount:', payments.total_merchant_net_amount);
+```
+
 #### Get Checkout URL
 ```typescript
 const checkoutUrl = await tapsilat.getCheckoutUrl('order-reference-id');
@@ -320,6 +336,51 @@ const terminatedOrder = await tapsilat.terminateOrder({
 console.log('Order terminated at:', terminatedOrder.terminated_at);
 ```
 
+### Submerchant Management
+
+#### Create Submerchant
+```typescript
+const submerchant = await tapsilat.submerchant.create({
+  name: "Test Submerchant",
+  email: "submerchant@example.com",
+  address: "Istanbul, Turkey",
+  city: "Istanbul",
+  country: "Turkey",
+  gsm_number: "5555555555",
+  iban: "TR123456789012345678901234",
+  identity_number: "11111111111",
+  contact_name: "Test",
+  contact_surname: "Sub",
+  sub_merchant_type: "PERSONAL",
+  tax_office: "Test Office",
+  zip_code: "34000"
+});
+console.log('Submerchant created:', submerchant.id);
+```
+
+#### List Submerchants
+```typescript
+const submerchants = await tapsilat.submerchant.list(1, 10);
+submerchants.data.forEach(sub => {
+  console.log(`Submerchant: ${sub.name}`);
+});
+```
+
+### Document Downloads
+
+#### Download Order PDF
+```typescript
+const pdfBlob = await tapsilat.orders.getPdf('order-reference-id');
+// For browsers, you can create an object URL to download the Blob:
+// const url = URL.createObjectURL(pdfBlob);
+// window.open(url);
+```
+
+#### Download Order Excel
+```typescript
+const excelBlob = await tapsilat.orders.getExcel('order-reference-id');
+```
+
 ### Subscription Management
 
 #### Create Subscription
@@ -422,6 +483,46 @@ if (!invalid.isValid) {
 ```typescript
 const settings = await tapsilat.getOrganizationSettings();
 console.log('Organization Settings:', settings);
+```
+
+#### Get Currency Presets
+```typescript
+const presets = await tapsilat.getOrganizationCurrencyPresets();
+console.log('Available currencies:', presets.items);
+```
+
+#### Organization Management
+```typescript
+// Create Currency
+const newCurrency = await tapsilat.createOrganizationCurrency({
+  currency_code: 'EUR'
+});
+
+// Get Partners
+const partners = await tapsilat.getOrganizationPartners();
+
+// Get Limits
+const limits = await tapsilat.getOrganizationLimitsById('org-uuid', { currency: 'TRY' });
+```
+
+#### Get Suborganization Details
+```typescript
+const suborg = await tapsilat.getOrganizationSuborganizationDetails('suborg-id');
+console.log('Suborganization Name:', suborg.name);
+```
+
+### System Utilities
+
+#### Get System Endpoints
+```typescript
+// Fetch various system configurations
+const config = await tapsilat.getSystemConfig();
+const errorCodes = await tapsilat.getSystemErrorCodes();
+const productTypes = await tapsilat.getSystemProductTypes();
+const transactionStatuses = await tapsilat.getSystemTransactionStatuses();
+const basketItemTypes = await tapsilat.getSystemBasketItemTypes();
+
+console.log('Available Error Codes:', errorCodes.rows);
 ```
 
 ### Manual Operations

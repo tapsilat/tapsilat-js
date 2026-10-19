@@ -11,12 +11,18 @@ import {
 } from "./utils/validators";
 import {
   TapsilatConfig,
-  PaginatedResponse,
-  Order,
+  GetOrderResponse,
+  GetOrdersRequest,
+  GetOrdersResponse,
+  CancelOrderRequest,
+  CancelOrderResponse,
   OrderRefundRequest,
   OrderRefundResponse,
+  RefundAllOrderDTO,
   OrderStatusResponse,
-  OrderPaymentDetail,
+  GetSystemOrderStatusesResponse,
+  GetOrderPaymentDetailsResponse,
+  OrderPaymentDetailDTO,
   OrderCreateRequest,
   OrderCreateResponse,
   OrderCreateDTO,
@@ -24,35 +30,56 @@ import {
   OrderPaymentTermUpdateDTO,
   OrderTermRefundRequest,
   PaymentTermResponse,
+  GetOrderTermResponse,
   PaymentTermDeleteRequest,
   PaymentTermRefundResponse,
   PaymentTermTerminateRequest,
   OrderTerminateRequest,
   OrderTerminateResponse,
+  OrderPaymentTermActionResponse,
   SubscriptionGetRequest,
   SubscriptionCancelRequest,
   SubscriptionCreateRequest,
   SubscriptionRedirectRequest,
+  ListSubscriptionsRequest,
   SubscriptionDetail,
+  ListSubscriptionsResponse,
   SubscriptionCreateResponse,
   SubscriptionRedirectResponse,
   OrganizationSettings,
   OrderTransaction,
-  APIResponse,
+  OrderPaymentDetail,
+  GetOrderSubmerchantsRequest,
+  GetOrderSubmerchantsResponse,
   OrderAccountingRequest,
+  OrderAccountingResponse,
   OrderPostAuthRequest,
+  OrderPostAuthResponse,
   AddBasketItemRequest,
+  AddBasketItemResponse,
   RemoveBasketItemRequest,
+  RemoveBasketItemResponse,
   UpdateBasketItemRequest,
+  UpdateBasketItemResponse,
+  OrderManualCallbackRequest,
+  OrderManualCallbackResponse,
+  OrderRelatedUpdateRequest,
+  OrderRelatedUpdateResponse,
   CallbackURLDTO,
   OrgCreateBusinessRequest,
+  OrgCreateBusinessResponse,
+  OrganizationResponse,
+  GetOrganizationCurrenciesResponse,
   GetUserLimitRequest,
+  GetUserLimitResponse,
   SetLimitUserRequest,
+  SetLimitUserResponse,
+  GetOrganizationLimitsResponse,
+  GetMetaResponse,
+  GetOrganizationScopesResponse,
+  GetSuborganizationsRequest,
+  GetSubOrganizationListResponse,
   GetVposRequest,
-  OrgCreateUserReq,
-  OrgUserVerifyReq,
-  OrgUserMobileVerifyReq,
-  OrderPaymentsRequest,
   OrderPaymentsResponse,
   OrderChargeRequest,
   OrderChargeResponse,
@@ -60,18 +87,52 @@ import {
   SubmerchantPaymentActionResponse,
   SubmerchantPaymentItemUpdate,
   SubmerchantPaymentItemUpdateResponse,
-  OrderSubmerchantListResponse,
   CardInstallmentsRequest,
   CardInstallmentsResponse,
   InstallmentTableRequest,
   InstallmentTableResponse,
   OrganizationCurrencyPresetsResponse,
   CreateOrganizationCurrencyResponse,
-  OrgUserTokenCreateRequest,
   OrgUserTokenCreateResponse,
-  SuborganizationListResponse,
   SuborganizationDetail,
   SuborganizationSubmerchantMapping,
+  GetVposResponse,
+  OrgCreateUserRequest,
+  OrgCreateUserResponse,
+  OrgUserVerifyRequest,
+  OrgUserVerifyResponse,
+  OrgUserMobileVerifyRequest,
+  OrgUserMobileVerifyResponse,
+  CancelSubscriptionResponse,
+  OrderPaymentOptionsUpdateDTO,
+  SplitOrderItemPaymentDTO,
+  OrderCallbackResponse,
+  OrderVposQueryResponse,
+  GetOrganizationCurrencyPresetsResponse,
+  GetSuborganizationDetailsResponse,
+  GetSuborganizationSubmerchantsResponse,
+  GetOrderPaymentsRequest,
+  GetOrderPaymentsResponse,
+  OrderOIPDTO,
+  OrderOIPResponse,
+  SubmerchantCreateDTO,
+  SubmerchantUpdateDTO,
+  GetSubmerchantResponse,
+  ListSubmerchantsResponse,
+  OrgUserTokenCreateReq,
+  RefundOrderDTO,
+  GetSystemBasketItemTypesResponse,
+  GetSystemErrorCodesResponse,
+  GetSystemPaymentTermStatusesResponse,
+  GetSystemProductTypesResponse,
+  GetSystemShortcutTypesResponse,
+  GetSystemTransactionPaymentTypesResponse,
+  GetSystemTransactionPurposesResponse,
+  GetSystemTransactionStatusesResponse,
+  CreateOrganizationCurrencyPayload,
+  GetOrganizationPartnersResponse,
+  GetOrganizationLimitsByIdResponse,
+  GetSystemConfigResponse,
 } from "./types/index";
 import {
   MarketplaceService,
@@ -171,7 +232,12 @@ export class TapsilatSDK {
       status: (referenceId: string) => this.getOrderStatus(referenceId),
       refund: (request: OrderRefundRequest) => this.refundOrder(request),
       refundAll: (referenceId: string) => this.refundAllOrder(referenceId),
-      paymentDetails: (referenceId: string, conversationId?: string) => this.getOrderPaymentDetails(referenceId, conversationId),
+      paymentDetails: (request: OrderPaymentDetailDTO) => this.getOrderPaymentDetails(request),
+      paymentDetailsById: (referenceId: string) => this.getOrderPaymentDetailsById(referenceId),
+      callback: (id: string) => this.orderCallback(id),
+      updatePaymentOptions: (request: OrderPaymentOptionsUpdateDTO) => this.updatePaymentOptions(request),
+      splitItemPayment: (request: SplitOrderItemPaymentDTO) => this.splitOrderItemPayment(request),
+      vposQuery: (id: string) => this.orderVposQuery(id),
       byConversationId: (conversationId: string) => this.getOrderByConversationId(conversationId),
       transactions: (referenceId: string) => this.getOrderTransactions(referenceId),
       submerchants: (
@@ -192,6 +258,13 @@ export class TapsilatSDK {
       getTerm: (termReferenceId: string) => this.getOrderTerm(termReferenceId),
       terminateTerm: (request: PaymentTermTerminateRequest) => this.terminateOrderTerm(request),
       terminate: (request: OrderTerminateRequest) => this.terminateOrder(request),
+      getPayments: (request: GetOrderPaymentsRequest) => this.getOrderPayments(request),
+      getPdf: (id: string) => this.getOrderPdf(id),
+      getExcel: (id: string) => this.getOrderExcel(id),
+      createRefundRequest: (request: RefundOrderDTO) => this.createOrderRefundRequest(request),
+      addOip: (request: OrderOIPDTO) => this.addOrderOip(request),
+      charge: (request: OrderChargeRequest) => this.chargeOrder(request),
+      allPayments: () => this.getAllOrdersPayments(),
     };
   }
 
@@ -223,19 +296,57 @@ export class TapsilatSDK {
       currencies: () => this.getOrganizationCurrencies(),
       getLimitUser: (request: GetUserLimitRequest) => this.getOrganizationLimitUser(request),
       setLimitUser: (request: SetLimitUserRequest) => this.setOrganizationLimitUser(request),
-      limits: (organizationId: string) => this.getOrganizationLimits(organizationId),
+      limits: (organizationId: string) => this.getOrganizationLimitsById(organizationId),
       meta: (name: string) => this.getOrganizationMeta(name),
       scopes: () => this.getOrganizationScopes(),
       suborganizations: (params?: Parameters<TapsilatSDK["getOrganizationSuborganizations"]>[0]) =>
         this.getOrganizationSuborganizations(params),
       suborganization: (id: string) => this.getSuborganizationDetail(id),
-      currencyPresets: () => this.listOrganizationCurrencyPresets(),
-      createCurrency: (currencyCode: string) => this.createOrganizationCurrency(currencyCode),
-      createUserToken: (request: OrgUserTokenCreateRequest) => this.createOrganizationUserToken(request),
-      createUser: (request: OrgCreateUserReq) => this.createOrganizationUser(request),
-      verifyUser: (request: OrgUserVerifyReq) => this.verifyOrganizationUser(request),
-      verifyUserMobile: (request: OrgUserMobileVerifyReq) => this.verifyOrganizationUserMobile(request),
+      createUser: (request: OrgCreateUserRequest) => this.createOrganizationUser(request),
+      verifyUser: (request: OrgUserVerifyRequest) => this.verifyOrganizationUser(request),
+      verifyUserMobile: (request: OrgUserMobileVerifyRequest) => this.verifyOrganizationUserMobile(request),
       listVpos: (request: GetVposRequest) => this.listOrganizationVpos(request),
+      currencyPresets: () => this.getOrganizationCurrencyPresets(),
+      suborganizationDetails: (id: string) => this.getOrganizationSuborganizationDetails(id),
+      suborganizationSubmerchants: (id: string) => this.getOrganizationSuborganizationSubmerchants(id),
+      createUserToken: (request: OrgUserTokenCreateReq) => this.createOrganizationUserToken(request),
+      createCurrency: (input: string | CreateOrganizationCurrencyPayload) => this.createOrganizationCurrency(input),
+      partners: () => this.getOrganizationPartners(),
+      limitsById: (id: string, params?: { currency?: string; operation?: string }) => this.getOrganizationLimitsById(id, params),
+    };
+  }
+
+  /**
+   * Access to submerchant operations
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get submerchant(): any {
+    return {
+      create: (request: SubmerchantCreateDTO) => this.createSubmerchant(request),
+      get: (id: string) => this.getSubmerchant(id),
+      getSuborganization: (id: string) => this.getSuborganizationBySubmerchant(id),
+      update: (id: string, request: SubmerchantUpdateDTO) => this.updateSubmerchant(id, request),
+      delete: (id: string) => this.deleteSubmerchant(id),
+      list: (page?: number, perPage?: number) => this.listSubmerchants(page, perPage),
+    };
+  }
+
+  /**
+   * Access to system operations
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  get system(): any {
+    return {
+      orderStatuses: () => this.getSystemOrderStatuses(),
+      basketItemTypes: () => this.getSystemBasketItemTypes(),
+      errorCodes: () => this.getSystemErrorCodes(),
+      paymentTermStatuses: () => this.getSystemPaymentTermStatuses(),
+      productTypes: () => this.getSystemProductTypes(),
+      shortcutTypes: () => this.getSystemShortcutTypes(),
+      transactionPaymentTypes: () => this.getSystemTransactionPaymentTypes(),
+      transactionPurposes: () => this.getSystemTransactionPurposes(),
+      transactionStatuses: () => this.getSystemTransactionStatuses(),
+      config: () => this.getSystemConfig(),
     };
   }
 
@@ -283,10 +394,10 @@ export class TapsilatSDK {
    * @param {string} [orderRequest.payment_success_url] - URL to redirect after successful payment
    * @param {string} [orderRequest.payment_failure_url] - URL to redirect after failed payment
    * @param {number[]} [orderRequest.enabled_installments] - Allowed installment counts
-   * @param {Record<string, unknown>} [orderRequest.metadata] - Additional custom data
+   * @param {OrderMetadata[]} [orderRequest.metadata] - Additional custom key/value data
    *
    * @returns {Promise<OrderCreateResponse>} Promise resolving to order creation response
-   * @returns {string} OrderCreateResponse.order_id - Internal order identifier
+   * @returns {string} [OrderCreateResponse.id] - Internal order identifier
    * @returns {string} OrderCreateResponse.reference_id - Unique order reference for tracking
    * @returns {string} [OrderCreateResponse.checkout_url] - Payment page URL for customer
    * @returns {string} [OrderCreateResponse.conversation_id] - Echo of provided conversation ID
@@ -378,7 +489,6 @@ export class TapsilatSDK {
       );
     }
 
-    // Basket items and billing address are optional in Python ref and Swagger
 
     const request: OrderCreateRequest = buyer.gsm_number
       ? {
@@ -411,7 +521,7 @@ export class TapsilatSDK {
       }
 
       return created;
-    } catch (error) {
+    } catch (error: unknown) {
       // Use our generic error handler
       return handleError(error, "order creation");
     }
@@ -427,13 +537,14 @@ export class TapsilatSDK {
    * @description Handles accounting operations for a specific order using its reference ID.
    *
    * @param {OrderAccountingRequest} request - Accounting request details
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to the accounting response
+   * @returns {Promise<OrderAccountingResponse>} Promise resolving to the accounting response
    * @throws {TapsilatValidationError} When input validation fails
    * @throws {TapsilatError} When API returns an error response
    */
   async orderAccounting(
     request: OrderAccountingRequest
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<OrderAccountingResponse> {
+
     if (!isNonEmptyString(request.order_reference_id)) {
       throw new TapsilatValidationError(
         "Order reference ID is required and must be a non-empty string",
@@ -442,12 +553,12 @@ export class TapsilatSDK {
     }
 
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const orderAccountingResponse = await this.httpClient.post<OrderAccountingResponse>(
         "/order/accounting",
         request
       );
-      return handleResponse(response, "Order accounting");
-    } catch (error) {
+      return handleResponse(orderAccountingResponse, "Order accounting");
+    } catch (error: unknown) {
       return handleError(error, "order accounting");
     }
   }
@@ -462,13 +573,13 @@ export class TapsilatSDK {
    * @description Handles post-authorization operations for a specific order.
    *
    * @param {OrderPostAuthRequest} request - Post-authorization request details
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to the post-auth response
+   * @returns {Promise<OrderPostAuthResponse>} Promise resolving to the post-auth response
    * @throws {TapsilatValidationError} When input validation fails
    * @throws {TapsilatError} When API returns an error response
    */
   async orderPostAuth(
     request: OrderPostAuthRequest
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<OrderPostAuthResponse> {
     if (!isNonEmptyString(request.reference_id)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string",
@@ -482,12 +593,12 @@ export class TapsilatSDK {
     }
 
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const orderPostAuthResponse = await this.httpClient.post<OrderPostAuthResponse>(
         "/order/postauth",
         request
       );
-      return handleResponse(response, "Order post-auth");
-    } catch (error) {
+      return handleResponse(orderPostAuthResponse, "Order post-auth");
+    } catch (error: unknown) {
       return handleError(error, "order post-auth");
     }
   }
@@ -501,17 +612,121 @@ export class TapsilatSDK {
    * @summary Retrieve system order statuses
    * @description Gets a list of all possible order statuses in the system.
    *
-   * @returns {Promise<APIResponse<unknown>>} Promise resolving to system order statuses
+   * @returns {Promise<GetSystemOrderStatusesResponse>} Promise resolving to system order statuses
    * @throws {TapsilatError} When API returns an error response
    */
-  async getSystemOrderStatuses(): Promise<APIResponse<unknown>> {
+  async getSystemOrderStatuses(): Promise<GetSystemOrderStatusesResponse> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>(
+      const getSystemOrderStatusesResponse = await this.httpClient.get<GetSystemOrderStatusesResponse>(
         "/system/order-statuses"
       );
-      return handleResponse(response, "Get system order statuses");
-    } catch (error) {
+      return handleResponse(getSystemOrderStatusesResponse, "Get system order statuses");
+    } catch (error: unknown) {
       return handleError(error, "get system order statuses");
+    }
+  }
+
+  /**
+   * Retrieves system basket item types.
+   * Based on `get_system_basket_item_types` from Python SDK.
+   */
+  async getSystemBasketItemTypes(): Promise<GetSystemBasketItemTypesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemBasketItemTypesResponse>("/system/basket-item-types");
+      return handleResponse(response, "Get system basket item types");
+    } catch (error: unknown) {
+      return handleError(error, "get system basket item types");
+    }
+  }
+
+  /**
+   * Retrieves system error codes.
+   * Based on `get_system_error_codes` from Python SDK.
+   */
+  async getSystemErrorCodes(): Promise<GetSystemErrorCodesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemErrorCodesResponse>("/system/error-codes");
+      return handleResponse(response, "Get system error codes");
+    } catch (error: unknown) {
+      return handleError(error, "get system error codes");
+    }
+  }
+
+  /**
+   * Retrieves system payment term statuses.
+   * Based on `get_system_payment_term_statuses` from Python SDK.
+   */
+  async getSystemPaymentTermStatuses(): Promise<GetSystemPaymentTermStatusesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemPaymentTermStatusesResponse>("/system/payment-term-statuses");
+      return handleResponse(response, "Get system payment term statuses");
+    } catch (error: unknown) {
+      return handleError(error, "get system payment term statuses");
+    }
+  }
+
+  /**
+   * Retrieves system product types.
+   * Based on `get_system_product_types` from Python SDK.
+   */
+  async getSystemProductTypes(): Promise<GetSystemProductTypesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemProductTypesResponse>("/system/product-types");
+      return handleResponse(response, "Get system product types");
+    } catch (error: unknown) {
+      return handleError(error, "get system product types");
+    }
+  }
+
+  /**
+   * Retrieves system shortcut types.
+   * Based on `get_system_shortcut_types` from Python SDK.
+   */
+  async getSystemShortcutTypes(): Promise<GetSystemShortcutTypesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemShortcutTypesResponse>("/system/shortcut-types");
+      return handleResponse(response, "Get system shortcut types");
+    } catch (error: unknown) {
+      return handleError(error, "get system shortcut types");
+    }
+  }
+
+  /**
+   * Retrieves system transaction payment types.
+   * Based on `get_system_transaction_payment_types` from Python SDK.
+   */
+  async getSystemTransactionPaymentTypes(): Promise<GetSystemTransactionPaymentTypesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemTransactionPaymentTypesResponse>("/system/transaction-payment-types");
+      return handleResponse(response, "Get system transaction payment types");
+    } catch (error: unknown) {
+      return handleError(error, "get system transaction payment types");
+    }
+  }
+
+  /**
+   * Retrieves system transaction purposes.
+   * Based on `get_system_transaction_purposes` from Python SDK.
+   */
+  async getSystemTransactionPurposes(): Promise<GetSystemTransactionPurposesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemTransactionPurposesResponse>("/system/transaction-purposes");
+      return handleResponse(response, "Get system transaction purposes");
+    } catch (error: unknown) {
+      return handleError(error, "get system transaction purposes");
+    }
+  }
+
+  /**
+   * Retrieves system transaction statuses.
+   * Based on `get_system_transaction_statuses` from Python SDK.
+   */
+  async getSystemTransactionStatuses(): Promise<GetSystemTransactionStatusesResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemTransactionStatusesResponse>("/system/transaction-statuses");
+      return handleResponse(response, "Get system transaction statuses");
+    } catch (error: unknown) {
+      return handleError(error, "get system transaction statuses");
     }
   }
 
@@ -530,7 +745,7 @@ export class TapsilatSDK {
    * @throws {TapsilatNetworkError} When API request fails due to network issues
    * @throws {TapsilatError} When API returns an error response
    */
-  async getOrder(referenceId: string): Promise<Order> {
+  async getOrder(referenceId: string): Promise<GetOrderResponse> {
     // Validate input
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
@@ -541,13 +756,13 @@ export class TapsilatSDK {
 
     try {
       // Make the API request
-      const getOrderResponse = await this.httpClient.get<Order>(
+      const getOrderResponse = await this.httpClient.get<GetOrderResponse>(
         `/order/${referenceId}`
       );
 
       // Use our generic response handler
       return handleResponse(getOrderResponse, "Order retrieval");
-    } catch (error) {
+    } catch (error: unknown) {
       // Use our generic error handler
       return handleError(error, "order retrieval");
     }
@@ -568,18 +783,8 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API returns an error response
    */
   async getOrders(
-    params: {
-      page?: number;
-      per_page?: number;
-      start_date?: string;
-      end_date?: string;
-      status?: string | number;
-      organization_id?: string;
-      related_reference_id?: string;
-      conversation_id?: string;
-      buyer_id?: string;
-    } = {}
-  ): Promise<PaginatedResponse<Order>> {
+    params: GetOrdersRequest = {}
+  ): Promise<GetOrdersResponse> {
     try {
       // Validate pagination parameters if provided
       // Check if page is defined
@@ -619,14 +824,23 @@ export class TapsilatSDK {
         }
       }
 
+      // Check if status is defined
+      if (params.status !== undefined && !isInteger(params.status)) {
+        throw new TapsilatValidationError(
+          "Status must be an integer",
+          { provided: params.status }
+        );
+      }
+
       // Make the API request
-      const getOrdersResponse = await this.httpClient.get<
-        PaginatedResponse<Order>
-      >("/order/list", { params: params });
+      const getOrdersResponse = await this.httpClient.get<GetOrdersResponse>(
+        "/order/list",
+        { params: params as Record<string, unknown> }
+      );
 
       // Use our generic response handler
       return handleResponse(getOrdersResponse, "Order listing");
-    } catch (error) {
+    } catch (error: unknown) {
       // Use our generic error handler
       return handleError(error, "order listing");
     }
@@ -646,8 +860,7 @@ export class TapsilatSDK {
    * @throws {TapsilatValidationError} When referenceId is invalid
    * @throws {TapsilatError} When API returns an error response or order cannot be canceled
    */
-  async cancelOrder(referenceId: string): Promise<Order> {
-    // Validate referenceId
+  async cancelOrder(referenceId: string): Promise<CancelOrderResponse> {
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Order referenceId is required and must be a non-empty string",
@@ -655,31 +868,39 @@ export class TapsilatSDK {
       );
     }
 
-    const cancelOrderResponse = await this.httpClient.post<Order>(
-      "/order/cancel",
-      {
+    try {
+      const cancelOrderPayload: CancelOrderRequest = {
         reference_id: referenceId,
-      }
-    );
+      };
 
-    // Check if API call was successful
-    if (!cancelOrderResponse.success) {
-      throw new TapsilatError(
-        cancelOrderResponse.error?.message ||
+      const cancelOrderResponse = await this.httpClient.post<CancelOrderResponse>(
+        "/order/cancel",
+        cancelOrderPayload
+      );
+
+      // Check if API call was successful
+      if (!cancelOrderResponse.success) {
+        throw new TapsilatError(
+          cancelOrderResponse.error?.message ||
           "Order cancellation API call failed",
-        cancelOrderResponse.error?.code || "CANCELLATION_API_FAILED"
-      );
+          cancelOrderResponse.error?.code || "CANCELLATION_API_FAILED"
+        );
+      }
+
+      // Check if response data exists
+      if (!cancelOrderResponse.data) {
+        throw new TapsilatError(
+          "Order cancellation response data is missing",
+          "CANCELLATION_DATA_MISSING"
+        );
+      }
+
+      return cancelOrderResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order cancellation");
+
     }
 
-    // Check if response data exists
-    if (!cancelOrderResponse.data) {
-      throw new TapsilatError(
-        "Order cancellation response data is missing",
-        "CANCELLATION_DATA_MISSING"
-      );
-    }
-
-    return cancelOrderResponse.data;
   }
 
   // ORDER STATUS RETRIEVAL
@@ -691,12 +912,12 @@ export class TapsilatSDK {
    * @summary Retrieves real-time payment status and tracking information for a specific order
    * @description
    * Queries the Tapsilat payment platform to retrieve the current status of an order using its
-   * unique reference ID. This method provides real-time information about payment progress,
-   * completion status, and last update timestamp. It's essential for tracking payment flow
+   * unique reference ID. This method provides real-time information about payment processing
+   * status and error code (if returned by the API). It's essential for tracking payment flow
    * and implementing proper order state management in your application.
    *
-   * The status information includes payment state (CREATED, PENDING_PAYMENT, COMPLETED, CANCELLED),
-   * last update timestamp, and any relevant status metadata. This method should be used to:
+   * The status information includes payment state and API-level error code metadata.
+   * This method should be used to:
    * - Check if a payment has been completed after redirecting from checkout
    * - Monitor payment status for pending transactions
    * - Verify order state before fulfilling goods/services
@@ -705,13 +926,11 @@ export class TapsilatSDK {
    * @param {string} referenceId - Unique order reference identifier from order creation
    *
    * @returns {Promise<OrderStatusResponse>} Promise resolving to current order status information
-   * @returns {string} OrderStatusResponse.referenceId - Echo of the provided reference ID
-   * @returns {string} OrderStatusResponse.status - Current payment status (CREATED, PENDING_PAYMENT, COMPLETED, CANCELLED, FAILED)
-   * @returns {string} OrderStatusResponse.lastUpdatedAt - ISO 8601 timestamp of last status change
+   * @returns {string} [OrderStatusResponse.error_code] - API-level error code when present
+   * @returns {string} [OrderStatusResponse.status] - Current payment processing status
    *
    * @throws {TapsilatValidationError} When input validation fails:
    *   - Reference ID is null, undefined, or empty string
-   *   - Reference ID format is invalid (should match order ID pattern)
    * @throws {TapsilatNetworkError} When network request fails:
    *   - Connection timeout during status check
    *   - DNS resolution failure
@@ -739,7 +958,7 @@ export class TapsilatSDK {
 
       // Use our generic response handler
       return handleResponse(getOrderStatusResponse, "Order status retrieval");
-    } catch (error) {
+    } catch (error: unknown) {
       // Use our generic error handler
       return handleError(error, "order status retrieval");
     }
@@ -762,26 +981,31 @@ export class TapsilatSDK {
   async refundOrder(
     refundData: OrderRefundRequest
   ): Promise<OrderRefundResponse> {
-    const refundOrderResponse = await this.httpClient.post<OrderRefundResponse>(
-      "/order/refund",
-      refundData
-    );
+    try {
+      const refundOrderResponse =
+        await this.httpClient.post<OrderRefundResponse>(
+          "/order/refund",
+          refundData
+        );
 
-    if (!refundOrderResponse.success) {
-      throw new TapsilatError(
-        refundOrderResponse.error?.message || "Order refund failed",
-        refundOrderResponse.error?.code || "REFUND_FAILED"
-      );
+      if (!refundOrderResponse.success) {
+        throw new TapsilatError(
+          refundOrderResponse.error?.message || "Order refund failed",
+          refundOrderResponse.error?.code || "REFUND_FAILED"
+        );
+      }
+
+      if (!refundOrderResponse.data) {
+        throw new TapsilatError(
+          "Order refund response data is missing",
+          "REFUND_DATA_MISSING"
+        );
+      }
+
+      return refundOrderResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order refund");
     }
-
-    if (!refundOrderResponse.data) {
-      throw new TapsilatError(
-        "Order refund response data is missing",
-        "REFUND_DATA_MISSING"
-      );
-    }
-
-    return refundOrderResponse.data;
   }
 
   // ORDER FULL REFUND OPERATIONS
@@ -799,79 +1023,157 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API returns an error response or full refund fails
    */
   async refundAllOrder(referenceId: string): Promise<OrderRefundResponse> {
-    const refundAllOrderResponse =
-      await this.httpClient.post<OrderRefundResponse>("/order/refund-all", {
+    try {
+      const refundAllPayload: RefundAllOrderDTO = {
         reference_id: referenceId,
-      });
+      };
+      const refundAllOrderResponse =
+        await this.httpClient.post<OrderRefundResponse>(
+          "/order/refund-all",
+          refundAllPayload
+        );
 
-    if (!refundAllOrderResponse.success) {
-      throw new TapsilatError(
-        refundAllOrderResponse.error?.message || "Full order refund failed",
-        refundAllOrderResponse.error?.code || "FULL_REFUND_FAILED"
-      );
+      if (!refundAllOrderResponse.success) {
+        throw new TapsilatError(
+          refundAllOrderResponse.error?.message || "Full order refund failed",
+          refundAllOrderResponse.error?.code || "FULL_REFUND_FAILED"
+        );
+      }
+
+      if (!refundAllOrderResponse.data) {
+        throw new TapsilatError(
+          "Full order refund response data is missing",
+          "FULL_REFUND_DATA_MISSING"
+        );
+      }
+
+      return refundAllOrderResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "full order refund");
     }
-
-    if (!refundAllOrderResponse.data) {
-      throw new TapsilatError(
-        "Full order refund response data is missing",
-        "FULL_REFUND_DATA_MISSING"
-      );
-    }
-
-    return refundAllOrderResponse.data;
   }
 
   // ORDER PAYMENT DETAILS
   // Summary: Retrieve detailed payment transaction information for an order
   // Description: Gets payment method, amount, status, and card info for order transactions
   /**
-   * Retrieves the payment details for an order.
+   * Retrieves the payment details for an order via POST request.
    * Based on `get_order_payment_details` from the Python SDK.
-   *
-   * @summary Retrieve detailed payment transaction information for an order
-   * @description Gets payment method, amount, status, and card info for order transactions.
-   *
-   * @param referenceId - The unique identifier of the order.
-   * @param conversationId - Optional conversation ID for more specific querying.
-   * @returns Promise resolving to a list of payment details.
-   * @throws {TapsilatValidationError} When referenceId is invalid
-   * @throws {TapsilatError} When API returns an error response or payment details are missing
    */
   async getOrderPaymentDetails(
-    referenceId: string,
-    conversationId?: string
-  ): Promise<OrderPaymentDetail[]> {
+    request: OrderPaymentDetailDTO
+  ): Promise<GetOrderPaymentDetailsResponse> {
+    try {
+      const getOrderPaymentDetailsResponse = await this.httpClient.post<GetOrderPaymentDetailsResponse>(
+        "/order/payment-details",
+        request
+      );
+      return handleResponse(getOrderPaymentDetailsResponse, "Order payment details");
+    } catch (error: unknown) {
+      return handleError(error, "order payment details");
+    }
+  }
+
+  /**
+   * Retrieves the payment details for an order by ID.
+   * Based on `get_order_payment_details_by_id` from the Python SDK.
+   */
+  async getOrderPaymentDetailsById(
+    referenceId: string
+  ): Promise<GetOrderPaymentDetailsResponse> {
     if (!isNonEmptyString(referenceId))
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string"
       );
 
-    const getOrderPaymentDetailsResponse = conversationId
-      ? await this.httpClient.post<OrderPaymentDetail[]>(
-          "/order/payment-details",
-          {
-            conversation_id: conversationId,
-          }
-        )
-      : await this.httpClient.get<OrderPaymentDetail[]>(
-          `/order/${referenceId}/payment-details`
-        );
+    try {
+      const getOrderPaymentDetailsResponse = await this.httpClient.get<GetOrderPaymentDetailsResponse>(
+        `/order/${referenceId}/payment-details`
+      );
+      return handleResponse(getOrderPaymentDetailsResponse, "Order payment details by id");
+    } catch (error: unknown) {
+      return handleError(error, "order payment details by id");
+    }
+  }
 
-    if (!getOrderPaymentDetailsResponse.success)
-      throw new TapsilatError(
-        getOrderPaymentDetailsResponse.error?.message ||
-          "Payment details API call failed",
-        getOrderPaymentDetailsResponse.error?.code ||
-          "PAYMENT_DETAILS_API_FAILED"
+  /**
+   * Retrieves the order callback via GET request.
+   * Based on `order_callback` from the Python SDK.
+   */
+  async orderCallback(
+    id: string
+  ): Promise<OrderCallbackResponse> {
+    if (!isNonEmptyString(id))
+      throw new TapsilatValidationError(
+        "ID is required and must be a non-empty string"
       );
 
-    if (!getOrderPaymentDetailsResponse.data)
-      throw new TapsilatError(
-        "Payment details response data is missing",
-        "PAYMENT_DETAILS_DATA_MISSING"
+    try {
+      const response = await this.httpClient.get<OrderCallbackResponse>(
+        `/orders/${id}/callback`
+      );
+      return handleResponse(response, "Order callback");
+    } catch (error: unknown) {
+      return handleError(error, "order callback");
+    }
+  }
+
+  /**
+   * Updates payment options for an order.
+   * Based on `update_payment_options` from the Python SDK.
+   */
+  async updatePaymentOptions(
+    request: OrderPaymentOptionsUpdateDTO
+  ): Promise<OrderRelatedUpdateResponse> {
+    try {
+      const response = await this.httpClient.patch<OrderRelatedUpdateResponse>(
+        "/order/payment-options",
+        request
+      );
+      return handleResponse(response, "Update payment options");
+    } catch (error: unknown) {
+      return handleError(error, "update payment options");
+    }
+  }
+
+  /**
+   * Splits order item payment.
+   * Based on `split_order_item_payment` from the Python SDK.
+   */
+  async splitOrderItemPayment(
+    request: SplitOrderItemPaymentDTO
+  ): Promise<OrderRelatedUpdateResponse> {
+    try {
+      const response = await this.httpClient.post<OrderRelatedUpdateResponse>(
+        "/order/split",
+        request
+      );
+      return handleResponse(response, "Split order item payment");
+    } catch (error: unknown) {
+      return handleError(error, "split order item payment");
+    }
+  }
+
+  /**
+   * Queries vpos for an order.
+   * Based on `order_vpos_query` from the Python SDK.
+   */
+  async orderVposQuery(
+    id: string
+  ): Promise<OrderVposQueryResponse> {
+    if (!isNonEmptyString(id))
+      throw new TapsilatValidationError(
+        "ID is required and must be a non-empty string"
       );
 
-    return getOrderPaymentDetailsResponse.data;
+    try {
+      const response = await this.httpClient.get<OrderVposQueryResponse>(
+        `/orders/${id}/vpos-query`
+      );
+      return handleResponse(response, "Order vpos query");
+    } catch (error: unknown) {
+      return handleError(error, "order vpos query");
+    }
   }
 
   // ORDER LOOKUP BY CONVERSATION ID
@@ -889,7 +1191,7 @@ export class TapsilatSDK {
    * @throws {TapsilatValidationError} When conversationId is invalid
    * @throws {TapsilatError} When API returns an error response
    */
-  async getOrderByConversationId(conversationId: string): Promise<Order> {
+  async getOrderByConversationId(conversationId: string): Promise<GetOrderResponse> {
     // Validate conversationId
     if (!isNonEmptyString(conversationId)) {
       throw new TapsilatValidationError(
@@ -898,24 +1200,28 @@ export class TapsilatSDK {
       );
     }
 
-    const getOrderByConversationIdResponse = await this.httpClient.get<Order>(
-      `/order/conversation/${conversationId}`
-    );
+    try {
+      const getOrderByConversationIdResponse = await this.httpClient.get<GetOrderResponse>(
+        `/order/conversation/${conversationId}`
+      );
 
-    if (!getOrderByConversationIdResponse.success)
-      throw new TapsilatError(
-        getOrderByConversationIdResponse.error?.message ||
+      if (!getOrderByConversationIdResponse.success)
+        throw new TapsilatError(
+          getOrderByConversationIdResponse.error?.message ||
           "Order retrieval by conversation ID failed",
-        getOrderByConversationIdResponse.error?.code || "ORDER_RETRIEVAL_FAILED"
-      );
+          getOrderByConversationIdResponse.error?.code || "ORDER_RETRIEVAL_FAILED"
+        );
 
-    if (!getOrderByConversationIdResponse.data)
-      throw new TapsilatError(
-        "Order response data is missing",
-        "ORDER_DATA_MISSING"
-      );
+      if (!getOrderByConversationIdResponse.data)
+        throw new TapsilatError(
+          "Order response data is missing",
+          "ORDER_DATA_MISSING"
+        );
 
-    return getOrderByConversationIdResponse.data;
+      return getOrderByConversationIdResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order retrieval by conversation ID");
+    }
   }
 
   // ORDER TRANSACTION HISTORY
@@ -970,28 +1276,22 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API returns an error response
    */
   async getOrderSubmerchants(
-    params: { page?: number; per_page?: number } = {}
-  ): Promise<OrderSubmerchantListResponse> {
-    const getOrderSubmerchantsResponse = await this.httpClient.get<
-      OrderSubmerchantListResponse
-    >("/order/submerchants", {
-      params: params,
-    });
+    params: GetOrderSubmerchantsRequest = {}
+  ): Promise<GetOrderSubmerchantsResponse> {
+    try {
+      const getOrderSubmerchantsResponse = await this.httpClient.get<
+        GetOrderSubmerchantsResponse
+      >("/order/submerchants", {
+        params: params,
+      });
 
-    if (!getOrderSubmerchantsResponse.success)
-      throw new TapsilatError(
-        getOrderSubmerchantsResponse.error?.message ||
-          "Order submerchants retrieval failed",
-        getOrderSubmerchantsResponse.error?.code ||
-          "SUBMERCHANTS_RETRIEVAL_FAILED"
+      return handleResponse(
+        getOrderSubmerchantsResponse,
+        "Order submerchants retrieval"
       );
-    if (!getOrderSubmerchantsResponse.data)
-      throw new TapsilatError(
-        "Order submerchants response data is missing",
-        "SUBMERCHANTS_DATA_MISSING"
-      );
-
-    return getOrderSubmerchantsResponse.data;
+    } catch (error: unknown) {
+      return handleError(error, "order submerchants retrieval");
+    }
   }
 
   // ORDER CHECKOUT URL RETRIEVAL
@@ -1068,28 +1368,26 @@ export class TapsilatSDK {
    * @throws {TapsilatError} When API health check fails or returns invalid data
    */
   async healthCheck(): Promise<{ status: string; timestamp: string }> {
-    // We use the direct /health endpoint which returns plain string "OK"
-    const healthCheckResponse = await this.httpClient.get<string>("/health");
+    try {
+      // We use the direct /health endpoint which returns plain string "OK"
+      const healthCheckResponse = await this.httpClient.get<string>("/health");
+      const healthData = handleResponse(healthCheckResponse, "Health check");
 
-    if (!healthCheckResponse.success) {
-      throw new TapsilatError(
-        healthCheckResponse.error?.message || "Health check failed",
-        healthCheckResponse.error?.code || "HEALTH_CHECK_FAILED"
-      );
+      // The API returns "OK" string, verify consistency
+      if (healthData !== "OK") {
+        throw new TapsilatError(
+          `Unexpected health check response: ${healthData}`,
+          "HEALTH_CHECK_INVALID_RESPONSE"
+        );
+      }
+
+      return {
+        status: "UP",
+        timestamp: new Date().toISOString(),
+      };
+    } catch (error: unknown) {
+      return handleError(error, "health check");
     }
-
-    // The API returns "OK" string, verify consistency
-    if (healthCheckResponse.data !== "OK") {
-      throw new TapsilatError(
-        `Unexpected health check response: ${healthCheckResponse.data}`,
-        "HEALTH_CHECK_INVALID_RESPONSE"
-      );
-    }
-
-    return {
-      status: "UP",
-      timestamp: new Date().toISOString(),
-    };
   }
 
   // CONFIGURATION MANAGEMENT
@@ -1151,7 +1449,7 @@ export class TapsilatSDK {
    */
   async createOrderTerm(
     termData: OrderPaymentTermCreateDTO
-  ): Promise<PaymentTermResponse> {
+  ): Promise<OrderPaymentTermActionResponse> {
     // Validate required fields
     if (!isNonEmptyString(termData.order_id)) {
       throw new TapsilatValidationError(
@@ -1197,13 +1495,13 @@ export class TapsilatSDK {
 
     try {
       const createTermResponse =
-        await this.httpClient.post<PaymentTermResponse>(
+        await this.httpClient.post<OrderPaymentTermActionResponse>(
           "/order/term",
           termData
         );
 
       return handleResponse(createTermResponse, "Payment term creation");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term creation");
     }
   }
@@ -1232,7 +1530,7 @@ export class TapsilatSDK {
    */
   async updateOrderTerm(
     updateData: OrderPaymentTermUpdateDTO
-  ): Promise<PaymentTermResponse> {
+  ): Promise<OrderPaymentTermActionResponse> {
     // Validate required fields
     if (!isNonEmptyString(updateData.term_reference_id)) {
       throw new TapsilatValidationError(
@@ -1278,13 +1576,13 @@ export class TapsilatSDK {
 
     try {
       const updateTermResponse =
-        await this.httpClient.patch<PaymentTermResponse>(
+        await this.httpClient.patch<OrderPaymentTermActionResponse>(
           "/order/term",
           updateData
         );
 
       return handleResponse(updateTermResponse, "Payment term update");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term update");
     }
   }
@@ -1307,7 +1605,7 @@ export class TapsilatSDK {
    */
   async deleteOrderTerm(
     deleteData: PaymentTermDeleteRequest
-  ): Promise<PaymentTermResponse> {
+  ): Promise<OrderPaymentTermActionResponse> {
     // Validate required fields
     if (!isNonEmptyString(deleteData.order_id)) {
       throw new TapsilatValidationError(
@@ -1325,13 +1623,13 @@ export class TapsilatSDK {
 
     try {
       const deleteTermResponse =
-        await this.httpClient.delete<PaymentTermResponse>(
+        await this.httpClient.delete<OrderPaymentTermActionResponse>(
           "/order/term",
           deleteData
         );
 
       return handleResponse(deleteTermResponse, "Payment term deletion");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term deletion");
     }
   }
@@ -1393,7 +1691,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(refundTermResponse, "Payment term refund");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term refund");
     }
   }
@@ -1435,7 +1733,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(terminateTermResponse, "Payment term termination");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "payment term termination");
     }
   }
@@ -1476,7 +1774,7 @@ export class TapsilatSDK {
         );
 
       return handleResponse(terminateOrderResponse, "Order termination");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "order termination");
     }
   }
@@ -1484,23 +1782,23 @@ export class TapsilatSDK {
   async orderManualCallback(
     referenceId: string,
     conversationId?: string
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<OrderManualCallbackResponse> {
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string"
       );
     }
-    const payload: Record<string, unknown> = { reference_id: referenceId };
+    const payload: OrderManualCallbackRequest = { reference_id: referenceId };
     if (conversationId) {
       payload.conversation_id = conversationId;
     }
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const orderManualCallbackResponse = await this.httpClient.post<OrderManualCallbackResponse>(
         "/order/callback",
         payload
       );
-      return handleResponse(response, "Order manual callback");
-    } catch (error) {
+      return handleResponse(orderManualCallbackResponse, "Order manual callback");
+    } catch (error: unknown) {
       return handleError(error, "order manual callback");
     }
   }
@@ -1508,7 +1806,7 @@ export class TapsilatSDK {
   async orderRelatedUpdate(
     referenceId: string,
     relatedReferenceId: string
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<OrderRelatedUpdateResponse> {
     if (!isNonEmptyString(referenceId)) {
       throw new TapsilatValidationError(
         "Reference ID is required and must be a non-empty string"
@@ -1520,45 +1818,46 @@ export class TapsilatSDK {
       );
     }
     try {
-      const response = await this.httpClient.patch<APIResponse<unknown>>(
+      const payload: OrderRelatedUpdateRequest = {
+        reference_id: referenceId,
+        related_reference_id: relatedReferenceId,
+      };
+      const orderRelatedUpdateResponse = await this.httpClient.patch<OrderRelatedUpdateResponse>(
         "/order/releated",
-        {
-          reference_id: referenceId,
-          related_reference_id: relatedReferenceId,
-        }
+        payload
       );
-      return handleResponse(response, "Order related update");
-    } catch (error) {
+      return handleResponse(orderRelatedUpdateResponse, "Order related update");
+    } catch (error: unknown) {
       return handleError(error, "order related update");
     }
   }
 
   async getOrganizationSettings(): Promise<OrganizationSettings> {
     try {
-      const response = await this.httpClient.get<OrganizationSettings>(
+      const organizationSettingsResponse = await this.httpClient.get<OrganizationSettings>(
         "/organization/settings"
       );
-      return handleResponse(response, "Get organization settings");
-    } catch (error) {
+      return handleResponse(organizationSettingsResponse, "Get organization settings");
+    } catch (error: unknown) {
       return handleError(error, "get organization settings");
     }
   }
 
-  async getOrderTerm(termReferenceId: string): Promise<PaymentTermResponse> {
+  async getOrderTerm(termReferenceId: string): Promise<GetOrderTermResponse> {
     if (!isNonEmptyString(termReferenceId)) {
       throw new TapsilatValidationError(
         "Term Reference ID is required and must be a non-empty string"
       );
     }
     try {
-      const response = await this.httpClient.get<PaymentTermResponse>(
+      const orderTermResponse = await this.httpClient.get<GetOrderTermResponse>(
         `/order/term`,
         {
           params: { term_reference_id: termReferenceId },
         }
       );
-      return handleResponse(response, "Get order term");
-    } catch (error) {
+      return handleResponse(orderTermResponse, "Get order term");
+    } catch (error: unknown) {
       return handleError(error, "get order term");
     }
   }
@@ -1568,11 +1867,11 @@ export class TapsilatSDK {
   /**
    * Add a new item to an existing order basket
    */
-  async addBasketItem(request: AddBasketItemRequest): Promise<APIResponse<unknown>> {
+  async addBasketItem(request: AddBasketItemRequest): Promise<AddBasketItemResponse> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/order/basket-item", request);
-      return handleResponse(response, "Add basket item");
-    } catch (error) {
+      const addBasketItemResponse = await this.httpClient.post<AddBasketItemResponse>("/order/basket-item", request);
+      return handleResponse(addBasketItemResponse, "Add basket item");
+    } catch (error: unknown) {
       return handleError(error, "add basket item");
     }
   }
@@ -1580,11 +1879,11 @@ export class TapsilatSDK {
   /**
    * Remove an item from an existing order basket
    */
-  async removeBasketItem(request: RemoveBasketItemRequest): Promise<APIResponse<unknown>> {
+  async removeBasketItem(request: RemoveBasketItemRequest): Promise<RemoveBasketItemResponse> {
     try {
-      const response = await this.httpClient.delete<APIResponse<unknown>>("/order/basket-item", request);
-      return handleResponse(response, "Remove basket item");
-    } catch (error) {
+      const removeBasketItemResponse = await this.httpClient.delete<RemoveBasketItemResponse>("/order/basket-item", request);
+      return handleResponse(removeBasketItemResponse, "Remove basket item");
+    } catch (error: unknown) {
       return handleError(error, "remove basket item");
     }
   }
@@ -1592,11 +1891,11 @@ export class TapsilatSDK {
   /**
    * Update an existing item in an order basket
    */
-  async updateBasketItem(request: UpdateBasketItemRequest): Promise<APIResponse<unknown>> {
+  async updateBasketItem(request: UpdateBasketItemRequest): Promise<UpdateBasketItemResponse> {
     try {
-      const response = await this.httpClient.patch<APIResponse<unknown>>("/order/basket-item", request);
-      return handleResponse(response, "Update basket item");
-    } catch (error) {
+      const updateBasketItemResponse = await this.httpClient.patch<UpdateBasketItemResponse>("/order/basket-item", request);
+      return handleResponse(updateBasketItemResponse, "Update basket item");
+    } catch (error: unknown) {
       return handleError(error, "update basket item");
     }
   }
@@ -1604,11 +1903,11 @@ export class TapsilatSDK {
   /**
    * Retrieve organization callback (webhook) settings
    */
-  async getOrganizationCallback(): Promise<APIResponse<CallbackURLDTO>> {
+  async getOrganizationCallback(): Promise<CallbackURLDTO> {
     try {
-      const response = await this.httpClient.get<APIResponse<CallbackURLDTO>>("/organization/callback");
-      return handleResponse(response, "Get organization callback");
-    } catch (error) {
+      const organizationCallbackResponse = await this.httpClient.get<CallbackURLDTO>("/organization/callback");
+      return handleResponse(organizationCallbackResponse, "Get organization callback");
+    } catch (error: unknown) {
       return handleError(error, "get organization callback");
     }
   }
@@ -1616,11 +1915,11 @@ export class TapsilatSDK {
   /**
    * Update organization callback (webhook) settings
    */
-  async updateOrganizationCallback(request: CallbackURLDTO): Promise<APIResponse<unknown>> {
+  async updateOrganizationCallback(request: CallbackURLDTO): Promise<OrganizationResponse> {
     try {
-      const response = await this.httpClient.patch<APIResponse<unknown>>("/organization/callback", request);
-      return handleResponse(response, "Update organization callback");
-    } catch (error) {
+      const organizationCallbackResponse = await this.httpClient.patch<OrganizationResponse>("/organization/callback", request);
+      return handleResponse(organizationCallbackResponse, "Update organization callback");
+    } catch (error: unknown) {
       return handleError(error, "update organization callback");
     }
   }
@@ -1628,11 +1927,11 @@ export class TapsilatSDK {
   /**
    * Create a new business entity within the organization
    */
-  async createOrganizationBusiness(request: OrgCreateBusinessRequest): Promise<APIResponse<unknown>> {
+  async createOrganizationBusiness(request: OrgCreateBusinessRequest): Promise<OrgCreateBusinessResponse> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/business/create", request);
-      return handleResponse(response, "Create organization business");
-    } catch (error) {
+      const organizationBusinessResponse = await this.httpClient.post<OrgCreateBusinessResponse>("/organization/business/create", request);
+      return handleResponse(organizationBusinessResponse, "Create organization business");
+    } catch (error: unknown) {
       return handleError(error, "create organization business");
     }
   }
@@ -1640,12 +1939,63 @@ export class TapsilatSDK {
   /**
    * Retrieve supported currencies for the organization
    */
-  async getOrganizationCurrencies(): Promise<APIResponse<unknown>> {
+  async getOrganizationCurrencies(): Promise<GetOrganizationCurrenciesResponse> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/currencies");
-      return handleResponse(response, "Get organization currencies");
-    } catch (error) {
+      const organizationCurrenciesResponse = await this.httpClient.get<GetOrganizationCurrenciesResponse>("/organization/currencies");
+      return handleResponse(organizationCurrenciesResponse, "Get organization currencies");
+    } catch (error: unknown) {
       return handleError(error, "get organization currencies");
+    }
+  }
+
+  /**
+   * Retrieves organization currency presets.
+   * Based on `get_organization_currency_presets` from Python SDK.
+   */
+  async getOrganizationCurrencyPresets(): Promise<GetOrganizationCurrencyPresetsResponse> {
+    try {
+      const response = await this.httpClient.get<GetOrganizationCurrencyPresetsResponse>(
+        "/organization/currency-presets"
+      );
+      return handleResponse(response, "Get organization currency presets");
+    } catch (error: unknown) {
+      return handleError(error, "get organization currency presets");
+    }
+  }
+
+  /**
+   * Retrieves organization suborganization details.
+   * Based on `get_organization_suborganization_details` from Python SDK.
+   */
+  async getOrganizationSuborganizationDetails(id: string): Promise<GetSuborganizationDetailsResponse> {
+    if (!isNonEmptyString(id))
+      throw new TapsilatValidationError("ID is required and must be a non-empty string");
+
+    try {
+      const response = await this.httpClient.get<GetSuborganizationDetailsResponse>(
+        `/organization/suborganizations/${id}`
+      );
+      return handleResponse(response, "Get suborganization details");
+    } catch (error: unknown) {
+      return handleError(error, "get suborganization details");
+    }
+  }
+
+  /**
+   * Retrieves organization suborganization submerchants.
+   * Based on `get_organization_suborganization_submerchants` from Python SDK.
+   */
+  async getOrganizationSuborganizationSubmerchants(id: string): Promise<GetSuborganizationSubmerchantsResponse> {
+    if (!isNonEmptyString(id))
+      throw new TapsilatValidationError("ID is required and must be a non-empty string");
+
+    try {
+      const response = await this.httpClient.get<GetSuborganizationSubmerchantsResponse>(
+        `/organization/suborganizations/${id}/submerchant`
+      );
+      return handleResponse(response, "Get suborganization submerchants");
+    } catch (error: unknown) {
+      return handleError(error, "get suborganization submerchants");
     }
   }
 
@@ -1653,14 +2003,14 @@ export class TapsilatSDK {
    * Retrieve limit information for a specific organization user
    * @deprecated The API has no organization user limit route, so this call always fails.
    */
-  async getOrganizationLimitUser(request: GetUserLimitRequest): Promise<APIResponse<unknown>> {
+  async getOrganizationLimitUser(request: GetUserLimitRequest): Promise<GetUserLimitResponse> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>(
+      const organizationLimitUserResponse = await this.httpClient.get<GetUserLimitResponse>(
         "/organization/limit/user",
         { params: request }
       );
-      return handleResponse(response, "Get organization user limit");
-    } catch (error) {
+      return handleResponse(organizationLimitUserResponse, "Get organization user limit");
+    } catch (error: unknown) {
       return handleError(error, "get organization user limit");
     }
   }
@@ -1669,33 +2019,25 @@ export class TapsilatSDK {
    * Set limit for a specific organization user
    * @deprecated The API has no organization user limit route, so this call always fails.
    */
-  async setOrganizationLimitUser(request: SetLimitUserRequest): Promise<APIResponse<unknown>> {
+  async setOrganizationLimitUser(request: SetLimitUserRequest): Promise<SetLimitUserResponse> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/limit/user", request);
-      return handleResponse(response, "Set organization user limit");
-    } catch (error) {
+      const organizationLimitUserResponse = await this.httpClient.post<SetLimitUserResponse>("/organization/limit/user", request);
+      return handleResponse(organizationLimitUserResponse, "Set organization user limit");
+    } catch (error: unknown) {
       return handleError(error, "set organization user limit");
     }
   }
 
   /**
    * Retrieve an organization's limits
-   *
-   * @param organizationId - ID of the organization whose limits to read
+   * @deprecated The API has no `/organization/limits` route, so this call always fails.
+   * Use getOrganizationLimitsById.
    */
-  async getOrganizationLimits(organizationId: string): Promise<APIResponse<unknown>> {
-    if (!isNonEmptyString(organizationId)) {
-      throw new TapsilatValidationError(
-        "Organization ID is required and must be a non-empty string",
-        { provided: organizationId }
-      );
-    }
+  async getOrganizationLimits(): Promise<GetOrganizationLimitsResponse> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>(
-        `/organization/${encodeURIComponent(organizationId)}/limits`
-      );
-      return handleResponse(response, "Get organization limits");
-    } catch (error) {
+      const organizationLimitsResponse = await this.httpClient.get<GetOrganizationLimitsResponse>("/organization/limits");
+      return handleResponse(organizationLimitsResponse, "Get organization limits");
+    } catch (error: unknown) {
       return handleError(error, "get organization limits");
     }
   }
@@ -1705,7 +2047,7 @@ export class TapsilatSDK {
    *
    * @param name - Name of the meta value
    */
-  async getOrganizationMeta(name: string): Promise<APIResponse<unknown>> {
+  async getOrganizationMeta(name: string): Promise<GetMetaResponse> {
     if (!isNonEmptyString(name)) {
       throw new TapsilatValidationError(
         "Meta name is required and must be a non-empty string",
@@ -1713,11 +2055,11 @@ export class TapsilatSDK {
       );
     }
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>(
+      const response = await this.httpClient.get<GetMetaResponse>(
         `/organization/metas/${encodeURIComponent(name)}`
       );
       return handleResponse(response, "Get organization meta");
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "get organization meta");
     }
   }
@@ -1725,11 +2067,11 @@ export class TapsilatSDK {
   /**
    * Retrieve supported scopes for the organization
    */
-  async getOrganizationScopes(): Promise<APIResponse<unknown>> {
+  async getOrganizationScopes(): Promise<GetOrganizationScopesResponse> {
     try {
-      const response = await this.httpClient.get<APIResponse<unknown>>("/organization/scopes");
-      return handleResponse(response, "Get organization scopes");
-    } catch (error) {
+      const organizationScopesResponse = await this.httpClient.get<GetOrganizationScopesResponse>("/organization/scopes");
+      return handleResponse(organizationScopesResponse, "Get organization scopes");
+    } catch (error: unknown) {
       return handleError(error, "get organization scopes");
     }
   }
@@ -1738,15 +2080,31 @@ export class TapsilatSDK {
    * Retrieve a page of sub-organizations
    */
   async getOrganizationSuborganizations(
-    params: { page?: number; per_page?: number } = {}
-  ): Promise<SuborganizationListResponse> {
+    params: GetSuborganizationsRequest = {}
+  ): Promise<GetSubOrganizationListResponse> {
+    if (params.page !== undefined) {
+      if (!isInteger(params.page) || params.page < 1) {
+        throw new TapsilatValidationError(
+          "Suborganization page must be a positive integer",
+          { provided: params.page }
+        );
+      }
+    }
+    if (params.per_page !== undefined) {
+      if (!isInteger(params.per_page) || params.per_page < 1) {
+        throw new TapsilatValidationError(
+          "Suborganization per_page must be a positive integer",
+          { provided: params.per_page }
+        );
+      }
+    }
     try {
-      const response = await this.httpClient.get<SuborganizationListResponse>(
+      const organizationSuborganizationsResponse = await this.httpClient.get<GetSubOrganizationListResponse>(
         "/organization/suborganizations",
-        { params: { page: 1, per_page: 10, ...params } }
+        { params: params as Record<string, unknown> }
       );
-      return handleResponse(response, "Get organization suborganizations");
-    } catch (error) {
+      return handleResponse(organizationSuborganizationsResponse, "Get organization suborganizations");
+    } catch (error: unknown) {
       return handleError(error, "get organization suborganizations");
     }
   }
@@ -1754,11 +2112,11 @@ export class TapsilatSDK {
   /**
    * Create a new user within the organization
    */
-  async createOrganizationUser(request: OrgCreateUserReq): Promise<APIResponse<unknown>> {
+  async createOrganizationUser(request: OrgCreateUserRequest): Promise<OrgCreateUserResponse> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/create", request);
-      return handleResponse(response, "Create organization user");
-    } catch (error) {
+      const organizationUserResponse = await this.httpClient.post<OrgCreateUserResponse>("/organization/user/create", request);
+      return handleResponse(organizationUserResponse, "Create organization user");
+    } catch (error: unknown) {
       return handleError(error, "create organization user");
     }
   }
@@ -1766,11 +2124,11 @@ export class TapsilatSDK {
   /**
    * Verify an organization user
    */
-  async verifyOrganizationUser(request: OrgUserVerifyReq): Promise<APIResponse<unknown>> {
+  async verifyOrganizationUser(request: OrgUserVerifyRequest): Promise<OrgUserVerifyResponse> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify", request);
-      return handleResponse(response, "Verify organization user");
-    } catch (error) {
+      const organizationUserVerifyResponse = await this.httpClient.post<OrgUserVerifyResponse>("/organization/user/verify", request);
+      return handleResponse(organizationUserVerifyResponse, "Verify organization user");
+    } catch (error: unknown) {
       return handleError(error, "verify organization user");
     }
   }
@@ -1778,11 +2136,11 @@ export class TapsilatSDK {
   /**
    * Verify an organization user via mobile
    */
-  async verifyOrganizationUserMobile(request: OrgUserMobileVerifyReq): Promise<APIResponse<unknown>> {
+  async verifyOrganizationUserMobile(request: OrgUserMobileVerifyRequest): Promise<OrgUserMobileVerifyResponse> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/user/verify-mobile", request);
-      return handleResponse(response, "Verify organization user mobile");
-    } catch (error) {
+      const organizationUserMobileVerifyResponse = await this.httpClient.post<OrgUserMobileVerifyResponse>("/organization/user/verify-mobile", request);
+      return handleResponse(organizationUserMobileVerifyResponse, "Verify organization user mobile");
+    } catch (error: unknown) {
       return handleError(error, "verify organization user mobile");
     }
   }
@@ -1790,11 +2148,11 @@ export class TapsilatSDK {
   /**
    * List virtual POS terminals for the organization
    */
-  async listOrganizationVpos(request: GetVposRequest): Promise<APIResponse<unknown>> {
+  async listOrganizationVpos(request: GetVposRequest): Promise<GetVposResponse> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>("/organization/list-vpos", request);
-      return handleResponse(response, "List organization VPOs");
-    } catch (error) {
+      const organizationVposResponse = await this.httpClient.post<GetVposResponse>("/organization/list-vpos", request);
+      return handleResponse(organizationVposResponse, "List organization VPOs");
+    } catch (error: unknown) {
       return handleError(error, "list organization VPOs");
     }
   }
@@ -1807,8 +2165,8 @@ export class TapsilatSDK {
    * @param request - Identify the order by order_id, order_reference_id or conversation_id
    */
   async getOrderPayments(
-    request: OrderPaymentsRequest
-  ): Promise<OrderPaymentsResponse> {
+    request: GetOrderPaymentsRequest
+  ): Promise<GetOrderPaymentsResponse> {
     if (
       !isNonEmptyString(request.order_id) &&
       !isNonEmptyString(request.order_reference_id) &&
@@ -1983,8 +2341,9 @@ export class TapsilatSDK {
    * Adds a currency to the organization by ISO code, for example "USD"
    */
   async createOrganizationCurrency(
-    currencyCode: string
+    input: string | CreateOrganizationCurrencyPayload
   ): Promise<CreateOrganizationCurrencyResponse> {
+    const currencyCode = typeof input === "string" ? input : input?.currency_code;
     if (!isNonEmptyString(currencyCode)) {
       throw new TapsilatValidationError("Currency code is required", {
         provided: currencyCode,
@@ -2007,7 +2366,7 @@ export class TapsilatSDK {
    * Creates an access token for an organization user; expire is in minutes
    */
   async createOrganizationUserToken(
-    request: OrgUserTokenCreateRequest
+    request: OrgUserTokenCreateReq
   ): Promise<OrgUserTokenCreateResponse> {
     try {
       const response = await this.httpClient.post<OrgUserTokenCreateResponse>(
@@ -2068,12 +2427,12 @@ export class TapsilatSDK {
     request: SubscriptionCreateRequest
   ): Promise<SubscriptionCreateResponse> {
     try {
-      const response = await this.httpClient.post<SubscriptionCreateResponse>(
+      const subcriptionCreateResponse = await this.httpClient.post<SubscriptionCreateResponse>(
         "/subscription/create",
         request
       );
-      return handleResponse(response, "Create subscription");
-    } catch (error) {
+      return handleResponse(subcriptionCreateResponse, "Create subscription");
+    } catch (error: unknown) {
       return handleError(error, "create subscription");
     }
   }
@@ -2082,11 +2441,11 @@ export class TapsilatSDK {
     request: SubscriptionGetRequest
   ): Promise<SubscriptionDetail> {
     try {
-      const response = await this.httpClient.post<SubscriptionDetail>(
+      const subscriptionDetailResponse = await this.httpClient.post<SubscriptionDetail>(
         "/subscription",
         request
       );
-      const data = handleResponse(response, "Get subscription");
+      const data = handleResponse(subscriptionDetailResponse, "Get subscription");
 
       if (data.orders) {
         data.orders.forEach((order) => {
@@ -2097,34 +2456,35 @@ export class TapsilatSDK {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "get subscription");
     }
   }
 
   async listSubscriptions(
-    params: { page?: number; per_page?: number } = {}
-  ): Promise<PaginatedResponse<SubscriptionDetail>> {
+    params: ListSubscriptionsRequest = {}
+  ): Promise<ListSubscriptionsResponse> {
     try {
-      const response = await this.httpClient.get<
-        PaginatedResponse<SubscriptionDetail>
+      const listSubscriptionsResponse = await this.httpClient.get<
+        ListSubscriptionsResponse
       >("/subscription/list", { params });
-      return handleResponse(response, "List subscriptions");
-    } catch (error) {
+      
+      return handleResponse(listSubscriptionsResponse, "List subscriptions");
+    } catch (error: unknown) {
       return handleError(error, "list subscriptions");
     }
   }
 
   async cancelSubscription(
     request: SubscriptionCancelRequest
-  ): Promise<APIResponse<unknown>> {
+  ): Promise<CancelSubscriptionResponse> {
     try {
-      const response = await this.httpClient.post<APIResponse<unknown>>(
+      const subscriptionCancelResponse = await this.httpClient.post<CancelSubscriptionResponse>(
         "/subscription/cancel",
         request
       );
-      return handleResponse(response, "Cancel subscription");
-    } catch (error) {
+      return handleResponse(subscriptionCancelResponse, "Cancel subscription");
+    } catch (error: unknown) {
       return handleError(error, "cancel subscription");
     }
   }
@@ -2133,11 +2493,11 @@ export class TapsilatSDK {
     request: SubscriptionRedirectRequest
   ): Promise<SubscriptionRedirectResponse> {
     try {
-      const response = await this.httpClient.post<SubscriptionRedirectResponse>(
+      const subscriptionRedirectResponse = await this.httpClient.post<SubscriptionRedirectResponse>(
         "/subscription/redirect",
         request
       );
-      const data = handleResponse(response, "Redirect subscription");
+      const data = handleResponse(subscriptionRedirectResponse, "Redirect subscription");
 
       if (data.url) {
         // Extract subscription ID from the signed URL to create a clean link
@@ -2152,8 +2512,332 @@ export class TapsilatSDK {
       }
 
       return data;
-    } catch (error) {
+    } catch (error: unknown) {
       return handleError(error, "redirect subscription");
     }
   }
+
+  // ORDER PAYMENTS
+  // Summary: Get payments for an order
+  // Description: Retrieve a list of payments made for a specific order.
+
+  // ORDER PDF
+  // Summary: Download order PDF
+  // Description: Download order as a PDF file.
+  /**
+   * Downloads order PDF.
+   * Based on `get_order_pdf` from the Python SDK.
+   *
+   * @summary Download order PDF
+   * @description Download order as a PDF file.
+   *
+   * @param id - Order reference ID
+   * @returns Promise resolving to a Blob representing the PDF
+   */
+  async getOrderPdf(id: string): Promise<Blob> {
+    const response = await this.httpClient.get<Blob>(
+      `/order/${encodeURIComponent(id)}/export/pdf`,
+      { responseType: 'blob' }
+    );
+    if (!response.success) {
+      handleError(response.error, "get order pdf");
+    }
+    return response.data as Blob;
+  }
+
+  // ORDER EXCEL
+  // Summary: Download order Excel
+  // Description: Download order as an Excel file.
+  /**
+   * Downloads order Excel.
+   * Based on `get_order_excel` from the Python SDK.
+   *
+   * @summary Download order Excel
+   * @description Download order as an Excel file.
+   *
+   * @param id - Order reference ID
+   * @returns Promise resolving to a Blob representing the Excel file
+   */
+  async getOrderExcel(id: string): Promise<Blob> {
+    const response = await this.httpClient.get<Blob>(
+      `/order/${encodeURIComponent(id)}/export/excel`,
+      { responseType: 'blob' }
+    );
+    if (!response.success) {
+      handleError(response.error, "get order excel");
+    }
+    return response.data as Blob;
+  }
+
+  // ORDER REFUND REQUEST
+  // Summary: Create order refund request
+  // Description: Request a refund for an order.
+  /**
+   * Creates an order refund request.
+   * Based on `create_order_refund_request` from the Python SDK.
+   *
+   * @summary Create order refund request
+   * @description Request a refund for an order.
+   *
+   * @param request - Order refund request payload
+   * @returns Promise resolving to refund response
+   */
+  async createOrderRefundRequest(request: RefundOrderDTO): Promise<OrderRefundResponse> {
+    try {
+      const response = await this.httpClient.post<OrderRefundResponse>(
+        "/order/refund-request",
+        request as unknown as Record<string, unknown>
+      );
+      return handleResponse(response, "Create order refund request");
+    } catch (error) {
+      return handleError(error, "create order refund request");
+    }
+  }
+
+  // ADD ORDER OIP
+  // Summary: Add Order Item Payment
+  // Description: Adds an order item payment to a specific order.
+  /**
+   * Adds an order item payment.
+   * Based on `add_order_oip` from the Python SDK.
+   *
+   * @summary Add Order OIP
+   * @description Adds an order item payment to a specific order.
+   *
+   * @param request - Order OIP request payload containing order_id and other details
+   * @returns Promise resolving to OIP response
+   */
+  async addOrderOip(request: OrderOIPDTO): Promise<OrderOIPResponse> {
+    try {
+      const response = await this.httpClient.post<OrderOIPResponse>(
+        "/order/oip",
+        request as unknown as Record<string, unknown>
+      );
+      return handleResponse(response, "Add order OIP");
+    } catch (error) {
+      return handleError(error, "add order oip");
+    }
+  }
+
+  // CREATE SUBMERCHANT
+  // Summary: Create a submerchant
+  // Description: Creates a new submerchant in the system.
+  /**
+   * Creates a submerchant.
+   * Based on `create_submerchant` from the Python SDK.
+   *
+   * @summary Create submerchant
+   * @description Creates a new submerchant.
+   *
+   * @param request - Submerchant creation payload
+   * @returns Promise resolving to the created submerchant details
+   */
+  async createSubmerchant(request: SubmerchantCreateDTO): Promise<GetSubmerchantResponse> {
+    try {
+      const response = await this.httpClient.post<GetSubmerchantResponse>(
+        `/submerchants`,
+        request as unknown as Record<string, unknown>
+      );
+      return handleResponse(response, "Create submerchant");
+    } catch (error) {
+      return handleError(error, "create submerchant");
+    }
+  }
+
+  // GET SUBMERCHANT
+  // Summary: Get submerchant details
+  // Description: Retrieves information about a specific submerchant by ID.
+  /**
+   * Gets a submerchant.
+   * Based on `get_submerchant` from the Python SDK.
+   *
+   * @summary Get submerchant
+   * @description Retrieves submerchant details.
+   *
+   * @param id - Submerchant ID
+   * @returns Promise resolving to submerchant details
+   */
+  async getSubmerchant(id: string): Promise<GetSubmerchantResponse> {
+    try {
+      const response = await this.httpClient.get<GetSubmerchantResponse>(
+        `/submerchants/${id}`
+      );
+      return handleResponse(response, "Get submerchant");
+    } catch (error) {
+      return handleError(error, "get submerchant");
+    }
+  }
+
+  // GET SUBORGANIZATION BY SUBMERCHANT
+  // Summary: Get suborganization by submerchant
+  // Description: Retrieves the suborganization details associated with a submerchant.
+  /**
+   * Gets suborganization by submerchant.
+   * Based on `get_suborganization_by_submerchant` from the Python SDK.
+   *
+   * @summary Get suborganization by submerchant
+   * @description Retrieves the suborganization details associated with a submerchant.
+   *
+   * @param id - Submerchant ID
+   * @returns Promise resolving to suborganization details
+   */
+  async getSuborganizationBySubmerchant(id: string): Promise<unknown> {
+    try {
+      const response = await this.httpClient.get<unknown>(
+        `/submerchants/${id}/suborganization`
+      );
+      return handleResponse(response, "Get suborganization by submerchant");
+    } catch (error) {
+      return handleError(error, "get suborganization by submerchant");
+    }
+  }
+
+  // UPDATE SUBMERCHANT
+  // Summary: Update submerchant
+  // Description: Updates an existing submerchant.
+  /**
+   * Updates a submerchant.
+   * Based on `update_submerchant` from the Python SDK.
+   *
+   * @summary Update submerchant
+   * @description Updates submerchant details.
+   *
+   * @param id - Submerchant ID
+   * @param request - Update payload
+   * @returns Promise resolving to updated submerchant details
+   */
+  async updateSubmerchant(id: string, request: SubmerchantUpdateDTO): Promise<GetSubmerchantResponse> {
+    try {
+      const response = await this.httpClient.put<GetSubmerchantResponse>(
+        `/submerchants/${id}`,
+        request as Record<string, unknown>
+      );
+      return handleResponse(response, "Update submerchant");
+    } catch (error) {
+      return handleError(error, "update submerchant");
+    }
+  }
+
+  // DELETE SUBMERCHANT
+  // Summary: Delete submerchant
+  // Description: Deletes a submerchant from the system.
+  /**
+   * Deletes a submerchant.
+   * Based on `delete_submerchant` from the Python SDK.
+   *
+   * @summary Delete submerchant
+   * @description Deletes a submerchant.
+   *
+   * @param id - Submerchant ID
+   * @returns Promise resolving to deletion status
+   */
+  async deleteSubmerchant(id: string): Promise<unknown> {
+    try {
+      const response = await this.httpClient.delete<unknown>(
+        `/submerchants/${id}`
+      );
+      return handleResponse(response, "Delete submerchant");
+    } catch (error) {
+      return handleError(error, "delete submerchant");
+    }
+  }
+
+  // LIST SUBMERCHANTS
+  // Summary: List submerchants
+  // Description: Retrieves a paginated list of submerchants.
+  /**
+   * Lists submerchants.
+   * Based on `list_submerchants` from the Python SDK.
+   *
+   * @summary List submerchants
+   * @description Retrieves a paginated list of submerchants.
+   *
+   * @param page - Page number
+   * @param perPage - Items per page
+   * @returns Promise resolving to list of submerchants
+   */
+  async listSubmerchants(page?: number, perPage?: number): Promise<ListSubmerchantsResponse> {
+    try {
+      const params: Record<string, unknown> = {};
+      if (page) params.page = page;
+      if (perPage) params.per_page = perPage;
+
+      const response = await this.httpClient.get<ListSubmerchantsResponse>(
+        `/submerchants`,
+        { params }
+      );
+      return handleResponse(response, "List submerchants");
+    } catch (error) {
+      return handleError(error, "list submerchants");
+    }
+  }
+
+  // CREATE ORGANIZATION USER TOKEN
+  // Summary: Create organization user token
+  // Description: Creates a token for an organization user.
+
+  /**
+   * Get payments for an order
+   * @deprecated The API has no `/orders/payments` route, so this call always fails.
+   * Use getOrderPayments with an order ID, reference ID or conversation ID.
+   */
+  async getAllOrdersPayments(): Promise<GetOrderPaymentsResponse> {
+    try {
+      const response = await this.httpClient.get<GetOrderPaymentsResponse>("/orders/payments");
+      return handleResponse(response, "Get all orders payments");
+    } catch (error: unknown) {
+      return handleError(error, "get all orders payments");
+    }
+  }
+
+
+  /**
+   * Get organization partners
+   */
+  async getOrganizationPartners(): Promise<GetOrganizationPartnersResponse> {
+    try {
+      const response = await this.httpClient.get<GetOrganizationPartnersResponse>("/organization/partners");
+      return handleResponse(response, "Get organization partners");
+    } catch (error: unknown) {
+      return handleError(error, "get organization partners");
+    }
+  }
+
+  /**
+   * Get organization limits by ID
+   */
+  async getOrganizationLimitsById(
+    id: string,
+    params?: { currency?: string; operation?: string }
+  ): Promise<GetOrganizationLimitsByIdResponse> {
+    if (!isNonEmptyString(id)) {
+      throw new TapsilatValidationError("ID is required and must be a non-empty string");
+    }
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.currency) queryParams.append("currency", params.currency);
+      if (params?.operation) queryParams.append("operation", params.operation);
+      
+      const queryString = queryParams.toString();
+      const url = `/organization/${encodeURIComponent(id)}/limits${queryString ? `?${queryString}` : ''}`;
+      
+      const response = await this.httpClient.get<GetOrganizationLimitsByIdResponse>(url);
+      return handleResponse(response, "Get organization limits by ID");
+    } catch (error: unknown) {
+      return handleError(error, "get organization limits by ID");
+    }
+  }
+
+  /**
+   * Get system config
+   */
+  async getSystemConfig(): Promise<GetSystemConfigResponse> {
+    try {
+      const response = await this.httpClient.get<GetSystemConfigResponse>("/system/config");
+      return handleResponse(response, "Get system config");
+    } catch (error: unknown) {
+      return handleError(error, "get system config");
+    }
+  }
+
 }

@@ -24,6 +24,7 @@ export interface RequestConfig extends Omit<RequestInit, "method" | "body"> {
   baseURL?: string;
   maxRetries?: number;
   params?: Record<string, unknown>;
+  responseType?: "json" | "text" | "blob" | "arraybuffer";
 }
 
 /**
@@ -239,7 +240,8 @@ export class HttpClient {
         const response = await this.makeRequest<T>(
           interceptedUrl,
           interceptedOptions,
-          config?.timeout ?? this.config.timeout
+          config?.timeout ?? this.config.timeout,
+          config?.responseType
         );
 
         // Execute response interceptors
@@ -288,7 +290,8 @@ export class HttpClient {
   private async makeRequest<T>(
     url: string,
     options: RequestInit,
-    timeout?: number
+    timeout?: number,
+    responseType?: "json" | "text" | "blob" | "arraybuffer"
   ): Promise<APIResponse<T>> {
     const controller = new AbortController();
     const timeoutId = timeout
@@ -307,7 +310,7 @@ export class HttpClient {
         clearTimeout(timeoutId);
       }
 
-      return await this.processResponse<T>(response);
+      return await this.processResponse<T>(response, responseType);
     } catch (error) {
       if (timeoutId) {
         clearTimeout(timeoutId);
@@ -336,11 +339,23 @@ export class HttpClient {
    * @returns Processed API response
    */
   private async processResponse<T>(
-    response: Response
+    response: Response,
+    responseType?: "json" | "text" | "blob" | "arraybuffer"
   ): Promise<APIResponse<T>> {
     const contentType = response.headers.get("content-type") ?? "";
-    let rawBody: string;
 
+    // Binary downloads, such as order exports, are returned as they are
+    if (response.ok && (responseType === "blob" || responseType === "arraybuffer")) {
+      try {
+        const data =
+          responseType === "blob" ? await response.blob() : await response.arrayBuffer();
+        return { success: true, status: response.status, data: data as T };
+      } catch {
+        throw new TapsilatError("Failed to read response body", "PARSE_ERROR");
+      }
+    }
+
+    let rawBody: string;
     try {
       rawBody = await response.text();
     } catch {
@@ -351,7 +366,9 @@ export class HttpClient {
     let responseData: unknown = undefined;
     if (trimmed !== "") {
       const looksLikeJson = trimmed.startsWith("{") || trimmed.startsWith("[");
-      if (contentType.includes("json") || looksLikeJson) {
+      if (responseType === "text" && response.ok) {
+        responseData = rawBody;
+      } else if (contentType.includes("json") || looksLikeJson) {
         try {
           responseData = JSON.parse(trimmed);
         } catch {

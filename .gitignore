@@ -16,7 +16,10 @@ build/
 .env.test
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
@@ -45,4 +48,5 @@ logs/
 !.yarn/releases
 !.yarn/plugins
 !.yarn/sdks
-!.yarn/versions 
+!.yarn/versions
+example.swagger.json
