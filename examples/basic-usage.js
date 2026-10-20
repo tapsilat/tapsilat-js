@@ -1,4 +1,5 @@
-import { TapsilatSDK, validateGsmNumber, validateInstallments } from "../dist/index.esm.js";
+import crypto from "crypto";
+import { TapsilatSDK, WebhookEvent, validateGsmNumber, validateInstallments } from "../dist/index.esm.js";
 
 /**
  * Comprehensive Example of Tapsilat Payment SDK Integration
@@ -271,9 +272,19 @@ async function main() {
     }
     
     // Webhook signature verification example
-    const webhookPayload = '{"event": "order.completed", "data": {"id": "123"}}';
-    const webhookSignature = "sample-signature";
+    // Tapsilat signs each callback as "Tapsilat-Signature: t=<unix time>,v1=<hex HMAC-SHA256 of '<t>.<raw body>'>"
+    // with the webhook secret from the panel's callback settings; here we sign a sample callback the same way
+    const webhookPayload = JSON.stringify({
+      data: { orderReferenceId: referenceId, conversationId: "wc-1001", status: "3" },
+      type: "order_lite",
+      token: "sample-delivery-id",
+    });
     const webhookSecret = "your-webhook-secret";
+    const signedAt = Math.floor(Date.now() / 1000);
+    const webhookSignature = `t=${signedAt},v1=${crypto
+      .createHmac("sha256", webhookSecret)
+      .update(`${signedAt}.${webhookPayload}`)
+      .digest("hex")}`;
     
     try {
       const isValidWebhook = await tapsilat.verifyWebhook(
@@ -282,6 +293,9 @@ async function main() {
         webhookSecret
       );
       console.log(`Webhook verification: ${isValidWebhook ? 'Valid' : 'Invalid'}`);
+
+      const event = WebhookEvent.fromPayload(webhookPayload);
+      console.log(`Webhook event: ${event.type} for ${event.referenceId}, status ${event.status}, paid: ${event.isPaid()}`);
     } catch (error) {
       console.log(`Webhook verification error: ${error.message}`);
     }
@@ -408,19 +422,23 @@ async function testOfflineFeatures() {
     
     console.log("\n=== Webhook Validation Tests ===");
     
-    // Test webhook validations
+    // Test webhook validations: a missing, malformed or stale signature resolves to false
     const webhookTests = [
-      { payload: "", signature: "sig", secret: "secret", name: "Empty payload" },
       { payload: "payload", signature: "", secret: "secret", name: "Empty signature" },
-      { payload: "payload", signature: "sig", secret: "", name: "Empty secret" }
+      { payload: "payload", signature: "t=1726480000,v1=abc", secret: "", name: "Empty secret" },
+      { payload: "payload", signature: "t=1726480000,v1=abc", secret: "secret", name: "Stale timestamp" }
     ];
     
     for (const test of webhookTests) {
-      try {
-        await testSDK.verifyWebhook(test.payload, test.signature, test.secret);
-      } catch (error) {
-        console.log(`${test.name} validation: ${error.message}`);
-      }
+      const valid = await testSDK.verifyWebhook(test.payload, test.signature, test.secret);
+      console.log(`${test.name} validation: ${valid ? "accepted" : "rejected"}`);
+    }
+
+    try {
+      // The payload must be the raw body, not parsed JSON
+      await testSDK.verifyWebhook({ type: "order_lite" }, "t=1726480000,v1=abc", "secret");
+    } catch (error) {
+      console.log(`Parsed payload validation: ${error.message}`);
     }
     
     console.log("\nAll offline validation tests passed!");

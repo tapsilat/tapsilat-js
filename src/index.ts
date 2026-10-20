@@ -20,7 +20,6 @@ export type {
   PaymentOption,
   RefundRequest,
   RefundResponse,
-  WebhookEvent,
   APIError,
   APIResponse,
   PaginationParams,
@@ -157,6 +156,13 @@ export {
   MarketplaceService,
 } from "./services";
 export { CurrencyResolver } from "./utils/currency";
+
+// Webhooks
+export { WebhookEvent } from "./webhooks/WebhookEvent";
+export { OrderStatus } from "./webhooks/OrderStatus";
+export type { OrderStatusCode } from "./webhooks/OrderStatus";
+export { WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TOLERANCE } from "./utils/verify";
+export type { WebhookVerifyOptions } from "./utils/verify";
 
 // Errors
 export {

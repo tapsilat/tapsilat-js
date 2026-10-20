@@ -1,4 +1,5 @@
-import { TapsilatSDK, validateGsmNumber, validateInstallments } from "../dist/index.esm.js";
+import crypto from "crypto";
+import { TapsilatSDK, WebhookEvent, validateGsmNumber, validateInstallments } from "../dist/index.esm.js";
 
 /**
  * Test offline features that work without API calls
@@ -193,23 +194,38 @@ installmentTests.forEach(inst => {
 // Test webhook validation
 console.log("\n=== Webhook Validation ===");
 
-try {
-  await sdk.verifyWebhook("", "signature", "secret");
-} catch (error) {
-  console.log(`✅ Empty payload validation: ${error.message}`);
+// Callbacks carry "Tapsilat-Signature: t=<unix time>,v1=<hex HMAC-SHA256 of '<t>.<raw body>'>"
+const webhookPayload = '{"data":{"orderReferenceId":"ref-1","status":"3"},"type":"order_lite","token":"t-1"}';
+const signedAt = Math.floor(Date.now() / 1000);
+const webhookSignature = `t=${signedAt},v1=${crypto
+  .createHmac("sha256", "secret")
+  .update(`${signedAt}.${webhookPayload}`)
+  .digest("hex")}`;
+
+if (await sdk.verifyWebhook(webhookPayload, webhookSignature, "secret")) {
+  console.log("✅ Signed callback verified");
+}
+if (!(await sdk.verifyWebhook(webhookPayload.replace('"3"', '"13"'), webhookSignature, "secret"))) {
+  console.log("✅ Tampered callback rejected");
+}
+if (!(await sdk.verifyWebhook(webhookPayload, `t=${signedAt - 301},v1=0`, "secret"))) {
+  console.log("✅ Stale timestamp rejected");
+}
+if (!(await sdk.verifyWebhook(webhookPayload, "", "secret"))) {
+  console.log("✅ Empty signature rejected");
+}
+if (!(await sdk.verifyWebhook(webhookPayload, webhookSignature, ""))) {
+  console.log("✅ Empty secret rejected");
 }
 
 try {
-  await sdk.verifyWebhook("payload", "", "secret");
+  await sdk.verifyWebhook(JSON.parse(webhookPayload), webhookSignature, "secret");
 } catch (error) {
-  console.log(`✅ Empty signature validation: ${error.message}`);
+  console.log(`✅ Parsed payload validation: ${error.message}`);
 }
 
-try {
-  await sdk.verifyWebhook("payload", "signature", "");
-} catch (error) {
-  console.log(`✅ Empty secret validation: ${error.message}`);
-}
+const event = WebhookEvent.fromPayload(webhookPayload);
+console.log(`✅ Webhook event: ${event.type} for ${event.referenceId}, status ${event.status}`);
 
 console.log("\n🎉 All offline features tested successfully!");
 console.log("\n📝 Summary:");
@@ -218,7 +234,7 @@ console.log("✅ Order Request Validation");
 console.log("✅ Payment Term Validation");
 console.log("✅ GSM Number Validation");
 console.log("✅ Installments Validation");  
-console.log("✅ Webhook Parameter Validation");
+console.log("✅ Webhook Signature Verification");
 console.log("✅ Error Handling & Messaging");
 
 console.log("\n🔥 New Payment Term Features:");

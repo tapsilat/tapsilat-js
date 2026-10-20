@@ -140,7 +140,7 @@ console.log('Order status:', order.status);
 #### Check Order Status
 ```typescript
 const status = await tapsilat.getOrderStatus('order-reference-id');
-if (status.status === 'completed') {
+if (OrderStatus.isPaid(status.status)) {
   console.log('Payment successful!');
 }
 ```
@@ -229,41 +229,51 @@ console.log('Full refund processed:', fullRefund.amount);
 ### Webhook Handling
 
 #### Verify Webhook Signature
+Tapsilat signs every callback it sends to your callback URLs, and to an order's `payment_success_url` and `payment_failure_url`, with the webhook secret from the panel's callback settings. The `Tapsilat-Signature` header looks like `t=1726480000,v1=5257a8…`: `v1` is the hex HMAC-SHA256 of the timestamp, a dot and the raw body.
+
+`verifyWebhook` checks it in constant time and rejects a timestamp more than 5 minutes from the server clock, so a captured callback cannot be replayed. Pass the raw body (a string or a `Buffer`), not re-encoded JSON. It resolves to `false` when the header is missing, malformed, stale or wrong.
 ```typescript
 import express from 'express';
+import { WebhookEvent, WEBHOOK_SIGNATURE_HEADER } from '@tapsilat/tapsilat-js';
 
 const app = express();
-app.use(express.raw({ type: 'application/json' }));
 
-app.post('/webhooks/tapsilat', async (req, res) => {
-  const payload = req.body.toString();
-  const signature = req.headers['x-tapsilat-signature'];
-  
+app.post('/webhooks/tapsilat', express.raw({ type: '*/*' }), async (req, res) => {
   const isValid = await tapsilat.verifyWebhook(
-    payload, 
-    signature, 
-    process.env.WEBHOOK_SECRET
+    req.body, // the raw body as a Buffer
+    req.get(WEBHOOK_SIGNATURE_HEADER), // "Tapsilat-Signature"
+    process.env.TAPSILAT_WEBHOOK_SECRET!
   );
-  
   if (!isValid) {
-    return res.status(401).json({ error: 'Invalid signature' });
+    return res.sendStatus(400);
   }
-  
-  const event = JSON.parse(payload);
-  
-  switch (event.type) {
-    case 'order.completed':
-      console.log('Order completed:', event.data.reference_id);
-      // Process successful payment
-      break;
-    case 'order.failed':
-      console.log('Order failed:', event.data.reference_id);
-      // Handle failed payment
-      break;
+
+  const event = WebhookEvent.fromPayload(req.body);
+  event.type;           // "order_lite" (the default), "order", "order_payment_detail", ...
+  event.referenceId;    // the order's reference ID, whatever the callback type
+  event.conversationId;
+  event.status;         // e.g. "Paid", when the callback type carries a status
+
+  if (event.isPaid()) {
+    // fulfil the order
   }
-  
-  res.json({ received: true });
+  res.sendStatus(200);
 });
+```
+
+A different tolerance in seconds can be passed as `{ tolerance }` in the fourth argument (`0` disables the timestamp check), and `{ now }` sets the Unix time to compare with. A bare hex HMAC of the body, with or without a `sha256=` prefix, is still accepted for signatures made the way earlier SDK versions documented.
+
+#### Order Statuses
+`OrderStatus` has the numeric status codes that callbacks carry, the names `getOrderStatus()` returns, and the groups most integrations need:
+```typescript
+import { OrderStatus } from '@tapsilat/tapsilat-js';
+
+const { status } = await tapsilat.getOrderStatus(referenceId); // e.g. "Waiting for payment"
+
+OrderStatus.isPaid(status);     // Paid, Completed, Sub merchant payment approved
+OrderStatus.isFailed(status);   // Cancelled, Fraud, Rejected, Failure, Expired, Terminated
+OrderStatus.isRefunded(status); // Refunded, Partially refunded
+OrderStatus.code(status);       // 7; also accepts "7" or 7
 ```
 
 ### Payment Term Management
