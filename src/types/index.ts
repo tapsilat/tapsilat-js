@@ -232,22 +232,6 @@ export interface RefundResponse {
   createdAt: string;
 }
 
-// WEBHOOK EVENT
-// Summary: Notification data structure for system events
-// Description: Event payload sent to webhook endpoints when events occur
-/**
- * @category Webhooks
- * @summary Notification data structure for system events
- * @description Event payload sent to webhook endpoints when important events occur in the payment lifecycle
- * @interface WebhookEvent
- */
-export interface WebhookEvent {
-  id: string;
-  type: "payment.completed" | "payment.failed" | "refund.completed";
-  data: PaymentResponse | RefundResponse;
-  createdAt: string;
-}
-
 // API ERROR
 // Summary: Standardized error format returned by the API
 // Description: Structured error information with code, message and details

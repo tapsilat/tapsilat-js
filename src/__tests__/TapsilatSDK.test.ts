@@ -454,21 +454,16 @@ describe("TapsilatSDK", () => {
       expect(result).toBe(false);
     });
 
-    it("should validate webhook parameters", async () => {
-      await expect(
-        sdk.verifyWebhook("", "signature", "secret")
-      ).rejects.toThrow(
-        "Webhook payload is required and must be a non-empty string"
-      );
+    it("should return false for an empty signature or secret", async () => {
+      await expect(sdk.verifyWebhook("payload", "", "secret")).resolves.toBe(false);
+      await expect(sdk.verifyWebhook("payload", "signature", "")).resolves.toBe(false);
+    });
 
-      await expect(sdk.verifyWebhook("payload", "", "secret")).rejects.toThrow(
-        "Webhook signature is required and must be a non-empty string"
-      );
-
+    it("should reject a payload that is not a string or Buffer", async () => {
       await expect(
-        sdk.verifyWebhook("payload", "signature", "")
+        sdk.verifyWebhook({ id: "1" } as unknown as string, "signature", "secret")
       ).rejects.toThrow(
-        "Webhook secret is required and must be a non-empty string"
+        "Webhook payload must be the raw request body as a string or Buffer"
       );
     });
   });

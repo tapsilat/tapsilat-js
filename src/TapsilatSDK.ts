@@ -143,7 +143,7 @@ import {
 import { CurrencyResolver } from "./utils/currency";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
-import { verifyHmacSignature } from "./utils/verify";
+import { verifyWebhookSignature, WebhookVerifyOptions } from "./utils/verify";
 
 /**
  * Main SDK class for Tapsilat payment operations
@@ -356,7 +356,12 @@ export class TapsilatSDK {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   get webhooks(): any {
     return {
-      verify: (payload: string, signature: string, secret: string) => this.verifyWebhook(payload, signature, secret),
+      verify: (
+        payload: string | Uint8Array,
+        signature: string | null | undefined,
+        secret: string,
+        options?: WebhookVerifyOptions
+      ) => this.verifyWebhook(payload, signature, secret, options),
     };
   }
 
@@ -1320,39 +1325,36 @@ export class TapsilatSDK {
   }
 
   // WEBHOOK SIGNATURE VERIFICATION
-  // Summary: Validate webhook signature for security verification
-  // Description: Verifies the authenticity of webhook payloads using HMAC signature validation
+  // Summary: Verify the Tapsilat-Signature header of a callback
+  // Description: Checks the timestamped HMAC-SHA256 that Tapsilat signs every callback with
   /**
-   * Verifies webhook signature for security
+   * Verifies the Tapsilat-Signature header of a callback against the organization's webhook secret
    *
-   * @summary Validate webhook signature for security verification
-   * @description Verifies the authenticity of webhook payloads using HMAC signature validation.
+   * @summary Verify the Tapsilat-Signature header of a callback
+   * @description
+   * Tapsilat sends "t=<unix timestamp>,v1=<hex HMAC-SHA256 of '<timestamp>.<raw body>'>". The timestamp
+   * must be within `options.tolerance` seconds (300 by default; 0 disables the check) of `options.now`
+   * (the current time by default) so that a captured callback cannot be replayed. The comparison takes
+   * constant time.
    *
-   * @param payload - Raw webhook payload string
-   * @param signature - Webhook signature from headers
-   * @param secret - Your webhook secret key
-   * @returns Promise resolving to true if signature is valid
-   * @throws {TapsilatValidationError} When input validation fails for payload, signature or secret
+   * A bare hex HMAC-SHA256 of the payload, with or without a "sha256=" prefix, is still accepted for
+   * signatures made the way earlier versions of this SDK documented.
+   *
+   * @param payload - The raw request body as a string or Buffer, before any JSON decoding
+   * @param signature - The Tapsilat-Signature header
+   * @param secret - The webhook secret from the panel's callback settings
+   * @param options - Timestamp tolerance in seconds and the current Unix time
+   * @returns Promise resolving to true when the signature is valid, and to false when the header or
+   * secret is empty, or the signature is malformed, stale or wrong
+   * @throws {TapsilatValidationError} When payload is not a string or bytes, or an option is not a number
    */
   async verifyWebhook(
-    payload: string,
-    signature: string,
-    secret: string
+    payload: string | Uint8Array,
+    signature: string | null | undefined,
+    secret: string,
+    options: WebhookVerifyOptions = {}
   ): Promise<boolean> {
-    if (!isNonEmptyString(payload))
-      throw new TapsilatValidationError(
-        "Webhook payload is required and must be a non-empty string"
-      );
-    if (!isNonEmptyString(signature))
-      throw new TapsilatValidationError(
-        "Webhook signature is required and must be a non-empty string"
-      );
-    if (!isNonEmptyString(secret))
-      throw new TapsilatValidationError(
-        "Webhook secret is required and must be a non-empty string"
-      );
-
-    return verifyHmacSignature(payload, signature, secret);
+    return verifyWebhookSignature(payload, signature, secret, options);
   }
 
   // API HEALTH STATUS CHECK
