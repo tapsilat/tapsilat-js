@@ -135,6 +135,11 @@ import {
   GetSystemConfigResponse,
 } from "./types/index";
 import {
+  ElementsSession,
+  ElementsSessionCreateRequest,
+  ElementsSessionCreateResponse,
+} from "./types/elements";
+import {
   MarketplaceService,
   SubmerchantService,
   TokenizationService,
@@ -143,6 +148,7 @@ import {
 import { CurrencyResolver } from "./utils/currency";
 import { TapsilatValidationError, TapsilatError } from "./errors/TapsilatError";
 import { handleError, handleResponse } from "./utils/response";
+import { redactClientSecret } from "./utils/redact";
 import { verifyWebhookSignature, WebhookVerifyOptions } from "./utils/verify";
 
 /**
@@ -2323,6 +2329,102 @@ export class TapsilatSDK {
       return handleResponse(response, "Get installment table");
     } catch (error) {
       return handleError(error, "get installment table");
+    }
+  }
+
+  // ELEMENTS SESSIONS
+  // Summary: Create, read and cancel sessions for the Tapsilat Elements card sheet
+  // Description: Your backend creates a session and hands only its client_secret to the app that opens the sheet
+
+  /**
+   * Creates a Tapsilat Elements session for the native card sheet
+   *
+   * @summary Create an Elements session
+   * @description
+   * Sends POST /elements/sessions. Hand the returned `client_secret` to your app, which opens the card
+   * sheet with it, and do not log or store it. A `pay` session needs `order_reference_id`; a `tokenize`
+   * session saves a card for `user_id` with the given `mode`.
+   *
+   * @param request - The session's purpose and its order or card owner
+   * @returns The new session with its `client_secret` and `elements_base_url`
+   * @throws {TapsilatValidationError} When `purpose` is missing
+   * @throws {TapsilatError} When the API rejects the request; `apiCode` and `retryable` say why
+   */
+  async createElementsSession(
+    request: ElementsSessionCreateRequest
+  ): Promise<ElementsSessionCreateResponse> {
+    if (!isNonEmptyString(request?.purpose)) {
+      throw new TapsilatValidationError(
+        "Elements session purpose is required and must be a non-empty string",
+        { provided: request?.purpose }
+      );
+    }
+    const body = Object.fromEntries(
+      Object.entries(request).filter(([, value]) => value !== undefined && value !== null)
+    );
+    try {
+      const response = await this.httpClient.post<ElementsSessionCreateResponse>(
+        "/elements/sessions",
+        body
+      );
+      return redactClientSecret(handleResponse(response, "Create Elements session"));
+    } catch (error) {
+      return handleError(error, "create Elements session");
+    }
+  }
+
+  /**
+   * Returns the authoritative state and outcome of an Elements session
+   *
+   * @summary Get an Elements session
+   * @description
+   * Sends GET /elements/sessions/{id}. Read the outcome here on your backend before fulfilling an
+   * order, rather than trusting what the app reports.
+   *
+   * @param id - Session ID, such as "es_test_8Kq2nV0rX4"
+   * @throws {TapsilatError} With `apiCode` "session_not_found" and `statusCode` 404 for an unknown session
+   */
+  async getElementsSession(id: string): Promise<ElementsSession> {
+    if (!isNonEmptyString(id)) {
+      throw new TapsilatValidationError(
+        "Elements session ID is required and must be a non-empty string",
+        { provided: id }
+      );
+    }
+    try {
+      const response = await this.httpClient.get<ElementsSession>(
+        `/elements/sessions/${encodeURIComponent(id)}`
+      );
+      return handleResponse(response, "Get Elements session");
+    } catch (error) {
+      return handleError(error, "get Elements session");
+    }
+  }
+
+  /**
+   * Cancels an Elements session that is still waiting for a card
+   *
+   * @summary Cancel an Elements session
+   * @description
+   * Sends POST /elements/sessions/{id}/cancel with no body. A session that is confirming or has
+   * completed comes back unchanged, so check `status` in the result.
+   *
+   * @param id - Session ID, such as "es_test_8Kq2nV0rX4"
+   */
+  async cancelElementsSession(id: string): Promise<ElementsSession> {
+    if (!isNonEmptyString(id)) {
+      throw new TapsilatValidationError(
+        "Elements session ID is required and must be a non-empty string",
+        { provided: id }
+      );
+    }
+    try {
+      const response = await this.httpClient.post<ElementsSession>(
+        `/elements/sessions/${encodeURIComponent(id)}/cancel`
+      );
+      return handleResponse(response, "Cancel Elements session");
+    } catch (error) {
+      return handleError(error, "cancel Elements session");
     }
   }
 

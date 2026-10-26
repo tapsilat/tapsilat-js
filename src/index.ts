@@ -148,6 +148,21 @@ export type {
 // Panel API request and response types (submerchants, VPOS, tokenization, marketplace, installments)
 export type * from "./types/panel";
 
+// Tapsilat Elements sessions
+export {
+  ElementsSessionPurpose,
+  ElementsSessionStatus,
+  ElementsTokenizeMode,
+  ElementsCardBrand,
+} from "./types/elements";
+export type {
+  ElementsSessionCreateRequest,
+  ElementsSessionCreateResponse,
+  ElementsSession,
+  ElementsCardSummary,
+  ElementsSessionError,
+} from "./types/elements";
+
 // Grouped services
 export {
   SubmerchantService,

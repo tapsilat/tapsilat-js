@@ -253,6 +253,8 @@ export interface APIError {
   apiStatus?: string;
   /** Per-field validation messages from the response body */
   errors?: Record<string, unknown>;
+  /** Whether the error object in the response body says the request can be retried */
+  retryable?: boolean;
   /** Raw response body */
   rawBody?: string;
 }

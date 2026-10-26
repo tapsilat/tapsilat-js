@@ -245,6 +245,7 @@ export const createLoggingInterceptor = (
   },
 
   response: (response, request): APIResponse<unknown> => {
+    // Never log response.data: it can carry secrets such as an Elements session's client_secret
     if (debug) {
       console.log(`✅ API Response: ${request.options.method} ${request.url}`);
       console.log("Success:", response.success);

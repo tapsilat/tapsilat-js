@@ -417,6 +417,9 @@ export class HttpClient {
       body.errors && typeof body.errors === "object" && !Array.isArray(body.errors)
         ? (body.errors as Record<string, unknown>)
         : undefined;
+    const nested = this.nestedError(body);
+    const apiCode =
+      body.code !== undefined && body.code !== null ? body.code : nested?.code;
 
     return {
       success: false,
@@ -427,14 +430,16 @@ export class HttpClient {
         details: error.details,
         statusCode: response.status,
         apiCode:
-          body.code !== undefined && body.code !== null
-            ? String(body.code)
+          apiCode !== undefined && apiCode !== null
+            ? String(apiCode)
             : undefined,
         apiStatus:
           body.status !== undefined && body.status !== null
             ? String(body.status)
             : undefined,
         errors,
+        retryable:
+          typeof nested?.retryable === "boolean" ? nested.retryable : undefined,
         rawBody,
       },
     };
@@ -526,10 +531,29 @@ export class HttpClient {
 
     if (data && typeof data === "object") {
       const obj = data as Record<string, unknown>;
-      return (obj.message || obj.error || obj.detail) as string;
+      const nested = this.nestedError(obj);
+      return (obj.message || (nested ? nested.message : obj.error) || obj.detail) as string;
     }
 
     return undefined;
+  }
+
+  /**
+   * @category HTTP Client Internals
+   * @summary Returns the error object of a nested error body
+   * @description Elements routes answer with {"error": {"code", "message", "retryable"}} instead of top-level fields
+   *
+   * @param data - The parsed response data
+   * @returns The nested error object, or undefined when `error` is not an object
+   */
+  private nestedError(data: unknown): Record<string, unknown> | undefined {
+    if (!data || typeof data !== "object") {
+      return undefined;
+    }
+    const error = (data as Record<string, unknown>).error;
+    return error && typeof error === "object" && !Array.isArray(error)
+      ? (error as Record<string, unknown>)
+      : undefined;
   }
 
   /**
