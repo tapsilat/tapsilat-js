@@ -5,8 +5,8 @@ import { WebhookEvent } from "../webhooks/WebhookEvent";
 import { OrderStatus } from "../webhooks/OrderStatus";
 import { WEBHOOK_SIGNATURE_HEADER, WEBHOOK_TOLERANCE } from "../index";
 
-// An order_lite callback signed the way admin's monosign.SignWebhook signs it; the expected signatures
-// were computed with openssl, independently of the SDK.
+// An order_lite callback and known-good Tapsilat-Signature values for this body and secret; the expected
+// signatures were computed with openssl, independently of the SDK.
 const PAYLOAD =
   '{"data":{"id":"5f0c6f1e-1111-4a5b-9c1d-2e3f4a5b6c7d",' +
   '"orderReferenceId":"0b6a4f9e-2222-4c3d-8e9f-a1b2c3d4e5f6","conversationId":"wc-1001","status":"3"},' +

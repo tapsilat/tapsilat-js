@@ -1148,7 +1148,7 @@ export interface PaymentTermResponse {
 
 /**
  * @category Payment Terms
- * @summary Protobuf timestamp payload
+ * @summary Seconds-and-nanos timestamp payload
  * @description Timestamp structure used by term APIs (`seconds` + `nanos`)
  * @interface TimestampDTO
  */
