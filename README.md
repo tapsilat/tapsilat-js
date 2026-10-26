@@ -75,6 +75,7 @@ console.log("Order status:", status.status);
 - Complete payment lifecycle management
 - Multi-currency support (TRY, USD, EUR, GBP)
 - Advanced filtering and pagination
+- Tapsilat Elements sessions for the native Android and iOS card sheet
 
 ### Payment Term Management
 - Create and manage installment plans
@@ -624,9 +625,71 @@ await tapsilat.marketplace.runMarketplacePayoutOperation(payoutId, {
 
 Approval policies need a currency UUID; `createMarketplaceApprovalPolicy` and `updateMarketplaceApprovalPolicy` resolve units such as `TRY` for you, and `tapsilat.resolveCurrencyId('TRY')` exposes the same lookup.
 
+### Tapsilat Elements Sessions
+
+Tapsilat Elements is the native Android and iOS card sheet. Your backend creates a session with its secret API key and passes only the session's `client_secret` to the app, which opens the sheet with it. Card data goes from the sheet to Tapsilat encrypted and never reaches your backend.
+
+#### Create an Elements Session
+```typescript
+import { ElementsSessionPurpose } from '@tapsilat/tapsilat-js';
+
+const session = await tapsilat.createElementsSession({
+  purpose: ElementsSessionPurpose.PAY,
+  order_reference_id: order.reference_id,
+  save_card: true,
+});
+
+// Return session.id and session.client_secret to your app. Do not log or store the secret.
+res.json({ id: session.id, client_secret: session.client_secret });
+```
+
+A `pay` session needs `order_reference_id`. A `tokenize` session saves a card for `user_id`, with `mode` set to `ElementsTokenizeMode.SECURE` (3D Secure), `HALF_SECURE` or `NON_SECURE`:
+```typescript
+import { ElementsSessionPurpose, ElementsTokenizeMode } from '@tapsilat/tapsilat-js';
+
+const session = await tapsilat.createElementsSession({
+  purpose: ElementsSessionPurpose.TOKENIZE,
+  user_id: 'customer-1',
+  user_email: 'customer@example.test',
+  mode: ElementsTokenizeMode.SECURE,
+});
+```
+
+#### Get the Session Outcome
+Read the outcome on your backend before fulfilling, instead of trusting what the app reports:
+```typescript
+import { ElementsSessionStatus } from '@tapsilat/tapsilat-js';
+
+const outcome = await tapsilat.getElementsSession(sessionId);
+if (outcome.status === ElementsSessionStatus.SUCCEEDED) {
+  // fulfil the order; outcome.card holds the brand, last4 and expiry
+} else if (outcome.status === ElementsSessionStatus.FAILED) {
+  // outcome.last_error?.code says why, for example "card_declined"
+}
+```
+
+#### Cancel an Elements Session
+```typescript
+const canceled = await tapsilat.cancelElementsSession(sessionId);
+```
+This cancels a session that is still waiting for a card. A session that is confirming or has completed comes back unchanged, so check `canceled.status`.
+
+The client secret is returned only by `createElementsSession`. In Node.js, `console.log` and `util.inspect` print it as `[redacted]`, and `JSON.stringify` keeps it so you can still send it to the app; a copy made with the spread operator prints it in full. `status`, `purpose` and `card.brand` are plain strings, so compare them with `ElementsSessionStatus`, `ElementsSessionPurpose` and `ElementsCardBrand`. Elements errors carry a stable `apiCode` (for example `elements_not_enabled` with HTTP 403, `session_not_found` with HTTP 404) and `retryable`, which is `true` for a temporary failure such as HTTP 503 `unavailable`:
+```typescript
+import { TapsilatError } from '@tapsilat/tapsilat-js';
+
+try {
+  await tapsilat.getElementsSession(sessionId);
+} catch (error) {
+  if (error instanceof TapsilatError && error.retryable) {
+    // try again later
+  }
+}
+```
+
 ### Error Details
 
-Failed requests throw a `TapsilatError` (or a subclass). Besides `message` and `code`, it carries `statusCode`, the API's own `apiCode` and `apiStatus`, per-field validation `errors`, and the `rawBody`. Most "not found" errors arrive as HTTP 400, and rejected state changes (for example approving an ineligible payout) as HTTP 424. A successful status with an HTML body, which a deployment serving the panel UI returns for unknown routes, raises a `TapsilatError` with code `UNEXPECTED_RESPONSE`.
+Failed requests throw a `TapsilatError` (or a subclass). Besides `message` and `code`, it carries `statusCode`, the API's own `apiCode` and `apiStatus`, per-field validation `errors`, `retryable`, and the `rawBody`. Elements routes nest the error as `{"error": {"code": "...", "message": "...", "retryable": true}}`; `apiCode`, `message` and `retryable` are read from that object. Most "not found" errors arrive as HTTP 400, and rejected state changes (for example approving an ineligible payout) as HTTP 424. A successful status with an HTML body, which a deployment serving the panel UI returns for unknown routes, raises a `TapsilatError` with code `UNEXPECTED_RESPONSE`.
 
 ### Health Monitoring
 

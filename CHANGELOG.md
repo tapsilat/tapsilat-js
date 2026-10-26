@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `createElementsSession`, `getElementsSession` and `cancelElementsSession` for Tapsilat Elements sessions (`POST /elements/sessions`, `GET /elements/sessions/{id}`, `POST /elements/sessions/{id}/cancel`), with the `ElementsSessionCreateRequest`, `ElementsSessionCreateResponse`, `ElementsSession`, `ElementsCardSummary` and `ElementsSessionError` types and the `ElementsSessionPurpose`, `ElementsSessionStatus`, `ElementsTokenizeMode` and `ElementsCardBrand` constants. In Node.js the created session prints its `client_secret` as `[redacted]`; `JSON.stringify` keeps it.
+- `TapsilatError.retryable`, set when the API error says the request can be retried.
+
+### Fixed
+- Errors nested as `{"error": {"code", "message", "retryable"}}` set `message`, `apiCode` and `retryable` from that object instead of a message of `[object Object]`.
+
 ## [2025.12.5] - 2025-12-05
 
 ### Added

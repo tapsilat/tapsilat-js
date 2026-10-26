@@ -22,6 +22,8 @@ export class TapsilatError extends Error {
   public apiStatus?: string;
   /** Per-field validation messages from the API response body */
   public errors?: Record<string, unknown>;
+  /** Whether the API error says the request can be retried, as Elements errors do */
+  public retryable?: boolean;
   /** Raw API response body */
   public rawBody?: string;
 
@@ -64,6 +66,7 @@ export class TapsilatError extends Error {
     error.apiCode = apiError.apiCode;
     error.apiStatus = apiError.apiStatus;
     error.errors = apiError.errors;
+    error.retryable = apiError.retryable;
     error.rawBody = apiError.rawBody;
     return error;
   }
