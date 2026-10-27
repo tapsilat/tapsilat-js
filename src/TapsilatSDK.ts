@@ -199,7 +199,7 @@ export class TapsilatSDK {
    *
    * @param {TapsilatConfig} config - SDK configuration options
    * @param {string} config.bearerToken - API authentication token (required)
-   * @param {string} [config.baseURL='https://panel.tapsilat.dev/v1'] - API base URL
+   * @param {string} [config.baseURL='https://panel.tapsilat.dev/api/v1'] - API base URL; the default is the test environment, use https://panel.tapsilat.com/api/v1 for live
    * @param {number} [config.timeout=30000] - Request timeout in milliseconds
    * @param {number} [config.maxRetries=3] - Maximum number of retry attempts
    * @param {number} [config.retryDelay=1000] - Delay between retries in milliseconds
